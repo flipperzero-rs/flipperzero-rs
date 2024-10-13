@@ -54,7 +54,3 @@ This provides the same interface as [`storage.py`](https://github.com/flipperdev
 cargo build --release
 target/release/storage send my-app.fap /ext/apps/Examples/my-app.fap
 ```
-
-## Binding generation
-
-See [updating-sdk.md](../docs/updating-sdk.md) for details on how to update the SDK bindings using Docker and the `Dockerfile` or locally.

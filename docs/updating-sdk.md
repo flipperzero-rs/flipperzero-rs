@@ -1,49 +1,18 @@
 # Updating the supported SDK
 
-Currently [`flipperzero-sys`] bundles the SDK bindings with each release.
+The [`flipperzero-sys`] crate now generates bindings at compile time using a [`build.rs`] script.
 
-This is convenient for users in that it doesn't require any external dependency on
-[`flipperzero-firmware`] or compiler toolchain, however it means that each
-[`flipperzero-sys`] release is tightly bound to a specific SDK version and thus can only be used
-with a specific range of firmware releases.
+By default this will fetch the currently supported SDK and toolchain; then use those to generate
+the required Rust bindings.
 
-A better approach would be to build the bindings using a `build.rs` script.
+The selected SDK and Toolchain versions can be explicitly specified using the following environment variables:
 
-By default this would fetch the currently "supported" SDK and toolchain and use these to generate
-bindings. However it should be possible to either override the SDK and toolchain version downloaded
-or even point to a local `flipperzero-firmware` checkout.
+- `FLIPPER_SDK_VERSION`
+- `FLIPPER_TOOLCHAIN_VERSION`
 
-## Current process
-
-Prerequisites: [A recent version of libclang installed](https://rust-lang.github.io/rust-bindgen/requirements.html)
-
-To update the SDK you require a checkout of [`flipperzero-firmware`] pointing at the target
-commit/tag and need to run `./fbt` to download the toolchain and build a local copy of the SDK.
-Alternatively you can download a prebuilt SDK from the [Flipper Zero Update Server](https://update.flipperzero.one/builds/firmware/).
-
-Once the SDK is built, run the [`generate-bindings`] script to build a new [`bindings.rs`]:
-
-```bash
-$ cd tools/
-$ cargo run --bin generate-bindings ../../flipperzero-firmware/build/f7-firmware-D/sdk_headers
-$ cp bindings.rs ../crates/sys/src
-```
-
+The default values can be found in the `flipperzero-sys` [`build.rs`] script.
 Make sure to update the SDK details in [`README.md`] before making a new release.
 
-Alternatively, you can generate `binding.rs` in an isolated env using Docker and the following command:
-
-From the root of the repository, to build the binding for the branch/tag `0.102.3` of the official SDK:
-
-```shell
-image="$(docker build --build-arg BRANCH=0.102.3 --quiet --file tools/Dockerfile .)"
-container="$(docker container create --read-only "${image}")"
-docker container cp "${container}":bindings.rs ./crates/sys/src/bindings.rs
-docker container rm "${container}"
-```
-
-[`bindings.rs`]: ../crates/sys/src/bindings.rs
-[`flipperzero-firmware`]: https://github.com/flipperdevices/flipperzero-firmware
+[`build.rs`]: ../crates/sys/build.rs
 [`flipperzero-sys`]: https://crates.io/crates/flipperzero-sys
-[`generate-bindings`]: ../tools/src/bin/generate-bindings.rs
 [`README.md`]: ../README.md
