@@ -23,6 +23,7 @@ pub mod io;
 pub mod macros;
 pub mod notification;
 pub mod storage;
+pub mod subghz;
 pub mod toolbox;
 
 #[doc(hidden)]

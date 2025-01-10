@@ -41,6 +41,7 @@ embedded-hal-0 = { package = "embedded-hal", version = "0.2.7", features = ["unp
 
 # Docs
 document-features = { workspace = true, optional = true }
+uom = { version = "0.36.0", features = ["si", "u32"], default-features = false }
 
 [dev-dependencies]
 flipperzero-alloc.workspace = true
