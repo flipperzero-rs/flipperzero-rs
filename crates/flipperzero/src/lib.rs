@@ -27,9 +27,14 @@ pub mod toolbox;
 
 #[doc(hidden)]
 pub mod __macro_support {
-    use crate::furi::log::Level;
+    use crate::{
+        furi::log::Level,
+        gui::scene_manager::{self, SceneHandlers, SceneManager, Scenes},
+    };
 
     // Re-export for use in macros
+    pub use count_tts::count_tts as __count_tts;
+    pub use paste::paste as __paste;
     pub use ufmt;
 
     pub use crate::furi::string::FuriString;
@@ -50,6 +55,28 @@ pub mod __macro_support {
     /// changes to this module may occur in small-numbered versions without warning.
     pub fn __level_to_furi(level: Level) -> __sys::FuriLogLevel {
         level.to_furi()
+    }
+
+    /// ⚠️ WARNING: This is *not* a stable API! ⚠️
+    ///
+    /// This function, and all code contained in the `__macro_support` module, is a
+    /// *private* API of `flipperzero`. It is exposed publicly because it is used by the
+    /// `flipperzero` macros, but it is not part of the stable versioned API. Breaking
+    /// changes to this function may occur in small-numbered versions without warning.
+    pub fn __new_scene_manager<S: Scenes>(
+        scene_handlers: &'static SceneHandlers,
+    ) -> SceneManager<S> {
+        SceneManager::new(scene_handlers)
+    }
+
+    /// ⚠️ WARNING: This is *not* a stable API! ⚠️
+    ///
+    /// This function, and all code contained in the `__macro_support` module, is a
+    /// *private* API of `flipperzero`. It is exposed publicly because it is used by the
+    /// `flipperzero` macros, but it is not part of the stable versioned API. Breaking
+    /// changes to this function may occur in small-numbered versions without warning.
+    pub fn __scene_manager_event(event: __sys::SceneManagerEvent) -> scene_manager::Event {
+        scene_manager::Event::from_raw(event)
     }
 }
 

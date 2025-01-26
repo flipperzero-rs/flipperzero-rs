@@ -39,6 +39,10 @@ bitflags = "2.4"
 embedded-hal = { version = "1.0.0-rc.1", optional = true }
 embedded-hal-0 = { package = "embedded-hal", version = "0.2.7", features = ["unproven"], optional = true }
 
+# Macros
+count_tts = "0.2"
+paste = "1.0"
+
 # Docs
 document-features = { workspace = true, optional = true }
 
