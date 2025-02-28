@@ -8,7 +8,7 @@ use std::{
 
 use clap::Parser;
 use flipperzero_tools::{serial, storage};
-use rand::{rng, Rng};
+use rand::{Rng, rng};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
