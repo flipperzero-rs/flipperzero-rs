@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Helper for regenerating FlipperZero SDK bindings using Docker builder.
 
 set -e -o pipefail
@@ -14,7 +14,7 @@ BRANCH="${1}"
 
 function cleanup {
     if test -n "${CONTAINER}"; then
-        docker container rm "${CONTAINER}" > /dev/null
+        docker container rm "${CONTAINER}" >/dev/null
     fi
 }
 
