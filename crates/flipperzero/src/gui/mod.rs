@@ -50,7 +50,7 @@ impl Gui {
     /// While holding the Direct Draw lock, all input and draw call dispatch
     /// functions in the GUI service are disabled. No other applications or
     /// services will be able to draw until the lock is released.
-    pub fn direct_draw_acquire(&self) -> ExclusiveCanvas {
+    pub fn direct_draw_acquire(&self) -> ExclusiveCanvas<'_> {
         ExclusiveCanvas::new(self)
     }
 }

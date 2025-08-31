@@ -626,6 +626,7 @@ impl<'a> Extend<Cow<'a, str>> for FuriString {
 }
 
 impl FromIterator<FuriString> for FuriString {
+    #[allow(tail_expr_drop_order)]
     fn from_iter<T: IntoIterator<Item = FuriString>>(iter: T) -> Self {
         let mut iterator = iter.into_iter();
 

@@ -29,7 +29,7 @@ mod inlines;
     clippy::transmute_int_to_bool,
     clippy::useless_transmute,
     rustdoc::broken_intra_doc_links,
-    rust_2024_compatibility // temporary until bindgen target version is updated
+    unnecessary_transmutes, // https://github.com/rust-lang/rust-bindgen/issues/2807
 )]
 mod bindings;
 

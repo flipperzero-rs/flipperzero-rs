@@ -507,12 +507,12 @@ enum OperationKind {
 }
 
 trait OperationLike {
-    fn as_op(&mut self) -> Operation;
+    fn as_op(&mut self) -> Operation<'_>;
     fn kind(&self) -> OperationKind;
 }
 
 impl OperationLike for Operation<'_> {
-    fn as_op(&mut self) -> Operation {
+    fn as_op(&mut self) -> Operation<'_> {
         match self {
             Operation::Read(buffer) => Operation::Read(buffer),
             Operation::Write(buffer) => Operation::Write(buffer),
