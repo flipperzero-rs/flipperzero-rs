@@ -206,7 +206,7 @@ fn parse_args() -> clap::ArgMatches {
 struct Cb;
 
 impl Cb {
-    fn preprocess_doxygen_comments(comment: &str) -> Cow<str> {
+    fn preprocess_doxygen_comments(comment: &str) -> Cow<'_, str> {
         //
         static PARAM_IN_OUT: Lazy<Regex> = Lazy::new(|| {
             Regex::new(r"(\n\s*[@\\])param\[(?:\s*(in)\s*,?\s*(out)\s*|\s*(out)\s*,\s*(in)\s*)]")

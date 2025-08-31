@@ -120,7 +120,7 @@ impl FlipperStorage {
             if let Some(error) = SerialCli::get_error(&line) {
                 self.cli.read_until_prompt()?;
 
-                return Err(io::Error::new(io::ErrorKind::Other, error));
+                return Err(io::Error::other(error));
             }
 
             self.port_mut().write_all(&buf[..n])?;
@@ -154,15 +154,15 @@ impl FlipperStorage {
         if let Some(error) = SerialCli::get_error(&line) {
             self.cli.read_until_prompt()?;
 
-            return Err(io::Error::new(io::ErrorKind::Other, error));
+            return Err(io::Error::other(error));
         }
 
         let (_, size) = line
             .split_once(": ")
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "failed to read chunk size"))?;
+            .ok_or_else(|| io::Error::other("failed to read chunk size"))?;
         let size: usize = size
             .parse()
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "failed to parse chunk size"))?;
+            .map_err(|_| io::Error::other("failed to parse chunk size"))?;
 
         let mut data = BytesMut::with_capacity(BUF_SIZE);
 
@@ -217,7 +217,7 @@ impl FlipperStorage {
             .unwrap()
             .captures(&line)
             .and_then(|m| m[1].parse::<usize>().ok())
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "failed to parse size"))?;
+            .ok_or_else(|| io::Error::other("failed to parse size"))?;
 
         Ok(size)
     }

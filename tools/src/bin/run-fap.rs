@@ -8,7 +8,7 @@ use std::{
 
 use clap::Parser;
 use flipperzero_tools::{serial, storage};
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -106,7 +106,7 @@ fn main() -> Result<(), Error> {
 
     // Upload the FAP to a temporary directory.
     let dest_dir =
-        storage::FlipperPath::from(format!("/ext/.tmp/rs-{:08x}", thread_rng().gen::<u32>()));
+        storage::FlipperPath::from(format!("/ext/.tmp/rs-{:08x}", rng().random::<u32>()));
     let dest_file = dest_dir.clone() + file_name;
     store
         .mkdir(&dest_dir)

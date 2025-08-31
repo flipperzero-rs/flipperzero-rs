@@ -113,7 +113,7 @@ impl SerialCli {
         self.read_until_prompt()?;
 
         if let Some(error) = Self::get_error(&line) {
-            return Err(io::Error::new(io::ErrorKind::Other, error));
+            return Err(io::Error::other(error));
         }
 
         Ok(line.into_owned())
