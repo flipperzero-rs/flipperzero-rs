@@ -30,6 +30,7 @@ mod inlines;
     clippy::useless_transmute,
     rustdoc::broken_intra_doc_links,
     unnecessary_transmutes, // https://github.com/rust-lang/rust-bindgen/issues/2807
+    clippy::ptr_offset_with_cast, // https://github.com/rust-lang/rust-bindgen/issues/3053
 )]
 mod bindings;
 
