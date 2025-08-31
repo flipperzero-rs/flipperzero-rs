@@ -2,47 +2,57 @@
   description = "Rust on the Flipper Zero";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
   outputs =
-    {
+    inputs@{
       nixpkgs,
-      flake-utils,
+      flake-parts,
       rust-overlay,
       ...
     }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ rust-overlay.overlays.default ];
-        };
-        rust = pkgs.rust-bin.fromRustupToolchainFile ./crates/rust-toolchain.toml;
-      in
-      {
-        formatter = pkgs.nixfmt-rfc-style;
-        devShells = {
-          default = pkgs.mkShell {
-            nativeBuildInputs = [
-              rust
-              pkgs.python3
-              pkgs.pkg-config
-              pkgs.systemd
-            ];
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+      perSystem =
+        { system, pkgs, ... }:
+        let
+          rust = pkgs.rust-bin.fromRustupToolchainFile ./crates/rust-toolchain.toml;
+        in
+        {
+          _module.args.pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ rust-overlay.overlays.default ];
           };
-          github-actions = pkgs.mkShell {
-            nativeBuildInputs = [
-              pkgs.act
-              pkgs.actionlint
-              pkgs.pinact
-            ];
+          formatter = pkgs.nixfmt-rfc-style;
+          devShells = {
+            default = pkgs.mkShell {
+              packages = with pkgs; [
+                rust
+                python3
+                pkg-config
+                systemd
+              ];
+            };
+            github-actions = pkgs.mkShell {
+              nativeBuildInputs = with pkgs; [
+                act
+                actionlint
+                pinact
+              ];
+            };
           };
         };
-      }
-    );
+    };
 }
