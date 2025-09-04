@@ -81,12 +81,26 @@ impl<'a> ExclusiveCanvas<'a> {
     }
 
     /// Get Canvas.
-    pub fn canvas(&self) -> &'a Canvas {
+    ///
+    /// This can't be used with a temporary reference.
+    ///
+    /// ```compile_fail
+    /// # let gui = Gui::open();
+    /// let canvas = gui.direct_draw_acquire().canvas();
+    /// ```
+    pub fn canvas(&self) -> &Canvas {
         unsafe { Canvas::from_raw(self.canvas.as_ptr()) }
     }
 
     /// Get mutable Canvas.
-    pub fn canvas_mut(&mut self) -> &'a mut Canvas {
+    ///
+    /// This can't be used with a temporary reference.
+    ///
+    /// ```compile_fail
+    /// # let gui = Gui::open();
+    /// let canvas = gui.direct_draw_acquire().canvas_mut();
+    /// ```
+    pub fn canvas_mut(&mut self) -> &mut Canvas {
         unsafe { Canvas::from_raw_mut(self.canvas.as_ptr()) }
     }
 }
