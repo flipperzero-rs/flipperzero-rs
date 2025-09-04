@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Switched to `nightly-2025-08-31` compiler
+- Fix lifetime of `ExclusiveCanvas::canvas` and `canvas_mut`
 
 ### Removed
 
