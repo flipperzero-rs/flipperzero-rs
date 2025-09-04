@@ -81,12 +81,12 @@ impl<'a> ExclusiveCanvas<'a> {
     }
 
     /// Get Canvas.
-    pub fn canvas(&self) -> &'a Canvas {
+    pub fn canvas(&self) -> &Canvas {
         unsafe { Canvas::from_raw(self.canvas.as_ptr()) }
     }
 
     /// Get mutable Canvas.
-    pub fn canvas_mut(&mut self) -> &'a mut Canvas {
+    pub fn canvas_mut(&mut self) -> &mut Canvas {
         unsafe { Canvas::from_raw_mut(self.canvas.as_ptr()) }
     }
 }
