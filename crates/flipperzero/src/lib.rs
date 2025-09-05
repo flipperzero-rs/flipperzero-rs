@@ -14,6 +14,7 @@
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 extern crate alloc;
 
+pub mod bluetooth;
 pub mod dialogs;
 pub mod dolphin;
 pub mod furi;

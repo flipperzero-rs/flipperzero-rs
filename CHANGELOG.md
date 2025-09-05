@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `flipperzero::bluetooth`, providing APIs for interacting with Bluetooth:
+  - `beacon` module for operating with the built-in Bluetooth LE beacon.
+  - `test_patterns` module with pattern generators and listeners.
+
 ### Changed
 
 - Switched to `nightly-2025-08-31` compiler
@@ -21,18 +25,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `flipperzero::furi::hal::power::Power` handle to Power service
 - High-level serial API (#216)
-- Add `gui::Gui` record and basic support for using `gui::Canvas` in monopoly mode
-- Add [`embedded-graphics`](https://crates.io/crates/embedded-graphics) support allowing `gui::Canvas`
-  to be used as a [`DrawTarget`](https://docs.rs/embedded-graphics/latest/embedded_graphics/draw_target/trait.DrawTarget.html) (#214)
+- Add `gui::Gui` record and basic support for using `gui::Canvas` in monopoly
+  mode
+- Add [`embedded-graphics`](https://crates.io/crates/embedded-graphics) support
+  allowing `gui::Canvas` to be used as a
+  [`DrawTarget`](https://docs.rs/embedded-graphics/latest/embedded_graphics/draw_target/trait.DrawTarget.html)
+  (#214)
 
 ### Changed
 
 - Updated to SDK 86.0 (firmware 1.3.4)
 - `flipperzero::furi::time::Duration` has been renamed to `FuriDuration`
 - `flipperzero::furi::time::Instant` has been renamed to `FuriInstant`
-- `flipperzero_sys::furi::UnsafeRecord` now implements `Clone` to support reference-count use
-- `flipperzero::notification::NotificationService` has been renamed `NotificationApp`
-  to match the underlying C API
+- `flipperzero_sys::furi::UnsafeRecord` now implements `Clone` to support
+  reference-count use
+- `flipperzero::notification::NotificationService` has been renamed
+  `NotificationApp` to match the underlying C API
 
 ### Removed
 
@@ -47,12 +55,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Updated to SDK 79.2 (firmware 1.2.0)
-- Enums in sys bindings now are newtype-enums and no longer have a duplicate prefix
+- Enums in sys bindings now are newtype-enums and no longer have a duplicate
+  prefix
 - Fixed passing of crash message `__furi_crash_implementation`
-- Allow no argument calls to `flipperzero_sys::crash!` and `flipperzero_sys::halt!` macros
+- Allow no argument calls to `flipperzero_sys::crash!` and
+  `flipperzero_sys::halt!` macros
 - `flipperzero_sys::furi::UnsafeRecord::open` now takes a `&'static CStr`
 - Fixed overread when printing panic message to console
-- Added short delay in panic handler so message can be seen on USB console before `furi_crash`
+- Added short delay in panic handler so message can be seen on USB console
+  before `furi_crash`
 
 ### Removed
 
@@ -72,9 +83,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Updated to SDK 78 (firmware 1.1.2)
-- `flipperzero::dialogs::DialogFileBrowserOptions` now uses native initialization function.
+- `flipperzero::dialogs::DialogFileBrowserOptions` now uses native
+  initialization function.
 - `flipperzero::time::Duration::MAX` is now the maximum duration representable.
-- `sys::furi::Status::err_or_else` has been replaced by `sys::furi::Status::into_result`.
+- `sys::furi::Status::err_or_else` has been replaced by
+  `sys::furi::Status::into_result`.
 
 ### Removed
 
@@ -86,8 +99,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `flipperzero::gpio::i2c`, providing a Rust interface to the external 3.3V I2C
   bus over GPIO pins C0 and C1, as well as the internal (power) I2C bus.
-- `flipperzero::furi::string::FuriString::into_raw`, allowing ownership
-  of the string to be able to be handed over to C code.
+- `flipperzero::furi::string::FuriString::into_raw`, allowing ownership of the
+  string to be able to be handed over to C code.
 
 ### Changed
 
@@ -102,8 +115,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `flipperzero::toolbox::{Md5, Sha256}` (due to their removal from the Flipper
   Zero SDK API).
-- `flipperzero_sys::c_string!`, since `CStr` literals are stable now
-  and the macro did not provide any validations.
+- `flipperzero_sys::c_string!`, since `CStr` literals are stable now and the
+  macro did not provide any validations.
 
 ## [0.11.0]
 
@@ -120,7 +133,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Documentation
 
-- Feature flags are now documented and the items guarded by them are now annotated.
+- Feature flags are now documented and the items guarded by them are now
+  annotated.
 
 ## [0.10.0]
 
