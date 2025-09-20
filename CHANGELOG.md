@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `flipperzero::bluetooth`, providing APIs for interacting with Bluetooth:
   - `beacon` module for operating with the built-in Bluetooth LE beacon.
   - `test_patterns` module with pattern generators and listeners.
+- `flipperzero::furi::hal::rt` for getting/setting RTC datetime/timestamp
+- `flipperzero::datetime` module for working with `DateTime` type
+- `flipperzero::locale` module for locale formatting
 
 ### Changed
 
