@@ -15,12 +15,14 @@
 extern crate alloc;
 
 pub mod bluetooth;
+pub mod datetime;
 pub mod dialogs;
 pub mod dolphin;
 pub mod furi;
 pub mod gpio;
 pub mod gui;
 pub mod io;
+pub mod locale;
 pub mod macros;
 pub mod notification;
 pub mod prelude;
