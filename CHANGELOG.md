@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Added `flipperzero::prelude` for standard exports
+
 ### Changed
 
 - Switched to `nightly-2025-08-31` compiler

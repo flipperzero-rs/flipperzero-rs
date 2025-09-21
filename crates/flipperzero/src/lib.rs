@@ -22,6 +22,7 @@ pub mod gui;
 pub mod io;
 pub mod macros;
 pub mod notification;
+pub mod prelude;
 pub mod serial;
 pub mod storage;
 pub mod toolbox;
