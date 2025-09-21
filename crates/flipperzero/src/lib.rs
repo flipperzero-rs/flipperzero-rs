@@ -29,6 +29,7 @@ pub mod prelude;
 pub mod serial;
 pub mod storage;
 pub mod toolbox;
+pub mod version;
 
 #[doc(hidden)]
 pub mod __macro_support {

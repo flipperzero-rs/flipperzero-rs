@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `flipperzero::furi::hal::rt` for getting/setting RTC datetime/timestamp
 - `flipperzero::datetime` module for working with `DateTime` type
 - `flipperzero::locale` module for locale formatting
+- Add `flipperzero::version` for accessing firmware version information
 
 ### Changed
 
