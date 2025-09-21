@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Added `flipperzero::prelude` for standard exports
+- `flipperzero::furi::hal::rt` for getting/setting RTC datetime/timestamp
+- `flipperzero::datetime` module for working with `DateTime` type
+- `flipperzero::locale` module for locale formatting
 
 ### Changed
 
@@ -306,7 +309,6 @@ Initial release!
 [0.7.2]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.7.2
 [0.7.1]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.7.1
 [0.7.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.7.0
-[0.6.1]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.6.1
 [0.6.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.6.0
 [0.5.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.5.0
 [0.4.1]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.4.1
