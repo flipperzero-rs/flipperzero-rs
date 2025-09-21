@@ -569,7 +569,7 @@ impl embedded_hal::i2c::ErrorType for EmbeddedHalBus {
 
 #[cfg(feature = "embedded-hal")]
 impl OperationLike for embedded_hal::i2c::Operation<'_> {
-    fn as_op(&mut self) -> Operation {
+    fn as_op(&mut self) -> Operation<'_> {
         match self {
             embedded_hal::i2c::Operation::Read(buffer) => Operation::Read(buffer),
             embedded_hal::i2c::Operation::Write(buffer) => Operation::Write(buffer),
@@ -624,7 +624,7 @@ impl embedded_hal::i2c::I2c for EmbeddedHalBus {
 
 #[cfg(feature = "embedded-hal-0")]
 impl OperationLike for embedded_hal_0::blocking::i2c::Operation<'_> {
-    fn as_op(&mut self) -> Operation {
+    fn as_op(&mut self) -> Operation<'_> {
         match self {
             embedded_hal_0::blocking::i2c::Operation::Read(buffer) => Operation::Read(buffer),
             embedded_hal_0::blocking::i2c::Operation::Write(buffer) => Operation::Write(buffer),
