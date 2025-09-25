@@ -25,6 +25,7 @@ pub mod notification;
 pub mod prelude;
 pub mod serial;
 pub mod storage;
+pub mod subghz;
 pub mod toolbox;
 
 #[doc(hidden)]
