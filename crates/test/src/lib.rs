@@ -229,10 +229,6 @@ pub mod __macro_support {
         )?;
         ufmt::uwriteln!(output_file, "")?;
 
-        if failed == 0 {
-            Ok(())
-        } else {
-            Err(1)
-        }
+        if failed == 0 { Ok(()) } else { Err(1) }
     }
 }

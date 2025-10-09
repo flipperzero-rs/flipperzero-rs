@@ -10,7 +10,7 @@ extern crate flipperzero_alloc;
 extern crate flipperzero_rt;
 
 use alloc::boxed::Box;
-use core::ffi::{c_char, c_void, CStr};
+use core::ffi::{CStr, c_char, c_void};
 use core::ptr::NonNull;
 use flipperzero::furi::string::FuriString;
 use flipperzero_rt::{entry, manifest};

@@ -5,8 +5,8 @@
 use std::borrow::Cow;
 use std::{env, fs};
 
-use bindgen::callbacks::ParseCallbacks;
 use bindgen::EnumVariation;
+use bindgen::callbacks::ParseCallbacks;
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::{crate_authors, crate_description, crate_version, value_parser};
 use once_cell::sync::Lazy;

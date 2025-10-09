@@ -1,4 +1,4 @@
-use super::{messages, NotificationSequence};
+use super::{NotificationSequence, messages};
 use crate::notification_sequence;
 
 pub const RESET_VIBRO: NotificationSequence = notification_sequence![messages::VIBRO_OFF];

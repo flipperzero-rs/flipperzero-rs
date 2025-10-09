@@ -3,7 +3,7 @@
 #[cfg(feature = "alloc")]
 use alloc::ffi::CString;
 
-use core::ffi::{c_void, CStr};
+use core::ffi::{CStr, c_void};
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
 use core::ptr::{self, NonNull};

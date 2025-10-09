@@ -1,4 +1,4 @@
-use core::ffi::{c_void, CStr};
+use core::ffi::{CStr, c_void};
 use core::ptr::NonNull;
 
 use flipperzero_sys::furi::UnsafeRecord;

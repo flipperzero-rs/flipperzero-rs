@@ -10,7 +10,7 @@ use bytes::BytesMut;
 use regex::Regex;
 use serialport::SerialPort;
 
-use crate::serial::{SerialCli, CLI_EOL};
+use crate::serial::{CLI_EOL, SerialCli};
 
 const BUF_SIZE: usize = 1024;
 
