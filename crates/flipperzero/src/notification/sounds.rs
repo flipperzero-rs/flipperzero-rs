@@ -1,6 +1,6 @@
 //! Common sounds that can be produced by the Flipper Zero.
 
-use super::{messages, NotificationMessage, NotificationSequence};
+use super::{NotificationMessage, NotificationSequence, messages};
 use crate::notification_sequence;
 
 pub const RESET_SOUND: NotificationSequence = notification_sequence![messages::SOUND_OFF];

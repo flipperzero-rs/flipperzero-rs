@@ -3,7 +3,7 @@
 use core::time;
 #[cfg(feature = "alloc")]
 use core::{
-    ffi::{c_void, CStr},
+    ffi::{CStr, c_void},
     fmt,
     ptr::NonNull,
     str,

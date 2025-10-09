@@ -2,8 +2,8 @@
 
 use core::ptr::NonNull;
 
-use crate::furi::time::FuriDuration;
 use crate::furi::Error;
+use crate::furi::time::FuriDuration;
 use flipperzero_sys as sys;
 use flipperzero_sys::furi::Status;
 

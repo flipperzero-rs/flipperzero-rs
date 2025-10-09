@@ -4,7 +4,7 @@ use core::{
     borrow::Borrow,
     cmp::Ordering,
     convert::Infallible,
-    ffi::{c_char, CStr},
+    ffi::{CStr, c_char},
     fmt::{self, Write},
     hash,
     mem::ManuallyDrop,

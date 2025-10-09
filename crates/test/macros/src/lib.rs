@@ -1,11 +1,12 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
+    Expr, ExprArray, Ident, Item, ItemMod, ReturnType, Stmt, Token,
     parse::{self, Parse},
     punctuated::Punctuated,
     spanned::Spanned,
-    token, Expr, ExprArray, Ident, Item, ItemMod, ReturnType, Stmt, Token,
+    token,
 };
 
 mod deassert;

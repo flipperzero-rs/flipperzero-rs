@@ -1,4 +1,4 @@
-use super::{messages, sounds, NotificationSequence};
+use super::{NotificationSequence, messages, sounds};
 use crate::notification_sequence;
 
 pub const CHARGING: NotificationSequence =
