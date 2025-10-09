@@ -14,7 +14,7 @@ use core::time::Duration;
 
 use flipperzero::{
     furi::thread::sleep,
-    notification::{feedback, led, NotificationApp},
+    notification::{NotificationApp, feedback, led},
 };
 use flipperzero_rt::{entry, manifest};
 

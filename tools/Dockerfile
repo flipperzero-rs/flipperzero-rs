@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM --platform=x86_64 debian:bookworm AS firmware-builder
+FROM debian:bookworm AS firmware-builder
 
 # FIRMWARE_GIT should be a git repo with the firmware source code
 ARG FIRMWARE_GIT="https://github.com/flipperdevices/flipperzero-firmware.git"
@@ -21,7 +21,7 @@ RUN ./fbt
 
 ####################
 # bindgen
-FROM --platform=x86_64 rust:bookworm AS builder
+FROM rust:1.85.0-bookworm AS builder
 
 ARG CLANG_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz"
 
@@ -47,9 +47,8 @@ WORKDIR /app/flipperzero-rs/
 # Cache cargo dependencies
 WORKDIR /app/flipperzero-rs/tools
 COPY ./tools/Cargo.toml ./tools/Cargo.lock ./
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build
 
 # Now copy the rest of the files
 WORKDIR /app/flipperzero-rs/tools

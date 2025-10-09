@@ -1,4 +1,4 @@
-use super::{messages, NotificationSequence};
+use super::{NotificationSequence, messages};
 use crate::notification_sequence;
 
 pub const RESET_RED: NotificationSequence = notification_sequence![messages::RED_0];

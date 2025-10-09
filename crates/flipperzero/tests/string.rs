@@ -875,9 +875,11 @@ mod str_tests {
     fn find_str() {
         // byte positions
         assert_eq!(String::from("").find(&String::from("")), Some(0));
-        assert!(String::from("banana")
-            .find(&String::from("apple pie"))
-            .is_none());
+        assert!(
+            String::from("banana")
+                .find(&String::from("apple pie"))
+                .is_none()
+        );
 
         let mut data = String::from("abcabc");
         let ab = String::from("ab");
