@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Added `flipperzero::prelude` for standard exports
+- Add `flipperzero::prelude` for standard exports
+- Add `flipperzero::version` for accessing firmware version information
 
 ### Changed
 
