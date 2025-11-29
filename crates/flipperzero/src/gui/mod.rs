@@ -1,6 +1,7 @@
 //! GUI service.
 
 pub mod canvas;
+pub mod variable_item_list;
 
 use core::ffi::CStr;
 use core::marker::PhantomData;
