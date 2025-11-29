@@ -53,6 +53,36 @@ macro_rules! log {
     );
 }
 
+#[macro_export]
+macro_rules! log_str {
+    (target: $target:expr, $lvl:expr, $str:expr) => ({
+        // The `uwrite!` macro expects `ufmt` in scope
+        use $crate::__macro_support::ufmt;
+
+        if $lvl <= $crate::furi::log::LevelFilter::current() {
+            const TARGET: *const ::core::ffi::c_char =
+                match ::core::ffi::CStr::from_bytes_with_nul(
+                    ::core::concat!($target, "\0").as_bytes(),
+                ) {
+                    Ok(cstr) => cstr.as_ptr(),
+                    Err(_error) => panic!("target contains NULs"),
+                };
+
+            // don't pass raw expression to the internal `unsafe` block
+            let lvl = $crate::__macro_support::__level_to_furi($lvl);
+            let buf = $str.as_c_ptr();
+            unsafe {
+                $crate::__macro_support::__sys::furi_log_print_format(lvl, TARGET, buf);
+            };
+        }
+    });
+
+    ($lvl:expr, $msg:expr) => (
+        $crate::log_str!(target: module_path!(), $lvl, $msg)
+    );
+}
+
+
 /// Logs a message at the error level.
 ///
 /// # Examples
