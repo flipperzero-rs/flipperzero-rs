@@ -12,6 +12,7 @@ pub mod view_dispatcher;
 pub mod view_port;
 #[cfg(feature = "xbm")]
 pub mod xbm;
+pub mod variable_item_list;
 
 use core::ffi::CStr;
 use core::ops::{Deref, DerefMut};
