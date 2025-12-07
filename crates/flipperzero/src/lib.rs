@@ -10,6 +10,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(rustdoc::broken_intra_doc_links)]
 
+#![warn(clippy::undocumented_unsafe_blocks)]
+#![warn(clippy::multiple_unsafe_ops_per_block)]
+
 #[cfg(any(feature = "alloc", docsrs))]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 extern crate alloc;
