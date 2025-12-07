@@ -64,7 +64,7 @@ crc32fast = { version = "1", default-features = false }
 
 [features]
 
-default = ["embedded-graphics"]
+default = ["embedded-graphics", "alloc"]
 
 #! ## Core features
 
