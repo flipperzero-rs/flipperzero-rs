@@ -41,14 +41,21 @@ pub mod alloc {
     extern crate alloc;
 
     use crate::furi::string::FuriString;
-    use alloc::vec::Vec;
-    use core::ptr;
+    use alloc::{boxed::Box, vec::Vec};
+    use core::{ffi::c_void, ptr};
     use flipperzero_sys as sys;
 
     pub struct VariableItemList<'a> {
         list: &'a mut super::VariableItemList,
         strings: Vec<FuriString>,
         items: Vec<ptr::NonNull<sys::VariableItem>>,
+        on_click_callback: Option<Callback>,
+    }
+
+    /// what do you want to do when the OK button is clicked
+    enum Callback {
+        SameActionForAllInputs,
+        UniqueCallbackForAllInputs(Vec<(usize, Box<dyn Fn() -> ()>)>),
     }
 
     impl VariableItemList<'_> {
@@ -57,6 +64,7 @@ pub mod alloc {
                 list: unsafe {
                     super::VariableItemList::from_raw_mut(sys::variable_item_list_alloc())
                 },
+                on_click_callback: None,
                 strings: Vec::new(),
                 items: Vec::new(),
             }
@@ -85,9 +93,56 @@ pub mod alloc {
             self.strings.push(label);
         }
 
+        pub fn push_item_with_on_click_callback(
+            &mut self,
+            label: FuriString,
+            callback: Box<dyn Fn() -> ()>,
+        ) -> () {
+            let item = unsafe {
+                sys::variable_item_list_add(
+                    self.list.as_ptr(),
+                    label.as_c_ptr(),
+                    0,
+                    None,
+                    ptr::null_mut(),
+                )
+            };
+
+            let item: ptr::NonNull<flipperzero_sys::VariableItem> = ptr::NonNull::new(item)
+                .expect("ptr returned from variable_item_list_add is never null");
+
+            self.items.push(item);
+            self.strings.push(label);
+
+            if let Some(on_click_callback) = &mut self.on_click_callback {
+                match on_click_callback {
+                    Callback::UniqueCallbackForAllInputs(items) => items.push((self.items.len(), callback)),
+                    _ => todo!()
+                }
+            } else {
+                let mut items = Vec::new();
+                items.push((self.items.len(), callback));
+
+
+                unsafe {
+                    sys::variable_item_list_set_enter_callback(
+                        self.list.as_ptr(),
+                        Some(unique_on_enter_callback),
+                        ptr::from_mut(&mut items).cast::<c_void>(),
+                    );
+                };
+
+                self.on_click_callback = Some(Callback::UniqueCallbackForAllInputs(items));
+            }
+        }
+
         pub fn clear(&mut self) -> () {
             unsafe { sys::variable_item_list_reset(self.list.as_ptr()) };
         }
+    }
+
+    unsafe extern "C" fn unique_on_enter_callback(context: *mut c_void, index: u32) -> () {
+        todo!()
     }
 
     impl Drop for VariableItemList<'_> {
@@ -99,4 +154,3 @@ pub mod alloc {
         }
     }
 }
-
