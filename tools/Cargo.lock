@@ -63,9 +63,7 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.72.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "993776b509cfb49c750f11b8f07a46fa23e0a1386ffc01fb1e7d343efc387895"
+version = "0.72.0"
 dependencies = [
  "bitflags 2.9.4",
  "cexpr",

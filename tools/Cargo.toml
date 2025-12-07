@@ -6,7 +6,7 @@ version = "0.15.0"
 edition = "2024"
 
 [dependencies]
-bindgen = "0.72.1"
+bindgen = { path = "/home/lofty/Documents/Creative/Programming/Rust/rust-bindgen/bindgen/" }
 bytes = "1.5"
 camino = "1.1"
 clap = { version = "4.4", features = ["cargo", "derive"] }
