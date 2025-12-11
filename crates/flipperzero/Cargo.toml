@@ -19,6 +19,7 @@ all-features = true
 [lib]
 bench = false
 harness = false
+doctest = false
 
 [dependencies]
 flipperzero-sys.workspace = true
