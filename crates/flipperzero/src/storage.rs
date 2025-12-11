@@ -4,7 +4,9 @@ use core::ptr::NonNull;
 use flipperzero_sys::furi::UnsafeRecord;
 use flipperzero_sys::{self as sys, HasFlag};
 
+use crate::furi::string::FuriString;
 use crate::io::*;
+use crate::path::Path;
 
 /// Storage service handle.
 #[derive(Clone)]
@@ -131,7 +133,9 @@ impl OpenOptions {
         )
     }
 
-    pub fn open(self, path: &CStr) -> Result<File, Error> {
+    pub fn open(self, path: impl AsRef<Path>) -> Result<File> {
+        let path: &Path = path.as_ref();
+
         // It's possible to produce a nonsensical `open_mode` using the above
         // operations, so we have some logic here to drop any extraneous
         // information. The possible open modes form a partial order (for
@@ -154,7 +158,7 @@ impl OpenOptions {
         if unsafe {
             sys::storage_file_open(
                 f.as_ptr(),
-                path.as_ptr().cast(),
+                path.as_c_str().as_ptr().cast(),
                 self.access_mode,
                 canonicalized_open_mode,
             )
@@ -176,13 +180,41 @@ pub struct File {
 }
 
 impl File {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let storage = Storage::open();
         Self {
             // SAFETY: Alloc always returns a valid non-null pointer or `furi_panic`s.
             raw: unsafe { NonNull::new_unchecked(sys::storage_file_alloc(storage.as_ptr())) },
             storage,
         }
+    }
+
+    /// Attempts to open a file in read-only mode.
+    ///
+    /// This function will return an error if path does not already exist.
+    pub fn open(path: impl AsRef<Path>) -> Result<Self> {
+        OpenOptions::new().read(true).open_existing(true).open(path)
+    }
+
+    /// Opens a file in write-only mode.
+    ///
+    /// This function will create a file if it does not exist, and will truncate it if it does.
+    pub fn create(path: impl AsRef<Path>) -> Result<Self> {
+        OpenOptions::new()
+            .write(true)
+            .create_always(true)
+            .open(path)
+    }
+
+    /// Attempts to create a new file in read-write mode.
+    ///
+    /// This function will return an error if path does not already exist.
+    pub fn create_new(path: impl AsRef<Path>) -> Result<Self> {
+        OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(path)
     }
 
     /// Obtain raw Furi file handle.
@@ -211,7 +243,7 @@ impl Drop for File {
 }
 
 impl Read for File {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         let bytes_read = unsafe {
             sys::storage_file_read(self.as_ptr(), buf.as_mut_ptr() as *mut c_void, buf.len())
         };
@@ -221,10 +253,18 @@ impl Read for File {
             None => Ok(bytes_read),
         }
     }
+
+    fn read_to_string(&mut self, string: &mut FuriString) -> Result<usize> {
+        let file_len = self.stream_len()?;
+
+        string.reserve(file_len);
+
+        default_read_to_string(self, string)
+    }
 }
 
 impl Seek for File {
-    fn seek(&mut self, pos: SeekFrom) -> Result<usize, Error> {
+    fn seek(&mut self, pos: SeekFrom) -> Result<usize> {
         let (from_start, offset) = match pos {
             SeekFrom::Start(n) => (true, n.try_into().map_err(|_| Error::InvalidParameter)?),
             SeekFrom::Current(n) => (false, n.try_into().map_err(|_| Error::InvalidParameter)?),
@@ -254,11 +294,11 @@ impl Seek for File {
         }
     }
 
-    fn rewind(&mut self) -> Result<(), Error> {
+    fn rewind(&mut self) -> Result<()> {
         self.seek(SeekFrom::Start(0)).map(|_| {})
     }
 
-    fn stream_len(&mut self) -> Result<usize, Error> {
+    fn stream_len(&mut self) -> Result<usize> {
         Ok(unsafe {
             sys::storage_file_size(self.as_ptr())
                 .try_into()
@@ -266,7 +306,7 @@ impl Seek for File {
         })
     }
 
-    fn stream_position(&mut self) -> Result<usize, Error> {
+    fn stream_position(&mut self) -> Result<usize> {
         Ok(unsafe {
             sys::storage_file_tell(self.as_ptr())
                 .try_into()
@@ -276,7 +316,7 @@ impl Seek for File {
 }
 
 impl Write for File {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize> {
         let bytes_written = unsafe {
             sys::storage_file_write(self.as_ptr(), buf.as_ptr() as *mut c_void, buf.len())
         };
@@ -287,7 +327,7 @@ impl Write for File {
         }
     }
 
-    fn flush(&mut self) -> Result<(), Error> {
+    fn flush(&mut self) -> Result<()> {
         Ok(())
     }
 }
@@ -296,4 +336,16 @@ impl Default for File {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Reads the entire contents of a file into a string.
+///
+/// This is a convenience function for using `File::open` and `read_to_string`
+/// with fewer imports and without an intermediate variable.
+pub fn read_to_string(path: impl AsRef<Path>) -> Result<FuriString> {
+    let mut string = FuriString::new();
+
+    File::open(path)?.read_to_string(&mut string)?;
+
+    Ok(string)
 }

@@ -3,6 +3,15 @@ use core::fmt;
 
 use flipperzero_sys as sys;
 
+use crate::furi::string::FuriString;
+
+/// How many bytes to read at a time.
+/// This is kept small as the buffer is often stack allocated.
+pub(crate) const DEFAULT_BUF_SIZE: usize = 64;
+
+/// A specialized `Result` type for I/O operations.
+pub type Result<T> = core::result::Result<T, Error>;
+
 /// Stream and file system related error kinds.
 ///
 /// This list may grow over time, and it is not recommended to exhaustively
@@ -85,7 +94,7 @@ impl fmt::Display for Error {
 }
 
 impl ufmt::uDisplay for Error {
-    fn fmt<W>(&self, f: &mut ufmt::Formatter<'_, W>) -> Result<(), W::Error>
+    fn fmt<W>(&self, f: &mut ufmt::Formatter<'_, W>) -> core::result::Result<(), W::Error>
     where
         W: ufmt::uWrite + ?Sized,
     {
@@ -101,19 +110,49 @@ impl ufmt::uDisplay for Error {
 pub trait Read {
     /// Reads some bytes from this source into the given buffer, returning how many bytes
     /// were read.
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error>;
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize>;
+
+    /// Reads all bytes until EOF in this source, appending them to `buf``.
+    ///
+    /// If successful, this function returns the number of bytes which were read and appended to `buf``.
+    fn read_to_string(&mut self, string: &mut FuriString) -> Result<usize> {
+        default_read_to_string(self, string)
+    }
+}
+
+pub(crate) fn default_read_to_string<R: Read + ?Sized>(
+    r: &mut R,
+    string: &mut FuriString,
+) -> Result<usize> {
+    let mut total_bytes_read = 0;
+
+    let mut buf = [0u8; DEFAULT_BUF_SIZE];
+    loop {
+        let bytes_read = r.read(&mut buf)?;
+        if bytes_read == 0 {
+            break;
+        }
+
+        total_bytes_read += bytes_read;
+
+        for ch in buf[0..bytes_read].iter().copied() {
+            string.push(ch as char);
+        }
+    }
+
+    Ok(total_bytes_read)
 }
 
 /// Trait comparable to `std::Seek` for the Flipper Zero API
 pub trait Seek {
-    fn seek(&mut self, pos: SeekFrom) -> Result<usize, Error>;
+    fn seek(&mut self, pos: SeekFrom) -> Result<usize>;
 
-    fn rewind(&mut self) -> Result<(), Error> {
+    fn rewind(&mut self) -> Result<()> {
         self.seek(SeekFrom::Start(0))?;
         Ok(())
     }
 
-    fn stream_len(&mut self) -> Result<usize, Error> {
+    fn stream_len(&mut self) -> Result<usize> {
         let old_pos = self.stream_position()?;
         let len = self.seek(SeekFrom::End(0))?;
 
@@ -128,17 +167,17 @@ pub trait Seek {
         Ok(len)
     }
 
-    fn stream_position(&mut self) -> Result<usize, Error> {
+    fn stream_position(&mut self) -> Result<usize> {
         self.seek(SeekFrom::Current(0))
     }
 }
 
 /// Trait comparable to `std::Write` for the Flipper Zero API
 pub trait Write {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, Error>;
-    fn flush(&mut self) -> Result<(), Error>;
+    fn write(&mut self, buf: &[u8]) -> Result<usize>;
+    fn flush(&mut self) -> Result<()>;
 
-    fn write_all(&mut self, mut buf: &[u8]) -> Result<(), Error> {
+    fn write_all(&mut self, mut buf: &[u8]) -> Result<()> {
         while !buf.is_empty() {
             match self.write(buf) {
                 Ok(0) => return Err(Error::WriteZero),

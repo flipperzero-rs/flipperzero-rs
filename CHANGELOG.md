@@ -17,13 +17,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `flipperzero::datetime` module for working with `DateTime` type
 - `flipperzero::locale` module for locale formatting
 - Add `flipperzero::version` for accessing firmware version information
+- Added `flipperzero::path` module with basic `Path`
+- Added `flipperzero::io::Result` alias for `Result<T, io::Error>`
+- Added `read_to_string` implementation with default for `flipperzero::io::Read`
+- Added `flipperzero::storage::read_to_string`
+- Added `open`, `create` and `create_new` to `flipperzero::storage::File`
 
 ### Changed
 
 - Switched to `nightly-2025-08-31` compiler
 - Fix lifetime of `ExclusiveCanvas::canvas` and `canvas_mut`
+- Switch to `impl AsRef<Path>` rather than `&CStr` for paths
 
 ### Removed
+
+- `flipperzero::storage::File::new` is now private
 
 ## [0.15.0]
 
