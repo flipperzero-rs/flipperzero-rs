@@ -25,6 +25,7 @@ pub mod io;
 pub mod locale;
 pub mod macros;
 pub mod notification;
+pub mod path;
 pub mod prelude;
 pub mod serial;
 pub mod storage;
