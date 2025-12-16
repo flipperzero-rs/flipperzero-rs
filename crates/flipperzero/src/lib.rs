@@ -9,7 +9,6 @@
 #![cfg_attr(all(test, miri), feature(start))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(rustdoc::broken_intra_doc_links)]
-
 #![warn(clippy::undocumented_unsafe_blocks)]
 #![warn(clippy::multiple_unsafe_ops_per_block)]
 

@@ -82,7 +82,6 @@ macro_rules! log_str {
     );
 }
 
-
 /// Logs a message at the error level.
 ///
 /// # Examples

@@ -116,13 +116,14 @@ pub mod alloc {
 
             if let Some(on_click_callback) = &mut self.on_click_callback {
                 match on_click_callback {
-                    Callback::UniqueCallbackForAllInputs(items) => items.push((self.items.len(), callback)),
-                    _ => todo!()
+                    Callback::UniqueCallbackForAllInputs(items) => {
+                        items.push((self.items.len(), callback))
+                    }
+                    _ => todo!(),
                 }
             } else {
                 let mut items = Vec::new();
                 items.push((self.items.len(), callback));
-
 
                 unsafe {
                     sys::variable_item_list_set_enter_callback(
