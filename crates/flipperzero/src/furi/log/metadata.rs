@@ -5,6 +5,7 @@
 
 use core::{cmp, fmt, str::FromStr};
 
+use crate::internals;
 use flipperzero_sys as sys;
 use ufmt::derive::uDebug;
 
@@ -164,7 +165,7 @@ impl ufmt::uDisplay for Level {
     }
 }
 
-impl core::error::Error for ParseLevelError {}
+internals::macros::impl_std_error!(ParseLevelError);
 
 impl FromStr for Level {
     type Err = ParseLevelError;
@@ -469,7 +470,7 @@ impl ufmt::uDisplay for ParseLevelFilterError {
     }
 }
 
-impl core::error::Error for ParseLevelFilterError {}
+internals::macros::impl_std_error!(ParseLevelFilterError);
 
 #[repr(usize)]
 #[derive(Copy, Clone, Debug, uDebug, Hash, Eq, PartialEq, PartialOrd, Ord)]
