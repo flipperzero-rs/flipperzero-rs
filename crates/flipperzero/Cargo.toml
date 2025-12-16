@@ -11,11 +11,6 @@ autobins = false
 autotests = false
 autobenches = false
 
-[package.metadata.docs.rs]
-default-target = "thumbv7em-none-eabihf"
-targets = []
-all-features = true
-
 [lib]
 bench = false
 harness = false
