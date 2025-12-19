@@ -25,6 +25,7 @@ pub mod dolphin;
 pub mod furi;
 pub mod gpio;
 pub mod gui;
+pub mod input;
 pub(crate) mod internals;
 #[cfg(not(miri))]
 pub mod io;
