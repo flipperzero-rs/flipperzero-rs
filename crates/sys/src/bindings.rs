@@ -166,7 +166,7 @@ impl<T> ::core::fmt::Debug for __IncompleteArrayField<T> {
         fmt.write_str("__IncompleteArrayField")
     }
 }
-pub const API_VERSION: u32 = 5636096;
+pub const API_VERSION: u32 = 5701633;
 pub const LFRFID_T5577_BLOCK_COUNT: u32 = 8;
 pub const LFRFID_T5577_POR_DELAY: u32 = 1;
 pub const LFRFID_T5577_ST_TERMINATOR: u32 = 8;
@@ -565,7 +565,7 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn realloc(arg1: *mut core::ffi::c_void, arg2: core::ffi::c_uint)
-        -> *mut core::ffi::c_void;
+    -> *mut core::ffi::c_void;
 }
 unsafe extern "C" {
     pub fn srand(__seed: core::ffi::c_uint);
@@ -684,7 +684,7 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn strchr(arg1: *const core::ffi::c_char, arg2: core::ffi::c_int)
-        -> *mut core::ffi::c_char;
+    -> *mut core::ffi::c_char;
 }
 unsafe extern "C" {
     pub fn strcmp(
@@ -5222,6 +5222,21 @@ const _: () = {
     ["Offset of field: GapConfig::conn_param"]
         [::core::mem::offset_of!(GapConfig, conn_param) - 72usize];
 };
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct GapRootSecurityKeys {
+    pub erk: [u8; 16usize],
+    pub irk: [u8; 16usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of GapRootSecurityKeys"][::core::mem::size_of::<GapRootSecurityKeys>() - 32usize];
+    ["Alignment of GapRootSecurityKeys"][::core::mem::align_of::<GapRootSecurityKeys>() - 1usize];
+    ["Offset of field: GapRootSecurityKeys::erk"]
+        [::core::mem::offset_of!(GapRootSecurityKeys, erk) - 0usize];
+    ["Offset of field: GapRootSecurityKeys::irk"]
+        [::core::mem::offset_of!(GapRootSecurityKeys, irk) - 16usize];
+};
 pub const GapAdvChannelMap37: GapAdvChannelMap = GapAdvChannelMap(1);
 pub const GapAdvChannelMap38: GapAdvChannelMap = GapAdvChannelMap(2);
 pub const GapAdvChannelMap39: GapAdvChannelMap = GapAdvChannelMap(4);
@@ -5519,10 +5534,11 @@ unsafe extern "C" {
     ) -> bool;
 }
 unsafe extern "C" {
-    #[doc = "Start BLE app\n\n # Arguments\n\n* `profile_template` - FuriHalBleProfileTemplate instance\n * `params` - Parameters to pass to the profile. Can be NULL\n * `event_cb` - GapEventCallback instance\n * `context` - pointer to context\n\n # Returns\n\ninstance of profile, NULL on failure"]
+    #[doc = "Start BLE app\n\n # Arguments\n\n* `profile_template` - FuriHalBleProfileTemplate instance\n * `params` - Parameters to pass to the profile. Can be NULL\n * `root_keys` - pointer to root keys\n * `event_cb` - GapEventCallback instance\n * `context` - pointer to context\n\n # Returns\n\ninstance of profile, NULL on failure"]
     pub fn furi_hal_bt_start_app(
         profile_template: *const FuriHalBleProfileTemplate,
         params: FuriHalBleProfileParams,
+        root_keys: *const GapRootSecurityKeys,
         event_cb: GapEventCallback,
         context: *mut core::ffi::c_void,
     ) -> *mut FuriHalBleProfileBase;
@@ -5532,10 +5548,11 @@ unsafe extern "C" {
     pub fn furi_hal_bt_reinit();
 }
 unsafe extern "C" {
-    #[doc = "Change BLE app\n Restarts 2nd core\n\n # Arguments\n\n* `profile_template` - FuriHalBleProfileTemplate instance\n * `profile_params` - Parameters to pass to the profile. Can be NULL\n * `event_cb` - GapEventCallback instance\n * `context` - pointer to context\n\n # Returns\n\ninstance of profile, NULL on failure"]
+    #[doc = "Change BLE app\n Restarts 2nd core\n\n # Arguments\n\n* `profile_template` - FuriHalBleProfileTemplate instance\n * `profile_params` - Parameters to pass to the profile. Can be NULL\n * `event_cb` - GapEventCallback instance\n * `root_keys` - pointer to root keys\n * `context` - pointer to context\n\n # Returns\n\ninstance of profile, NULL on failure"]
     pub fn furi_hal_bt_change_app(
         profile_template: *const FuriHalBleProfileTemplate,
         profile_params: FuriHalBleProfileParams,
+        root_keys: *const GapRootSecurityKeys,
         event_cb: GapEventCallback,
         context: *mut core::ffi::c_void,
     ) -> *mut FuriHalBleProfileBase;
@@ -5943,7 +5960,12 @@ const _: () = {
         base
     )
         - 0usize];
-    ["Offset of field: FuriHalFlashRawOptionByteData__bindgen_ty_1__bindgen_ty_1::complementary_value"] [:: core :: mem :: offset_of ! (FuriHalFlashRawOptionByteData__bindgen_ty_1__bindgen_ty_1 , complementary_value) - 4usize] ;
+    [
+        "Offset of field: FuriHalFlashRawOptionByteData__bindgen_ty_1__bindgen_ty_1::complementary_value",
+    ][::core::mem::offset_of!(
+        FuriHalFlashRawOptionByteData__bindgen_ty_1__bindgen_ty_1,
+        complementary_value
+    ) - 4usize];
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -8851,7 +8873,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Remove a file or a directory.\n\n The directory must be empty.\n The file or the directory must NOT be open.\n\n # Arguments\n\n* `storage` - pointer to a storage API instance.\n * `path` - pointer to a zero-terminated string containing the path of the item to be removed.\n # Returns\n\nFSE_OK if the file or directory has been successfully removed, any other error code on failure."]
     pub fn storage_common_remove(storage: *mut Storage, path: *const core::ffi::c_char)
-        -> FS_Error;
+    -> FS_Error;
 }
 unsafe extern "C" {
     #[doc = "Rename a file or a directory.\n\n The file or the directory must NOT be open.\n Will overwrite the destination file if it already exists.\n\n Renaming a regular file to itself does nothing and always succeeds.\n Renaming a directory to itself or to a subdirectory of itself always fails.\n\n # Arguments\n\n* `storage` - pointer to a storage API instance.\n * `old_path` - pointer to a zero-terminated string containing the source path.\n * `new_path` - pointer to a zero-terminated string containing the destination path.\n # Returns\n\nFSE_OK if the file or directory has been successfully renamed, any other error code on failure."]
@@ -8962,7 +8984,7 @@ pub type StorageNameConverter = ::core::option::Option<unsafe extern "C" fn(arg1
 unsafe extern "C" {
     #[doc = "Back up the internal storage contents to a *.tar archive.\n\n # Arguments\n\n* `storage` - pointer to a storage API instance.\n * `dstname` - pointer to a zero-terminated string containing the archive file path.\n # Returns\n\nFSE_OK if the storage was successfully backed up, any other error code on failure."]
     pub fn storage_int_backup(storage: *mut Storage, dstname: *const core::ffi::c_char)
-        -> FS_Error;
+    -> FS_Error;
 }
 unsafe extern "C" {
     #[doc = "Restore the internal storage contents from a *.tar archive.\n\n # Arguments\n\n* `storage` - pointer to a storage API instance.\n * `dstname` - pointer to a zero-terminated string containing the archive file path.\n * `converter` - pointer to a filename conversion function (may be NULL).\n # Returns\n\nFSE_OK if the storage was successfully restored, any other error code on failure."]
@@ -9379,7 +9401,7 @@ pub struct BtKeysStorage {
 }
 unsafe extern "C" {
     pub fn bt_keys_storage_alloc(keys_storage_path: *const core::ffi::c_char)
-        -> *mut BtKeysStorage;
+    -> *mut BtKeysStorage;
 }
 unsafe extern "C" {
     pub fn bt_keys_storage_free(instance: *mut BtKeysStorage);
@@ -9395,6 +9417,11 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn bt_keys_storage_is_changed(instance: *mut BtKeysStorage) -> bool;
+}
+unsafe extern "C" {
+    pub fn bt_keys_storage_get_root_keys(
+        instance: *mut BtKeysStorage,
+    ) -> *const GapRootSecurityKeys;
 }
 unsafe extern "C" {
     pub fn bt_keys_storage_load(instance: *mut BtKeysStorage) -> bool;
@@ -9628,6 +9655,10 @@ unsafe extern "C" {
         arg: *const core::ffi::c_char,
     );
 }
+unsafe extern "C" {
+    #[doc = "Pause for a specified duration or until Ctrl+C is pressed or the\n session is terminated.\n\n # Arguments\n\n* `[in]` - side Pointer to pipe side given to the command thread.\n * `[in]` - duration_in_ms Duration of sleep in milliseconds.\n # Returns\n\n`true` if the sleep completed without interruption.\n `false` if interrupted.\n\n This function also assumes that the pipe is installed as the\n thread's stdio.\n This function will consume 0 or 1 bytes from the pipe."]
+    pub fn cli_sleep(side: *mut PipeSide, duration_in_ms: u32) -> bool;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CliRegistry {
@@ -9860,7 +9891,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Get font parameters\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `font` - Font\n\n # Returns\n\npointer to CanvasFontParameters structure"]
     pub fn canvas_get_font_params(canvas: *const Canvas, font: Font)
-        -> *const CanvasFontParameters;
+    -> *const CanvasFontParameters;
 }
 unsafe extern "C" {
     #[doc = "Clear canvas\n\n # Arguments\n\n* `canvas` - Canvas instance"]
@@ -10503,7 +10534,7 @@ pub const DolphinDeedNfcReadSuccess: DolphinDeed = DolphinDeed(12);
 pub const DolphinDeedNfcSave: DolphinDeed = DolphinDeed(13);
 pub const DolphinDeedNfcDetectReader: DolphinDeed = DolphinDeed(14);
 pub const DolphinDeedNfcEmulate: DolphinDeed = DolphinDeed(15);
-pub const DolphinDeedNfcMfcAdd: DolphinDeed = DolphinDeed(16);
+pub const DolphinDeedNfcKeyAdd: DolphinDeed = DolphinDeed(16);
 pub const DolphinDeedNfcAddSave: DolphinDeed = DolphinDeed(17);
 pub const DolphinDeedNfcAddEmulate: DolphinDeed = DolphinDeed(18);
 pub const DolphinDeedIrSend: DolphinDeed = DolphinDeed(19);
@@ -11464,7 +11495,7 @@ unsafe extern "C" {
     pub fn popup_get_view(popup: *mut Popup) -> *mut View;
 }
 unsafe extern "C" {
-    #[doc = "Set popup header text\n\n # Arguments\n\n* `popup` - Popup instance\n * `callback` - PopupCallback"]
+    #[doc = "Set popup timeout callback\n\n # Arguments\n\n* `popup` - Popup instance\n * `callback` - PopupCallback"]
     pub fn popup_set_callback(popup: *mut Popup, callback: PopupCallback);
 }
 unsafe extern "C" {
@@ -12351,7 +12382,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Get the launch path or name of the currently running application\n\n This is the string that was supplied to `loader_start` such that the current\n app is running now. It might be a name (in the case of internal apps) or a\n path (in the case of external apps). This value can be used to launch the\n same app again.\n\n # Arguments\n\n* `instance` (direction in) - pointer to the loader instance\n * `name` (direction in, out) - pointer to the string to contain the path or name\n (must be allocated)\n # Returns\n\ntrue if it was possible to get an application path, false otherwise"]
     pub fn loader_get_application_launch_path(instance: *mut Loader, name: *mut FuriString)
-        -> bool;
+    -> bool;
 }
 unsafe extern "C" {
     #[doc = "Enqueues a request to launch an application after the current one\n\n # Arguments\n\n* `instance` (direction in) - pointer to the loader instance\n * `name` (direction in) - pointer to the name or path of the application, or NULL to\n cancel a previous request\n * `args` (direction in) - pointer to argument to provide to the next app\n * `flags` (direction in) - additional flags. see enum documentation for more info"]
@@ -12971,6 +13002,12 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub static message_note_b8: NotificationMessage;
+}
+unsafe extern "C" {
+    #[doc = "Returns the frequency of the given note\n\n This function calculates and returns the frequency (in Hz) of the specified note.\n If the input note name is invalid, the function returns 0.0.\n\n # Arguments\n\n* `[in]` - note_name The name of the note (e.g., \"A4\", cs5\")\n # Returns\n\nThe frequency of the note in Hz, or 0.0 if the note name is invalid"]
+    pub fn notification_messages_notes_frequency_from_name(
+        note_name: *const core::ffi::c_char,
+    ) -> f32;
 }
 unsafe extern "C" {
     #[doc = "Messages"]
@@ -13701,7 +13738,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Remove bit every n in array and shift array left. Useful to remove parity.\n\n # Arguments\n\n* `data` - Bit array\n * `position` - Start position\n * `length` - Bit count\n * `n` - every n bit will be removed\n # Returns\n\nsize_t"]
     pub fn bit_lib_remove_bit_every_nth(data: *mut u8, position: usize, length: u8, n: u8)
-        -> usize;
+    -> usize;
 }
 unsafe extern "C" {
     #[doc = "Copy bits from source to destination.\n\n # Arguments\n\n* `data` - destination array\n * `position` - position in destination array\n * `length` - length of bits to copy\n * `source` - source array\n * `source_position` - position in source array"]
@@ -14629,7 +14666,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Write formatted string to the stream\n # Arguments\n\n* `stream` - Stream instance\n * `format` -\n * `...` -\n # Returns\n\nsize_t how many bytes was written"]
     pub fn stream_write_format(stream: *mut Stream, format: *const core::ffi::c_char, ...)
-        -> usize;
+    -> usize;
 }
 unsafe extern "C" {
     #[doc = "Write formatted string to the stream, va_list version\n # Arguments\n\n* `stream` - Stream instance\n * `format` -\n * `args` -\n # Returns\n\nsize_t how many bytes was written"]
@@ -14658,7 +14695,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Insert formatted string to the stream\n # Arguments\n\n* `stream` - Stream instance\n * `format` -\n * `...` -\n # Returns\n\ntrue if the operation was successful\n false on error"]
     pub fn stream_insert_format(stream: *mut Stream, format: *const core::ffi::c_char, ...)
-        -> bool;
+    -> bool;
 }
 unsafe extern "C" {
     #[doc = "Insert formatted string to the stream, va_list version\n # Arguments\n\n* `stream` - Stream instance\n * `format` -\n * `args` -\n # Returns\n\ntrue if the operation was successful\n false on error"]
@@ -15248,6 +15285,85 @@ unsafe extern "C" {
     #[doc = "Get the minimum count of signal repeats for the selected protocol\n\n # Arguments\n\n* `protocol` (direction in) - - protocol to get the repeat count from\n\n # Returns\n\nrepeat count"]
     pub fn infrared_get_protocol_min_repeat_count(protocol: InfraredProtocol) -> usize;
 }
+pub const InfraredErrorCodeNone: InfraredErrorCode = InfraredErrorCode(0);
+pub const InfraredErrorCodeFileOperationFailed: InfraredErrorCode = InfraredErrorCode(8388608);
+pub const InfraredErrorCodeWrongFileType: InfraredErrorCode = InfraredErrorCode(2147483904);
+pub const InfraredErrorCodeWrongFileVersion: InfraredErrorCode = InfraredErrorCode(2147484160);
+pub const InfraredErrorCodeSignalTypeUnknown: InfraredErrorCode = InfraredErrorCode(2147484416);
+pub const InfraredErrorCodeSignalNameNotFound: InfraredErrorCode = InfraredErrorCode(2147484672);
+pub const InfraredErrorCodeSignalUnableToReadType: InfraredErrorCode =
+    InfraredErrorCode(2147484928);
+pub const InfraredErrorCodeSignalUnableToWriteType: InfraredErrorCode =
+    InfraredErrorCode(2147485184);
+pub const InfraredErrorCodeSignalRawUnableToReadFrequency: InfraredErrorCode =
+    InfraredErrorCode(2147485440);
+pub const InfraredErrorCodeSignalRawUnableToReadDutyCycle: InfraredErrorCode =
+    InfraredErrorCode(2147485696);
+pub const InfraredErrorCodeSignalRawUnableToReadTimingsSize: InfraredErrorCode =
+    InfraredErrorCode(2147485952);
+pub const InfraredErrorCodeSignalRawUnableToReadTooLongData: InfraredErrorCode =
+    InfraredErrorCode(2147486208);
+pub const InfraredErrorCodeSignalRawUnableToReadData: InfraredErrorCode =
+    InfraredErrorCode(2147486464);
+pub const InfraredErrorCodeSignalRawUnableToWriteFrequency: InfraredErrorCode =
+    InfraredErrorCode(2147486720);
+pub const InfraredErrorCodeSignalRawUnableToWriteDutyCycle: InfraredErrorCode =
+    InfraredErrorCode(2147486976);
+pub const InfraredErrorCodeSignalRawUnableToWriteData: InfraredErrorCode =
+    InfraredErrorCode(2147487232);
+pub const InfraredErrorCodeSignalMessageUnableToReadProtocol: InfraredErrorCode =
+    InfraredErrorCode(2147487488);
+pub const InfraredErrorCodeSignalMessageUnableToReadAddress: InfraredErrorCode =
+    InfraredErrorCode(2147487744);
+pub const InfraredErrorCodeSignalMessageUnableToReadCommand: InfraredErrorCode =
+    InfraredErrorCode(2147488000);
+pub const InfraredErrorCodeSignalMessageIsInvalid: InfraredErrorCode =
+    InfraredErrorCode(2147488256);
+pub const InfraredErrorCodeSignalMessageUnableToWriteProtocol: InfraredErrorCode =
+    InfraredErrorCode(2147488512);
+pub const InfraredErrorCodeSignalMessageUnableToWriteAddress: InfraredErrorCode =
+    InfraredErrorCode(2147488768);
+pub const InfraredErrorCodeSignalMessageUnableToWriteCommand: InfraredErrorCode =
+    InfraredErrorCode(2147489024);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct InfraredErrorCode(pub core::ffi::c_uint);
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct InfraredBruteForce {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct InfraredSignal {
+    _unused: [u8; 0],
+}
+#[doc = "Raw signal type definition.\n\n Measurement units used:\n - time: microseconds (uS)\n - frequency: Hertz (Hz)\n - duty_cycle: no units, fraction between 0 and 1."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct InfraredRawSignal {
+    #[doc = "< Number of elements in the timings array."]
+    pub timings_size: usize,
+    #[doc = "< Pointer to an array of timings describing the signal."]
+    pub timings: *mut u32,
+    #[doc = "< Carrier frequency of the signal."]
+    pub frequency: u32,
+    #[doc = "< Duty cycle of the signal."]
+    pub duty_cycle: f32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of InfraredRawSignal"][::core::mem::size_of::<InfraredRawSignal>() - 16usize];
+    ["Alignment of InfraredRawSignal"][::core::mem::align_of::<InfraredRawSignal>() - 4usize];
+    ["Offset of field: InfraredRawSignal::timings_size"]
+        [::core::mem::offset_of!(InfraredRawSignal, timings_size) - 0usize];
+    ["Offset of field: InfraredRawSignal::timings"]
+        [::core::mem::offset_of!(InfraredRawSignal, timings) - 4usize];
+    ["Offset of field: InfraredRawSignal::frequency"]
+        [::core::mem::offset_of!(InfraredRawSignal, frequency) - 8usize];
+    ["Offset of field: InfraredRawSignal::duty_cycle"]
+        [::core::mem::offset_of!(InfraredRawSignal, duty_cycle) - 12usize];
+};
 pub const FuriHalInfraredTxPinInternal: FuriHalInfraredTxPin = FuriHalInfraredTxPin(0);
 pub const FuriHalInfraredTxPinExtPA7: FuriHalInfraredTxPin = FuriHalInfraredTxPin(1);
 pub const FuriHalInfraredTxPinMax: FuriHalInfraredTxPin = FuriHalInfraredTxPin(2);
@@ -17885,7 +18001,7 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn crypto1_lfsr_rollback_word(crypto1: *mut Crypto1, in_: u32, fb: core::ffi::c_int)
-        -> u32;
+    -> u32;
 }
 unsafe extern "C" {
     pub fn crypto1_nonce_matches_encrypted_parity_bits(nt: u32, ks: u32, nt_par_enc: u8) -> bool;
@@ -17898,6 +18014,15 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn crypto1_prng_successor(x: u32, n: u32) -> u32;
+}
+unsafe extern "C" {
+    pub fn felica_crc_append(buf: *mut BitBuffer);
+}
+unsafe extern "C" {
+    pub fn felica_crc_check(buf: *const BitBuffer) -> bool;
+}
+unsafe extern "C" {
+    pub fn felica_crc_trim(buf: *mut BitBuffer);
 }
 pub const Iso13239CrcTypeDefault: Iso13239CrcType = Iso13239CrcType(0);
 pub const Iso13239CrcTypePicopass: Iso13239CrcType = Iso13239CrcType(1);
@@ -18326,6 +18451,14 @@ unsafe extern "C" {
     #[doc = "Send ISO15693 Start of Frame pattern in listener mode\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be configured.\n # Returns\n\nNfcErrorNone on success, any other error code on failure."]
     pub fn nfc_iso15693_listener_tx_sof(instance: *mut Nfc) -> NfcError;
 }
+unsafe extern "C" {
+    #[doc = "Start the timer used for manual FeliCa collision resolution in listener mode.\n\n This blocks TX until the desired Time Slot, and should be called as soon as the listener\n determines that a collision resolution needs to be handled manually.\n\n # Arguments\n\n* `instance` (direction in, out) - instance pointer to the instance to be configured.\n * `target_time_slot` (direction in) - Target Time Slot number. Should be a value within the range of 0-15 (double-inclusive)."]
+    pub fn nfc_felica_listener_timer_anticol_start(instance: *mut Nfc, target_time_slot: u8);
+}
+unsafe extern "C" {
+    #[doc = "Cancel the timer used for manual FeliCa collision resolution in listener mode.\n\n # Arguments\n\n* `instance` (direction in, out) - instance pointer to the instance to be configured."]
+    pub fn nfc_felica_listener_timer_anticol_stop(instance: *mut Nfc);
+}
 #[doc = "Generic Nfc instance type.\n\n Must be cast to a concrete type before use.\n Depending on the context, a pointer of this type\n may point to an object of the following types:\n - Nfc type,\n - Concrete poller type,\n - Concrete listener type."]
 pub type NfcGenericInstance = core::ffi::c_void;
 #[doc = "Generic Nfc event data type.\n\n Must be cast to a concrete type before use.\n Usually, it will be the protocol-specific event type."]
@@ -18534,6 +18667,93 @@ unsafe extern "C" {
     #[doc = "Stop an NfcScanner.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be stopped."]
     pub fn nfc_scanner_stop(instance: *mut NfcScanner);
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SimpleArray {
+    _unused: [u8; 0],
+}
+pub type SimpleArrayData = core::ffi::c_void;
+pub type SimpleArrayElement = core::ffi::c_void;
+pub type SimpleArrayInit =
+    ::core::option::Option<unsafe extern "C" fn(elem: *mut SimpleArrayElement)>;
+pub type SimpleArrayReset =
+    ::core::option::Option<unsafe extern "C" fn(elem: *mut SimpleArrayElement)>;
+pub type SimpleArrayCopy = ::core::option::Option<
+    unsafe extern "C" fn(elem: *mut SimpleArrayElement, other: *const SimpleArrayElement),
+>;
+#[doc = "Simple Array configuration structure. Defined per type."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SimpleArrayConfig {
+    #[doc = "< Initialisation (in-place constructor) method."]
+    pub init: SimpleArrayInit,
+    #[doc = "< Reset (custom destructor) method."]
+    pub reset: SimpleArrayReset,
+    #[doc = "< Copy (custom copy-constructor) method."]
+    pub copy: SimpleArrayCopy,
+    pub type_size: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of SimpleArrayConfig"][::core::mem::size_of::<SimpleArrayConfig>() - 16usize];
+    ["Alignment of SimpleArrayConfig"][::core::mem::align_of::<SimpleArrayConfig>() - 4usize];
+    ["Offset of field: SimpleArrayConfig::init"]
+        [::core::mem::offset_of!(SimpleArrayConfig, init) - 0usize];
+    ["Offset of field: SimpleArrayConfig::reset"]
+        [::core::mem::offset_of!(SimpleArrayConfig, reset) - 4usize];
+    ["Offset of field: SimpleArrayConfig::copy"]
+        [::core::mem::offset_of!(SimpleArrayConfig, copy) - 8usize];
+    ["Offset of field: SimpleArrayConfig::type_size"]
+        [::core::mem::offset_of!(SimpleArrayConfig, type_size) - 12usize];
+};
+unsafe extern "C" {
+    #[doc = "Allocate a SimpleArray instance with the given configuration.\n\n # Arguments\n\n* `[in]` - config Pointer to the type-specific configuration\n # Returns\n\nPointer to the allocated SimpleArray instance"]
+    pub fn simple_array_alloc(config: *const SimpleArrayConfig) -> *mut SimpleArray;
+}
+unsafe extern "C" {
+    #[doc = "Free a SimpleArray instance and release its contents.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be freed"]
+    pub fn simple_array_free(instance: *mut SimpleArray);
+}
+unsafe extern "C" {
+    #[doc = "Initialise a SimpleArray instance by allocating additional space to contain\n the requested number of elements.\n If init() is specified in the config, then it is called for each element,\n otherwise the data is filled with zeroes.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be init'd\n * `[in]` - count Number of elements to be allocated and init'd"]
+    pub fn simple_array_init(instance: *mut SimpleArray, count: u32);
+}
+unsafe extern "C" {
+    #[doc = "Reset a SimpleArray instance and delete all of its elements.\n If reset() is specified in the config, then it is called for each element,\n otherwise the data is simply free()'d.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be reset"]
+    pub fn simple_array_reset(instance: *mut SimpleArray);
+}
+unsafe extern "C" {
+    #[doc = "Copy (duplicate) another SimpleArray instance to this one.\n If copy() is specified in the config, then it is called for each element,\n otherwise the data is simply memcpy()'d.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to copy to\n * `[in]` - other Pointer to the SimpleArray instance to copy from"]
+    pub fn simple_array_copy(instance: *mut SimpleArray, other: *const SimpleArray);
+}
+unsafe extern "C" {
+    #[doc = "Check if another SimpleArray instance is equal (the same object or holds the\n same data) to this one.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be compared\n * `[in]` - other Pointer to the SimpleArray instance to be compared\n # Returns\n\nTrue if instances are considered equal, false otherwise"]
+    pub fn simple_array_is_equal(instance: *const SimpleArray, other: *const SimpleArray) -> bool;
+}
+unsafe extern "C" {
+    #[doc = "Get the count of elements currently contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to query the count from\n # Returns\n\nCount of elements contained in the instance"]
+    pub fn simple_array_get_count(instance: *const SimpleArray) -> u32;
+}
+unsafe extern "C" {
+    #[doc = "Get a pointer to an element contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get an element from\n * `[in]` - index Index of the element in question. MUST be less than total element count\n # Returns\n\nPointer to the element specified by index"]
+    pub fn simple_array_get(instance: *mut SimpleArray, index: u32) -> *mut SimpleArrayElement;
+}
+unsafe extern "C" {
+    #[doc = "Get a const pointer to an element contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get an element from\n * `[in]` - index Index of the element in question. MUST be less than total element count\n # Returns\n\nConst pointer to the element specified by index"]
+    pub fn simple_array_cget(instance: *const SimpleArray, index: u32)
+    -> *const SimpleArrayElement;
+}
+unsafe extern "C" {
+    #[doc = "Get a pointer to the internal data of a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get the data of\n # Returns\n\nPointer to the instance's internal data"]
+    pub fn simple_array_get_data(instance: *mut SimpleArray) -> *mut SimpleArrayData;
+}
+unsafe extern "C" {
+    #[doc = "Get a constant pointer to the internal data of a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get the data of\n # Returns\n\nConstant pointer to the instance's internal data"]
+    pub fn simple_array_cget_data(instance: *const SimpleArray) -> *const SimpleArrayData;
+}
+unsafe extern "C" {
+    pub static simple_array_config_uint8_t: SimpleArrayConfig;
+}
 pub const FelicaErrorNone: FelicaError = FelicaError(0);
 pub const FelicaErrorNotPresent: FelicaError = FelicaError(1);
 pub const FelicaErrorColResFailed: FelicaError = FelicaError(2);
@@ -18543,10 +18763,17 @@ pub const FelicaErrorFieldOff: FelicaError = FelicaError(5);
 pub const FelicaErrorWrongCrc: FelicaError = FelicaError(6);
 pub const FelicaErrorProtocol: FelicaError = FelicaError(7);
 pub const FelicaErrorTimeout: FelicaError = FelicaError(8);
+pub const FelicaErrorFeatureUnsupported: FelicaError = FelicaError(9);
 #[repr(transparent)]
 #[doc = "Type of possible Felica errors"]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct FelicaError(pub core::ffi::c_uchar);
+pub const FelicaUnknown: FelicaWorkflowType = FelicaWorkflowType(0);
+pub const FelicaStandard: FelicaWorkflowType = FelicaWorkflowType(1);
+pub const FelicaLite: FelicaWorkflowType = FelicaWorkflowType(2);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct FelicaWorkflowType(pub core::ffi::c_uchar);
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct FelicaBlockData {
@@ -18837,6 +19064,77 @@ const _: () = {
     ["Offset of field: FelicaFSUnion::fs"][::core::mem::offset_of!(FelicaFSUnion, fs) - 0usize];
     ["Offset of field: FelicaFSUnion::dump"][::core::mem::offset_of!(FelicaFSUnion, dump) - 0usize];
 };
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FelicaService {
+    pub code: u16,
+    pub attr: u8,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of FelicaService"][::core::mem::size_of::<FelicaService>() - 4usize];
+    ["Alignment of FelicaService"][::core::mem::align_of::<FelicaService>() - 2usize];
+    ["Offset of field: FelicaService::code"][::core::mem::offset_of!(FelicaService, code) - 0usize];
+    ["Offset of field: FelicaService::attr"][::core::mem::offset_of!(FelicaService, attr) - 2usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FelicaArea {
+    pub code: u16,
+    pub first_idx: u16,
+    pub last_idx: u16,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of FelicaArea"][::core::mem::size_of::<FelicaArea>() - 6usize];
+    ["Alignment of FelicaArea"][::core::mem::align_of::<FelicaArea>() - 2usize];
+    ["Offset of field: FelicaArea::code"][::core::mem::offset_of!(FelicaArea, code) - 0usize];
+    ["Offset of field: FelicaArea::first_idx"]
+        [::core::mem::offset_of!(FelicaArea, first_idx) - 2usize];
+    ["Offset of field: FelicaArea::last_idx"]
+        [::core::mem::offset_of!(FelicaArea, last_idx) - 4usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FelicaPublicBlock {
+    pub block: FelicaBlock,
+    pub service_code: u16,
+    pub block_idx: u8,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of FelicaPublicBlock"][::core::mem::size_of::<FelicaPublicBlock>() - 22usize];
+    ["Alignment of FelicaPublicBlock"][::core::mem::align_of::<FelicaPublicBlock>() - 2usize];
+    ["Offset of field: FelicaPublicBlock::block"]
+        [::core::mem::offset_of!(FelicaPublicBlock, block) - 0usize];
+    ["Offset of field: FelicaPublicBlock::service_code"]
+        [::core::mem::offset_of!(FelicaPublicBlock, service_code) - 18usize];
+    ["Offset of field: FelicaPublicBlock::block_idx"]
+        [::core::mem::offset_of!(FelicaPublicBlock, block_idx) - 20usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FelicaSystem {
+    pub system_code_idx: u8,
+    pub system_code: u16,
+    pub services: *mut SimpleArray,
+    pub areas: *mut SimpleArray,
+    pub public_blocks: *mut SimpleArray,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of FelicaSystem"][::core::mem::size_of::<FelicaSystem>() - 16usize];
+    ["Alignment of FelicaSystem"][::core::mem::align_of::<FelicaSystem>() - 4usize];
+    ["Offset of field: FelicaSystem::system_code_idx"]
+        [::core::mem::offset_of!(FelicaSystem, system_code_idx) - 0usize];
+    ["Offset of field: FelicaSystem::system_code"]
+        [::core::mem::offset_of!(FelicaSystem, system_code) - 2usize];
+    ["Offset of field: FelicaSystem::services"]
+        [::core::mem::offset_of!(FelicaSystem, services) - 4usize];
+    ["Offset of field: FelicaSystem::areas"][::core::mem::offset_of!(FelicaSystem, areas) - 8usize];
+    ["Offset of field: FelicaSystem::public_blocks"]
+        [::core::mem::offset_of!(FelicaSystem, public_blocks) - 12usize];
+};
 #[doc = "Structure used to store Felica data and additional values about reading"]
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -18846,11 +19144,13 @@ pub struct FelicaData {
     pub blocks_total: u8,
     pub blocks_read: u8,
     pub data: FelicaFSUnion,
+    pub systems: *mut SimpleArray,
+    pub workflow_type: FelicaWorkflowType,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of FelicaData"][::core::mem::size_of::<FelicaData>() - 522usize];
-    ["Alignment of FelicaData"][::core::mem::align_of::<FelicaData>() - 1usize];
+    ["Size of FelicaData"][::core::mem::size_of::<FelicaData>() - 532usize];
+    ["Alignment of FelicaData"][::core::mem::align_of::<FelicaData>() - 4usize];
     ["Offset of field: FelicaData::idm"][::core::mem::offset_of!(FelicaData, idm) - 0usize];
     ["Offset of field: FelicaData::pmm"][::core::mem::offset_of!(FelicaData, pmm) - 8usize];
     ["Offset of field: FelicaData::blocks_total"]
@@ -18858,6 +19158,10 @@ const _: () = {
     ["Offset of field: FelicaData::blocks_read"]
         [::core::mem::offset_of!(FelicaData, blocks_read) - 17usize];
     ["Offset of field: FelicaData::data"][::core::mem::offset_of!(FelicaData, data) - 18usize];
+    ["Offset of field: FelicaData::systems"]
+        [::core::mem::offset_of!(FelicaData, systems) - 524usize];
+    ["Offset of field: FelicaData::workflow_type"]
+        [::core::mem::offset_of!(FelicaData, workflow_type) - 528usize];
 };
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
@@ -18908,6 +19212,25 @@ const _: () = {
         [::core::mem::offset_of!(FelicaCommandResponseHeader, SF1) - 10usize];
     ["Offset of field: FelicaCommandResponseHeader::SF2"]
         [::core::mem::offset_of!(FelicaCommandResponseHeader, SF2) - 11usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FelicaCommandHeaderRaw {
+    pub length: u8,
+    pub command: u8,
+    pub idm: FelicaIDm,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of FelicaCommandHeaderRaw"][::core::mem::size_of::<FelicaCommandHeaderRaw>() - 10usize];
+    ["Alignment of FelicaCommandHeaderRaw"]
+        [::core::mem::align_of::<FelicaCommandHeaderRaw>() - 1usize];
+    ["Offset of field: FelicaCommandHeaderRaw::length"]
+        [::core::mem::offset_of!(FelicaCommandHeaderRaw, length) - 0usize];
+    ["Offset of field: FelicaCommandHeaderRaw::command"]
+        [::core::mem::offset_of!(FelicaCommandHeaderRaw, command) - 1usize];
+    ["Offset of field: FelicaCommandHeaderRaw::idm"]
+        [::core::mem::offset_of!(FelicaCommandHeaderRaw, idm) - 2usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -19098,6 +19421,43 @@ const _: () = {
     ["Offset of field: FelicaListenerReadCommandResponse::data"]
         [::core::mem::offset_of!(FelicaListenerReadCommandResponse, data) - 13usize];
 };
+#[repr(C)]
+#[derive(Debug)]
+pub struct FelicaListServiceCommandResponse {
+    pub header: FelicaCommandHeaderRaw,
+    pub data: __IncompleteArrayField<u8>,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of FelicaListServiceCommandResponse"]
+        [::core::mem::size_of::<FelicaListServiceCommandResponse>() - 10usize];
+    ["Alignment of FelicaListServiceCommandResponse"]
+        [::core::mem::align_of::<FelicaListServiceCommandResponse>() - 1usize];
+    ["Offset of field: FelicaListServiceCommandResponse::header"]
+        [::core::mem::offset_of!(FelicaListServiceCommandResponse, header) - 0usize];
+    ["Offset of field: FelicaListServiceCommandResponse::data"]
+        [::core::mem::offset_of!(FelicaListServiceCommandResponse, data) - 10usize];
+};
+#[repr(C)]
+#[derive(Debug)]
+pub struct FelicaListSystemCodeCommandResponse {
+    pub header: FelicaCommandHeaderRaw,
+    pub system_count: u8,
+    pub system_code: __IncompleteArrayField<u8>,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of FelicaListSystemCodeCommandResponse"]
+        [::core::mem::size_of::<FelicaListSystemCodeCommandResponse>() - 11usize];
+    ["Alignment of FelicaListSystemCodeCommandResponse"]
+        [::core::mem::align_of::<FelicaListSystemCodeCommandResponse>() - 1usize];
+    ["Offset of field: FelicaListSystemCodeCommandResponse::header"]
+        [::core::mem::offset_of!(FelicaListSystemCodeCommandResponse, header) - 0usize];
+    ["Offset of field: FelicaListSystemCodeCommandResponse::system_count"]
+        [::core::mem::offset_of!(FelicaListSystemCodeCommandResponse, system_count) - 10usize];
+    ["Offset of field: FelicaListSystemCodeCommandResponse::system_code"]
+        [::core::mem::offset_of!(FelicaListSystemCodeCommandResponse, system_code) - 11usize];
+};
 pub type FelicaListenerWriteCommandResponse = FelicaCommandResponseHeader;
 pub type FelicaPollerWriteCommandResponse = FelicaCommandResponseHeader;
 unsafe extern "C" {
@@ -19176,6 +19536,21 @@ unsafe extern "C" {
         wcnt: *const u8,
         data: *const u8,
         mac: *mut u8,
+    );
+}
+unsafe extern "C" {
+    pub fn felica_write_directory_tree(system: *const FelicaSystem, str_: *mut FuriString);
+}
+unsafe extern "C" {
+    pub fn felica_get_workflow_type(data: *mut FelicaData);
+}
+unsafe extern "C" {
+    pub fn felica_get_ic_name(data: *const FelicaData, ic_name: *mut FuriString);
+}
+unsafe extern "C" {
+    pub fn felica_service_get_attribute_string(
+        service: *const FelicaService,
+        str_: *mut FuriString,
     );
 }
 #[repr(C)]
@@ -19579,93 +19954,6 @@ unsafe extern "C" {
     #[doc = "Send HALT command to the card.\n\n Must ONLY be used inside the callback function.\n\n Halts card and changes internal Iso14443_3bPoller state to Idle.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n # Returns\n\nIso14443_3bErrorNone on success, an error code on failure."]
     pub fn iso14443_3b_poller_halt(instance: *mut Iso14443_3bPoller) -> Iso14443_3bError;
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct SimpleArray {
-    _unused: [u8; 0],
-}
-pub type SimpleArrayData = core::ffi::c_void;
-pub type SimpleArrayElement = core::ffi::c_void;
-pub type SimpleArrayInit =
-    ::core::option::Option<unsafe extern "C" fn(elem: *mut SimpleArrayElement)>;
-pub type SimpleArrayReset =
-    ::core::option::Option<unsafe extern "C" fn(elem: *mut SimpleArrayElement)>;
-pub type SimpleArrayCopy = ::core::option::Option<
-    unsafe extern "C" fn(elem: *mut SimpleArrayElement, other: *const SimpleArrayElement),
->;
-#[doc = "Simple Array configuration structure. Defined per type."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct SimpleArrayConfig {
-    #[doc = "< Initialisation (in-place constructor) method."]
-    pub init: SimpleArrayInit,
-    #[doc = "< Reset (custom destructor) method."]
-    pub reset: SimpleArrayReset,
-    #[doc = "< Copy (custom copy-constructor) method."]
-    pub copy: SimpleArrayCopy,
-    pub type_size: usize,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of SimpleArrayConfig"][::core::mem::size_of::<SimpleArrayConfig>() - 16usize];
-    ["Alignment of SimpleArrayConfig"][::core::mem::align_of::<SimpleArrayConfig>() - 4usize];
-    ["Offset of field: SimpleArrayConfig::init"]
-        [::core::mem::offset_of!(SimpleArrayConfig, init) - 0usize];
-    ["Offset of field: SimpleArrayConfig::reset"]
-        [::core::mem::offset_of!(SimpleArrayConfig, reset) - 4usize];
-    ["Offset of field: SimpleArrayConfig::copy"]
-        [::core::mem::offset_of!(SimpleArrayConfig, copy) - 8usize];
-    ["Offset of field: SimpleArrayConfig::type_size"]
-        [::core::mem::offset_of!(SimpleArrayConfig, type_size) - 12usize];
-};
-unsafe extern "C" {
-    #[doc = "Allocate a SimpleArray instance with the given configuration.\n\n # Arguments\n\n* `[in]` - config Pointer to the type-specific configuration\n # Returns\n\nPointer to the allocated SimpleArray instance"]
-    pub fn simple_array_alloc(config: *const SimpleArrayConfig) -> *mut SimpleArray;
-}
-unsafe extern "C" {
-    #[doc = "Free a SimpleArray instance and release its contents.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be freed"]
-    pub fn simple_array_free(instance: *mut SimpleArray);
-}
-unsafe extern "C" {
-    #[doc = "Initialise a SimpleArray instance by allocating additional space to contain\n the requested number of elements.\n If init() is specified in the config, then it is called for each element,\n otherwise the data is filled with zeroes.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be init'd\n * `[in]` - count Number of elements to be allocated and init'd"]
-    pub fn simple_array_init(instance: *mut SimpleArray, count: u32);
-}
-unsafe extern "C" {
-    #[doc = "Reset a SimpleArray instance and delete all of its elements.\n If reset() is specified in the config, then it is called for each element,\n otherwise the data is simply free()'d.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be reset"]
-    pub fn simple_array_reset(instance: *mut SimpleArray);
-}
-unsafe extern "C" {
-    #[doc = "Copy (duplicate) another SimpleArray instance to this one.\n If copy() is specified in the config, then it is called for each element,\n otherwise the data is simply memcpy()'d.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to copy to\n * `[in]` - other Pointer to the SimpleArray instance to copy from"]
-    pub fn simple_array_copy(instance: *mut SimpleArray, other: *const SimpleArray);
-}
-unsafe extern "C" {
-    #[doc = "Check if another SimpleArray instance is equal (the same object or holds the\n same data) to this one.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to be compared\n * `[in]` - other Pointer to the SimpleArray instance to be compared\n # Returns\n\nTrue if instances are considered equal, false otherwise"]
-    pub fn simple_array_is_equal(instance: *const SimpleArray, other: *const SimpleArray) -> bool;
-}
-unsafe extern "C" {
-    #[doc = "Get the count of elements currently contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to query the count from\n # Returns\n\nCount of elements contained in the instance"]
-    pub fn simple_array_get_count(instance: *const SimpleArray) -> u32;
-}
-unsafe extern "C" {
-    #[doc = "Get a pointer to an element contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get an element from\n * `[in]` - index Index of the element in question. MUST be less than total element count\n # Returns\n\nPointer to the element specified by index"]
-    pub fn simple_array_get(instance: *mut SimpleArray, index: u32) -> *mut SimpleArrayElement;
-}
-unsafe extern "C" {
-    #[doc = "Get a const pointer to an element contained in a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get an element from\n * `[in]` - index Index of the element in question. MUST be less than total element count\n # Returns\n\nConst pointer to the element specified by index"]
-    pub fn simple_array_cget(instance: *const SimpleArray, index: u32)
-        -> *const SimpleArrayElement;
-}
-unsafe extern "C" {
-    #[doc = "Get a pointer to the internal data of a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get the data of\n # Returns\n\nPointer to the instance's internal data"]
-    pub fn simple_array_get_data(instance: *mut SimpleArray) -> *mut SimpleArrayData;
-}
-unsafe extern "C" {
-    #[doc = "Get a constant pointer to the internal data of a SimpleArray instance.\n\n # Arguments\n\n* `[in]` - instance Pointer to the SimpleArray instance to get the data of\n # Returns\n\nConstant pointer to the instance's internal data"]
-    pub fn simple_array_cget_data(instance: *const SimpleArray) -> *const SimpleArrayData;
-}
-unsafe extern "C" {
-    pub static simple_array_config_uint8_t: SimpleArrayConfig;
-}
 pub const Iso14443_4aErrorNone: Iso14443_4aError = Iso14443_4aError(0);
 pub const Iso14443_4aErrorNotPresent: Iso14443_4aError = Iso14443_4aError(1);
 pub const Iso14443_4aErrorProtocol: Iso14443_4aError = Iso14443_4aError(2);
@@ -20059,6 +20347,261 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Send HALT command to the card.\n\n Must ONLY be used inside the callback function.\n\n Halts card and changes internal Iso14443_4aPoller state to Idle.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n # Returns\n\nIso14443_4bErrorNone on success, an error code on failure."]
     pub fn iso14443_4b_poller_halt(instance: *mut Iso14443_4bPoller) -> Iso14443_4bError;
+}
+pub const Iso15693_3ErrorNone: Iso15693_3Error = Iso15693_3Error(0);
+pub const Iso15693_3ErrorNotPresent: Iso15693_3Error = Iso15693_3Error(1);
+pub const Iso15693_3ErrorBufferEmpty: Iso15693_3Error = Iso15693_3Error(2);
+pub const Iso15693_3ErrorBufferOverflow: Iso15693_3Error = Iso15693_3Error(3);
+pub const Iso15693_3ErrorFieldOff: Iso15693_3Error = Iso15693_3Error(4);
+pub const Iso15693_3ErrorWrongCrc: Iso15693_3Error = Iso15693_3Error(5);
+pub const Iso15693_3ErrorTimeout: Iso15693_3Error = Iso15693_3Error(6);
+pub const Iso15693_3ErrorFormat: Iso15693_3Error = Iso15693_3Error(7);
+pub const Iso15693_3ErrorIgnore: Iso15693_3Error = Iso15693_3Error(8);
+pub const Iso15693_3ErrorNotSupported: Iso15693_3Error = Iso15693_3Error(9);
+pub const Iso15693_3ErrorUidMismatch: Iso15693_3Error = Iso15693_3Error(10);
+pub const Iso15693_3ErrorFullyHandled: Iso15693_3Error = Iso15693_3Error(11);
+pub const Iso15693_3ErrorUnexpectedResponse: Iso15693_3Error = Iso15693_3Error(12);
+pub const Iso15693_3ErrorInternal: Iso15693_3Error = Iso15693_3Error(13);
+pub const Iso15693_3ErrorCustom: Iso15693_3Error = Iso15693_3Error(14);
+pub const Iso15693_3ErrorUnknown: Iso15693_3Error = Iso15693_3Error(15);
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct Iso15693_3Error(pub core::ffi::c_uchar);
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso15693_3SystemInfo {
+    pub flags: u8,
+    pub dsfid: u8,
+    pub afi: u8,
+    pub ic_ref: u8,
+    pub block_count: u16,
+    pub block_size: u8,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of Iso15693_3SystemInfo"][::core::mem::size_of::<Iso15693_3SystemInfo>() - 8usize];
+    ["Alignment of Iso15693_3SystemInfo"][::core::mem::align_of::<Iso15693_3SystemInfo>() - 2usize];
+    ["Offset of field: Iso15693_3SystemInfo::flags"]
+        [::core::mem::offset_of!(Iso15693_3SystemInfo, flags) - 0usize];
+    ["Offset of field: Iso15693_3SystemInfo::dsfid"]
+        [::core::mem::offset_of!(Iso15693_3SystemInfo, dsfid) - 1usize];
+    ["Offset of field: Iso15693_3SystemInfo::afi"]
+        [::core::mem::offset_of!(Iso15693_3SystemInfo, afi) - 2usize];
+    ["Offset of field: Iso15693_3SystemInfo::ic_ref"]
+        [::core::mem::offset_of!(Iso15693_3SystemInfo, ic_ref) - 3usize];
+    ["Offset of field: Iso15693_3SystemInfo::block_count"]
+        [::core::mem::offset_of!(Iso15693_3SystemInfo, block_count) - 4usize];
+    ["Offset of field: Iso15693_3SystemInfo::block_size"]
+        [::core::mem::offset_of!(Iso15693_3SystemInfo, block_size) - 6usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso15693_3LockBits {
+    pub dsfid: bool,
+    pub afi: bool,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of Iso15693_3LockBits"][::core::mem::size_of::<Iso15693_3LockBits>() - 2usize];
+    ["Alignment of Iso15693_3LockBits"][::core::mem::align_of::<Iso15693_3LockBits>() - 1usize];
+    ["Offset of field: Iso15693_3LockBits::dsfid"]
+        [::core::mem::offset_of!(Iso15693_3LockBits, dsfid) - 0usize];
+    ["Offset of field: Iso15693_3LockBits::afi"]
+        [::core::mem::offset_of!(Iso15693_3LockBits, afi) - 1usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso15693_3Settings {
+    pub lock_bits: Iso15693_3LockBits,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of Iso15693_3Settings"][::core::mem::size_of::<Iso15693_3Settings>() - 2usize];
+    ["Alignment of Iso15693_3Settings"][::core::mem::align_of::<Iso15693_3Settings>() - 1usize];
+    ["Offset of field: Iso15693_3Settings::lock_bits"]
+        [::core::mem::offset_of!(Iso15693_3Settings, lock_bits) - 0usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso15693_3Data {
+    pub uid: [u8; 8usize],
+    pub system_info: Iso15693_3SystemInfo,
+    pub settings: Iso15693_3Settings,
+    pub block_data: *mut SimpleArray,
+    pub block_security: *mut SimpleArray,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of Iso15693_3Data"][::core::mem::size_of::<Iso15693_3Data>() - 28usize];
+    ["Alignment of Iso15693_3Data"][::core::mem::align_of::<Iso15693_3Data>() - 4usize];
+    ["Offset of field: Iso15693_3Data::uid"][::core::mem::offset_of!(Iso15693_3Data, uid) - 0usize];
+    ["Offset of field: Iso15693_3Data::system_info"]
+        [::core::mem::offset_of!(Iso15693_3Data, system_info) - 8usize];
+    ["Offset of field: Iso15693_3Data::settings"]
+        [::core::mem::offset_of!(Iso15693_3Data, settings) - 16usize];
+    ["Offset of field: Iso15693_3Data::block_data"]
+        [::core::mem::offset_of!(Iso15693_3Data, block_data) - 20usize];
+    ["Offset of field: Iso15693_3Data::block_security"]
+        [::core::mem::offset_of!(Iso15693_3Data, block_security) - 24usize];
+};
+unsafe extern "C" {
+    pub fn iso15693_3_alloc() -> *mut Iso15693_3Data;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_free(data: *mut Iso15693_3Data);
+}
+unsafe extern "C" {
+    pub fn iso15693_3_reset(data: *mut Iso15693_3Data);
+}
+unsafe extern "C" {
+    pub fn iso15693_3_copy(data: *mut Iso15693_3Data, other: *const Iso15693_3Data);
+}
+unsafe extern "C" {
+    pub fn iso15693_3_verify(data: *mut Iso15693_3Data, device_type: *const FuriString) -> bool;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_load(data: *mut Iso15693_3Data, ff: *mut FlipperFormat, version: u32)
+    -> bool;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_save(data: *const Iso15693_3Data, ff: *mut FlipperFormat) -> bool;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_is_equal(data: *const Iso15693_3Data, other: *const Iso15693_3Data) -> bool;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_get_device_name(
+        data: *const Iso15693_3Data,
+        name_type: NfcDeviceNameType,
+    ) -> *const core::ffi::c_char;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_get_uid(data: *const Iso15693_3Data, uid_len: *mut usize) -> *const u8;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_set_uid(data: *mut Iso15693_3Data, uid: *const u8, uid_len: usize) -> bool;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_get_base_data(data: *const Iso15693_3Data) -> *mut Iso15693_3Data;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_is_block_locked(data: *const Iso15693_3Data, block_index: u8) -> bool;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_get_manufacturer_id(data: *const Iso15693_3Data) -> u8;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_get_block_count(data: *const Iso15693_3Data) -> u16;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_get_block_size(data: *const Iso15693_3Data) -> u8;
+}
+unsafe extern "C" {
+    pub fn iso15693_3_get_block_data(data: *const Iso15693_3Data, block_index: u8) -> *const u8;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso15693_3Poller {
+    _unused: [u8; 0],
+}
+#[doc = "< An error occured during activation procedure."]
+pub const Iso15693_3PollerEventTypeError: Iso15693_3PollerEventType = Iso15693_3PollerEventType(0);
+#[doc = "< The card was activated by the poller."]
+pub const Iso15693_3PollerEventTypeReady: Iso15693_3PollerEventType = Iso15693_3PollerEventType(1);
+#[repr(transparent)]
+#[doc = "Enumeration of possible Iso15693_3 poller event types."]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct Iso15693_3PollerEventType(pub core::ffi::c_uchar);
+#[doc = "Iso15693_3 poller event data."]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union Iso15693_3PollerEventData {
+    #[doc = "< Error code indicating card activation fail reason."]
+    pub error: Iso15693_3Error,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of Iso15693_3PollerEventData"]
+        [::core::mem::size_of::<Iso15693_3PollerEventData>() - 1usize];
+    ["Alignment of Iso15693_3PollerEventData"]
+        [::core::mem::align_of::<Iso15693_3PollerEventData>() - 1usize];
+    ["Offset of field: Iso15693_3PollerEventData::error"]
+        [::core::mem::offset_of!(Iso15693_3PollerEventData, error) - 0usize];
+};
+#[doc = "Iso15693_3 poller event structure.\n\n Upon emission of an event, an instance of this struct will be passed to the callback."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Iso15693_3PollerEvent {
+    #[doc = "< Type of emmitted event."]
+    pub type_: Iso15693_3PollerEventType,
+    #[doc = "< Pointer to event specific data."]
+    pub data: *mut Iso15693_3PollerEventData,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of Iso15693_3PollerEvent"][::core::mem::size_of::<Iso15693_3PollerEvent>() - 8usize];
+    ["Alignment of Iso15693_3PollerEvent"]
+        [::core::mem::align_of::<Iso15693_3PollerEvent>() - 4usize];
+    ["Offset of field: Iso15693_3PollerEvent::type_"]
+        [::core::mem::offset_of!(Iso15693_3PollerEvent, type_) - 0usize];
+    ["Offset of field: Iso15693_3PollerEvent::data"]
+        [::core::mem::offset_of!(Iso15693_3PollerEvent, data) - 4usize];
+};
+unsafe extern "C" {
+    #[doc = "Transmit and receive Iso15693_3 frames in poller mode.\n\n Must ONLY be used inside the callback function.\n\n The rx_buffer will be filled with any data received as a response to data\n sent from tx_buffer, with a timeout defined by the fwt parameter.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `tx_buffer` (direction in) - pointer to the buffer containing the data to be transmitted.\n * `rx_buffer` (direction out) - pointer to the buffer to be filled with received data.\n * `fwt` (direction in) - frame wait time (response timeout), in carrier cycles.\n # Returns\n\nIso15693_3ErrorNone on success, an error code on failure."]
+    pub fn iso15693_3_poller_send_frame(
+        instance: *mut Iso15693_3Poller,
+        tx_buffer: *const BitBuffer,
+        rx_buffer: *mut BitBuffer,
+        fwt: u32,
+    ) -> Iso15693_3Error;
+}
+unsafe extern "C" {
+    #[doc = "Perform activation procedure.\n\n Must ONLY be used inside the callback function.\n\n Perfoms the activation procedure as defined in Iso15693_3. The data\n field will be filled with Iso15693_3Data data on success.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `data` (direction out) - pointer to the Iso15693_3 data structure to be filled.\n # Returns\n\nIso15693_3ErrorNone on success, an error code on failure."]
+    pub fn iso15693_3_poller_activate(
+        instance: *mut Iso15693_3Poller,
+        data: *mut Iso15693_3Data,
+    ) -> Iso15693_3Error;
+}
+unsafe extern "C" {
+    #[doc = "Send invertory command and parse response.\n\n Must ONLY be used inside the callback function.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `uid` (direction out) - pointer to the buffer to be filled with the UID.\n # Returns\n\nIso15693_3ErrorNone on success, an error code on failure."]
+    pub fn iso15693_3_poller_inventory(
+        instance: *mut Iso15693_3Poller,
+        uid: *mut u8,
+    ) -> Iso15693_3Error;
+}
+unsafe extern "C" {
+    #[doc = "Send get system info command and parse response.\n\n Must ONLY be used inside the callback function.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `data` (direction out) - pointer to the Iso15693_3SystemInfo structure to be filled.\n # Returns\n\nIso15693_3ErrorNone on success, an error code on failure."]
+    pub fn iso15693_3_poller_get_system_info(
+        instance: *mut Iso15693_3Poller,
+        data: *mut Iso15693_3SystemInfo,
+    ) -> Iso15693_3Error;
+}
+unsafe extern "C" {
+    #[doc = "Read Iso15693_3 block.\n\n Must ONLY be used inside the callback function.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `data` (direction out) - pointer to the buffer to be filled with the block data.\n * `block_number` (direction in) - block number to be read.\n * `block_size` (direction in) - size of the block to be read.\n # Returns\n\nIso15693_3ErrorNone on success, an error code on failure."]
+    pub fn iso15693_3_poller_read_block(
+        instance: *mut Iso15693_3Poller,
+        data: *mut u8,
+        block_number: u8,
+        block_size: u8,
+    ) -> Iso15693_3Error;
+}
+unsafe extern "C" {
+    #[doc = "Read multiple Iso15693_3 blocks.\n\n Must ONLY be used inside the callback function.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `data` (direction out) - pointer to the buffer to be filled with the block data.\n * `block_count` (direction in) - number of blocks to be read.\n * `block_size` (direction in) - size of the blocks to be read.\n # Returns\n\nIso15693_3ErrorNone on success, an error code on failure."]
+    pub fn iso15693_3_poller_read_blocks(
+        instance: *mut Iso15693_3Poller,
+        data: *mut u8,
+        block_count: u16,
+        block_size: u8,
+    ) -> Iso15693_3Error;
+}
+unsafe extern "C" {
+    #[doc = "Get Iso15693_3 block security status.\n\n Must ONLY be used inside the callback function.\n\n # Arguments\n\n* `instance` (direction in, out) - pointer to the instance to be used in the transaction.\n * `data` (direction out) - pointer to the buffer to be filled with the block security status.\n * `block_count` (direction in) - block security number to be read.\n # Returns\n\nIso15693_3ErrorNone on success, an error code on failure."]
+    pub fn iso15693_3_poller_get_blocks_security(
+        instance: *mut Iso15693_3Poller,
+        data: *mut u8,
+        block_count: u16,
+    ) -> Iso15693_3Error;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -20864,7 +21407,11 @@ const _: () = {
         limited_credit_value
     )
         - 8usize];
-    ["Offset of field: MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_2::limited_credit_enabled"] [:: core :: mem :: offset_of ! (MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_2 , limited_credit_enabled) - 12usize] ;
+    ["Offset of field: MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_2::limited_credit_enabled"]
+        [::core::mem::offset_of!(
+            MfDesfireFileSettings__bindgen_ty_1__bindgen_ty_2,
+            limited_credit_enabled
+        ) - 12usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -22320,7 +22867,7 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn mf_ultralight_get_type_by_version(version: *mut MfUltralightVersion)
-        -> MfUltralightType;
+    -> MfUltralightType;
 }
 unsafe extern "C" {
     pub fn mf_ultralight_get_pages_total(type_: MfUltralightType) -> u16;
@@ -22478,6 +23025,9 @@ pub const MfUltralightPollerEventTypeWriteSuccess: MfUltralightPollerEventType =
 #[doc = "< Poller failed to write card."]
 pub const MfUltralightPollerEventTypeWriteFail: MfUltralightPollerEventType =
     MfUltralightPollerEventType(10);
+#[doc = "< Poller requests key for dict attack."]
+pub const MfUltralightPollerEventTypeRequestKey: MfUltralightPollerEventType =
+    MfUltralightPollerEventType(11);
 #[repr(transparent)]
 #[doc = "Enumeration of possible MfUltralight poller event types."]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -22486,6 +23036,8 @@ pub struct MfUltralightPollerEventType(pub core::ffi::c_uchar);
 pub const MfUltralightPollerModeRead: MfUltralightPollerMode = MfUltralightPollerMode(0);
 #[doc = "< Poller will write already saved card to another presented card."]
 pub const MfUltralightPollerModeWrite: MfUltralightPollerMode = MfUltralightPollerMode(1);
+#[doc = "< Poller will perform dictionary attack against card."]
+pub const MfUltralightPollerModeDictAttack: MfUltralightPollerMode = MfUltralightPollerMode(2);
 #[repr(transparent)]
 #[doc = "Enumeration of possible MfUltralight poller operating modes."]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -22496,8 +23048,9 @@ pub struct MfUltralightPollerMode(pub core::ffi::c_uchar);
 pub struct MfUltralightPollerAuthContext {
     #[doc = "< Password to be used for authentication."]
     pub password: MfUltralightAuthPassword,
+    #[doc = "< 3DES key to be used for authentication."]
     pub tdes_key: MfUltralightC3DesAuthKey,
-    #[doc = "< Pack received on successfull authentication."]
+    #[doc = "< Pack received on successful authentication."]
     pub pack: MfUltralightAuthPack,
     #[doc = "< Set to true if authentication succeeded, false otherwise."]
     pub auth_success: bool,
@@ -22521,6 +23074,26 @@ const _: () = {
     ["Offset of field: MfUltralightPollerAuthContext::skip_auth"]
         [::core::mem::offset_of!(MfUltralightPollerAuthContext, skip_auth) - 23usize];
 };
+#[doc = "MfUltralight poller key request data."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct MfUltralightPollerKeyRequestData {
+    #[doc = "< Key to try."]
+    pub key: MfUltralightC3DesAuthKey,
+    #[doc = "< Set to true if key was provided, false to stop attack."]
+    pub key_provided: bool,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of MfUltralightPollerKeyRequestData"]
+        [::core::mem::size_of::<MfUltralightPollerKeyRequestData>() - 17usize];
+    ["Alignment of MfUltralightPollerKeyRequestData"]
+        [::core::mem::align_of::<MfUltralightPollerKeyRequestData>() - 1usize];
+    ["Offset of field: MfUltralightPollerKeyRequestData::key"]
+        [::core::mem::offset_of!(MfUltralightPollerKeyRequestData, key) - 0usize];
+    ["Offset of field: MfUltralightPollerKeyRequestData::key_provided"]
+        [::core::mem::offset_of!(MfUltralightPollerKeyRequestData, key_provided) - 16usize];
+};
 #[doc = "MfUltralight poller event data."]
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -22529,8 +23102,12 @@ pub union MfUltralightPollerEventData {
     pub auth_context: MfUltralightPollerAuthContext,
     #[doc = "< Error code indicating reading fail reason."]
     pub error: MfUltralightError,
+    #[doc = "< Data to be written to card."]
     pub write_data: *const MfUltralightData,
+    #[doc = "< Mode to operate in."]
     pub poller_mode: MfUltralightPollerMode,
+    #[doc = "< Key request data."]
+    pub key_request_data: MfUltralightPollerKeyRequestData,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -22546,12 +23123,14 @@ const _: () = {
         [::core::mem::offset_of!(MfUltralightPollerEventData, write_data) - 0usize];
     ["Offset of field: MfUltralightPollerEventData::poller_mode"]
         [::core::mem::offset_of!(MfUltralightPollerEventData, poller_mode) - 0usize];
+    ["Offset of field: MfUltralightPollerEventData::key_request_data"]
+        [::core::mem::offset_of!(MfUltralightPollerEventData, key_request_data) - 0usize];
 };
 #[doc = "MfUltralight poller event structure.\n\n Upon emission of an event, an instance of this struct will be passed to the callback."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct MfUltralightPollerEvent {
-    #[doc = "< Type of emmitted event."]
+    #[doc = "< Type of emitted event."]
     pub type_: MfUltralightPollerEventType,
     #[doc = "< Pointer to event specific data."]
     pub data: *mut MfUltralightPollerEventData,
@@ -22691,157 +23270,6 @@ unsafe extern "C" {
         data: *mut MfUltralightData,
         auth_context: *const MfUltralightPollerAuthContext,
     ) -> MfUltralightError;
-}
-pub const Iso15693_3ErrorNone: Iso15693_3Error = Iso15693_3Error(0);
-pub const Iso15693_3ErrorNotPresent: Iso15693_3Error = Iso15693_3Error(1);
-pub const Iso15693_3ErrorBufferEmpty: Iso15693_3Error = Iso15693_3Error(2);
-pub const Iso15693_3ErrorBufferOverflow: Iso15693_3Error = Iso15693_3Error(3);
-pub const Iso15693_3ErrorFieldOff: Iso15693_3Error = Iso15693_3Error(4);
-pub const Iso15693_3ErrorWrongCrc: Iso15693_3Error = Iso15693_3Error(5);
-pub const Iso15693_3ErrorTimeout: Iso15693_3Error = Iso15693_3Error(6);
-pub const Iso15693_3ErrorFormat: Iso15693_3Error = Iso15693_3Error(7);
-pub const Iso15693_3ErrorIgnore: Iso15693_3Error = Iso15693_3Error(8);
-pub const Iso15693_3ErrorNotSupported: Iso15693_3Error = Iso15693_3Error(9);
-pub const Iso15693_3ErrorUidMismatch: Iso15693_3Error = Iso15693_3Error(10);
-pub const Iso15693_3ErrorFullyHandled: Iso15693_3Error = Iso15693_3Error(11);
-pub const Iso15693_3ErrorUnexpectedResponse: Iso15693_3Error = Iso15693_3Error(12);
-pub const Iso15693_3ErrorInternal: Iso15693_3Error = Iso15693_3Error(13);
-pub const Iso15693_3ErrorCustom: Iso15693_3Error = Iso15693_3Error(14);
-pub const Iso15693_3ErrorUnknown: Iso15693_3Error = Iso15693_3Error(15);
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct Iso15693_3Error(pub core::ffi::c_uchar);
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso15693_3SystemInfo {
-    pub flags: u8,
-    pub dsfid: u8,
-    pub afi: u8,
-    pub ic_ref: u8,
-    pub block_count: u16,
-    pub block_size: u8,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of Iso15693_3SystemInfo"][::core::mem::size_of::<Iso15693_3SystemInfo>() - 8usize];
-    ["Alignment of Iso15693_3SystemInfo"][::core::mem::align_of::<Iso15693_3SystemInfo>() - 2usize];
-    ["Offset of field: Iso15693_3SystemInfo::flags"]
-        [::core::mem::offset_of!(Iso15693_3SystemInfo, flags) - 0usize];
-    ["Offset of field: Iso15693_3SystemInfo::dsfid"]
-        [::core::mem::offset_of!(Iso15693_3SystemInfo, dsfid) - 1usize];
-    ["Offset of field: Iso15693_3SystemInfo::afi"]
-        [::core::mem::offset_of!(Iso15693_3SystemInfo, afi) - 2usize];
-    ["Offset of field: Iso15693_3SystemInfo::ic_ref"]
-        [::core::mem::offset_of!(Iso15693_3SystemInfo, ic_ref) - 3usize];
-    ["Offset of field: Iso15693_3SystemInfo::block_count"]
-        [::core::mem::offset_of!(Iso15693_3SystemInfo, block_count) - 4usize];
-    ["Offset of field: Iso15693_3SystemInfo::block_size"]
-        [::core::mem::offset_of!(Iso15693_3SystemInfo, block_size) - 6usize];
-};
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso15693_3LockBits {
-    pub dsfid: bool,
-    pub afi: bool,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of Iso15693_3LockBits"][::core::mem::size_of::<Iso15693_3LockBits>() - 2usize];
-    ["Alignment of Iso15693_3LockBits"][::core::mem::align_of::<Iso15693_3LockBits>() - 1usize];
-    ["Offset of field: Iso15693_3LockBits::dsfid"]
-        [::core::mem::offset_of!(Iso15693_3LockBits, dsfid) - 0usize];
-    ["Offset of field: Iso15693_3LockBits::afi"]
-        [::core::mem::offset_of!(Iso15693_3LockBits, afi) - 1usize];
-};
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso15693_3Settings {
-    pub lock_bits: Iso15693_3LockBits,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of Iso15693_3Settings"][::core::mem::size_of::<Iso15693_3Settings>() - 2usize];
-    ["Alignment of Iso15693_3Settings"][::core::mem::align_of::<Iso15693_3Settings>() - 1usize];
-    ["Offset of field: Iso15693_3Settings::lock_bits"]
-        [::core::mem::offset_of!(Iso15693_3Settings, lock_bits) - 0usize];
-};
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Iso15693_3Data {
-    pub uid: [u8; 8usize],
-    pub system_info: Iso15693_3SystemInfo,
-    pub settings: Iso15693_3Settings,
-    pub block_data: *mut SimpleArray,
-    pub block_security: *mut SimpleArray,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of Iso15693_3Data"][::core::mem::size_of::<Iso15693_3Data>() - 28usize];
-    ["Alignment of Iso15693_3Data"][::core::mem::align_of::<Iso15693_3Data>() - 4usize];
-    ["Offset of field: Iso15693_3Data::uid"][::core::mem::offset_of!(Iso15693_3Data, uid) - 0usize];
-    ["Offset of field: Iso15693_3Data::system_info"]
-        [::core::mem::offset_of!(Iso15693_3Data, system_info) - 8usize];
-    ["Offset of field: Iso15693_3Data::settings"]
-        [::core::mem::offset_of!(Iso15693_3Data, settings) - 16usize];
-    ["Offset of field: Iso15693_3Data::block_data"]
-        [::core::mem::offset_of!(Iso15693_3Data, block_data) - 20usize];
-    ["Offset of field: Iso15693_3Data::block_security"]
-        [::core::mem::offset_of!(Iso15693_3Data, block_security) - 24usize];
-};
-unsafe extern "C" {
-    pub fn iso15693_3_alloc() -> *mut Iso15693_3Data;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_free(data: *mut Iso15693_3Data);
-}
-unsafe extern "C" {
-    pub fn iso15693_3_reset(data: *mut Iso15693_3Data);
-}
-unsafe extern "C" {
-    pub fn iso15693_3_copy(data: *mut Iso15693_3Data, other: *const Iso15693_3Data);
-}
-unsafe extern "C" {
-    pub fn iso15693_3_verify(data: *mut Iso15693_3Data, device_type: *const FuriString) -> bool;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_load(data: *mut Iso15693_3Data, ff: *mut FlipperFormat, version: u32)
-        -> bool;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_save(data: *const Iso15693_3Data, ff: *mut FlipperFormat) -> bool;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_is_equal(data: *const Iso15693_3Data, other: *const Iso15693_3Data) -> bool;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_get_device_name(
-        data: *const Iso15693_3Data,
-        name_type: NfcDeviceNameType,
-    ) -> *const core::ffi::c_char;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_get_uid(data: *const Iso15693_3Data, uid_len: *mut usize) -> *const u8;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_set_uid(data: *mut Iso15693_3Data, uid: *const u8, uid_len: usize) -> bool;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_get_base_data(data: *const Iso15693_3Data) -> *mut Iso15693_3Data;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_is_block_locked(data: *const Iso15693_3Data, block_index: u8) -> bool;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_get_manufacturer_id(data: *const Iso15693_3Data) -> u8;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_get_block_count(data: *const Iso15693_3Data) -> u16;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_get_block_size(data: *const Iso15693_3Data) -> u8;
-}
-unsafe extern "C" {
-    pub fn iso15693_3_get_block_data(data: *const Iso15693_3Data, block_index: u8) -> *const u8;
 }
 pub type SlixTypeFeatures = u32;
 pub const SlixErrorNone: SlixError = SlixError(0);
@@ -23344,7 +23772,7 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn st25tb_poller_initiate(instance: *mut St25tbPoller, chip_id_ptr: *mut u8)
-        -> St25tbError;
+    -> St25tbError;
 }
 unsafe extern "C" {
     pub fn st25tb_poller_select(instance: *mut St25tbPoller, chip_id_ptr: *mut u8) -> St25tbError;
@@ -23463,6 +23891,12 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Enable overdrive mode\n # Arguments\n\n* `[in]` - host pointer to OneWireHost instance\n * `[in]` - set true to turn overdrive on, false to turn it off"]
     pub fn onewire_host_set_overdrive(host: *mut OneWireHost, set: bool);
+}
+unsafe extern "C" {
+    pub fn onewire_host_set_timings_default(host: *mut OneWireHost);
+}
+unsafe extern "C" {
+    pub fn onewire_host_set_timings_tm01x(host: *mut OneWireHost);
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -24023,7 +24457,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Getting the hash sum of the last randomly received parcel.\n # Arguments\n\n* `decoder` - Pointer to a SubGhzBlockDecoder instance\n # Returns\n\nhash Hash sum"]
     pub fn subghz_protocol_blocks_get_hash_data(decoder: *mut SubGhzBlockDecoder, len: usize)
-        -> u8;
+    -> u8;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -24070,7 +24504,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Get data bit when encoding HEX array.\n # Arguments\n\n* `data_array` - Pointer to a HEX array\n * `read_index_bit` - Number get a bit in the array starting from the left\n # Returns\n\nbool value bit"]
     pub fn subghz_protocol_blocks_get_bit_array(data_array: *mut u8, read_index_bit: usize)
-        -> bool;
+    -> bool;
 }
 unsafe extern "C" {
     #[doc = "Generating an upload from data.\n # Arguments\n\n* `data_array` - Pointer to a HEX array\n * `count_bit_data_array` - How many bits in the array are processed\n * `upload` - Pointer to a LevelDuration\n * `max_size_upload` - upload size, check not to overflow\n * `duration_bit` - duration 1 bit\n * `align_bit` - alignment of useful bits in an array"]
@@ -24246,7 +24680,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Get pointer to a SubGhzKeystore* instance.\n # Returns\n\nSubGhzEnvironment* pointer to a SubGhzEnvironment instance"]
     pub fn subghz_environment_get_keystore(instance: *mut SubGhzEnvironment)
-        -> *mut SubGhzKeystore;
+    -> *mut SubGhzKeystore;
 }
 unsafe extern "C" {
     #[doc = "Set filename to work with Came Atomo.\n # Arguments\n\n* `instance` - Pointer to a SubGhzEnvironment instance\n * `filename` - Full path to the file"]
@@ -24698,7 +25132,7 @@ unsafe extern "C" {
     ) -> bool;
 }
 unsafe extern "C" {
-    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderKeeloq instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 28 bit\n * `btn` - Button number, 4 bit\n * `cnt` - Container value, 16 bit\n * `manufacture_name` - Name of manufacturer's key\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
+    #[doc = "Key generation from simple data.\n # Arguments\n\n* `context` - Pointer to a SubGhzProtocolEncoderKeeloq instance\n * `flipper_format` - Pointer to a FlipperFormat instance\n * `serial` - Serial number, 28 bit\n * `btn` - Button number, 4 bit\n * `cnt` - Counter value, 16 bit\n * `manufacture_name` - Name of manufacturer's key\n * `preset` - Modulation, SubGhzRadioPreset\n # Returns\n\ntrue On success"]
     pub fn subghz_protocol_keeloq_create_data(
         context: *mut core::ffi::c_void,
         flipper_format: *mut FlipperFormat,
@@ -25088,7 +25522,7 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn subghz_devices_get_by_name(device_name: *const core::ffi::c_char)
-        -> *const SubGhzDevice;
+    -> *const SubGhzDevice;
 }
 unsafe extern "C" {
     pub fn subghz_devices_get_name(device: *const SubGhzDevice) -> *const core::ffi::c_char;
@@ -25342,8 +25776,12 @@ unsafe extern "C" {
 }
 pub type FuriApiLock = *mut FuriEventFlag;
 unsafe extern "C" {
-    #[doc = "Extract int value and trim arguments string\n\n # Arguments\n\n* `args` - - arguments string\n * `word` - first argument, output\n # Returns\n\ntrue - success\n false - arguments string does not contain int"]
+    #[doc = "Extract int value and trim arguments string\n\n # Arguments\n\n* `args` - - arguments string\n * `value` - first argument, output\n # Returns\n\ntrue - success\n false - arguments string does not contain int"]
     pub fn args_read_int_and_trim(args: *mut FuriString, value: *mut core::ffi::c_int) -> bool;
+}
+unsafe extern "C" {
+    #[doc = "Extract float value and trim arguments string\n\n # Arguments\n\n* `[in,` - out] args arguments string\n * `[out]` - value first argument\n # Returns\n\ntrue - success\n false - arguments string does not contain float"]
+    pub fn args_read_float_and_trim(args: *mut FuriString, value: *mut f32) -> bool;
 }
 unsafe extern "C" {
     #[doc = "Extract first argument from arguments string and trim arguments string\n\n # Arguments\n\n* `args` - arguments string\n * `word` - first argument, output\n # Returns\n\ntrue - success\n false - arguments string does not contain anything"]
@@ -25359,6 +25797,14 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Convert hex ASCII values to byte array\n\n # Arguments\n\n* `args` - arguments string\n * `bytes` - byte array pointer, output\n * `bytes_count` - needed bytes count\n # Returns\n\ntrue - success\n false - arguments string does not contain enough values, or contain non-hex ASCII values"]
     pub fn args_read_hex_bytes(args: *mut FuriString, bytes: *mut u8, bytes_count: usize) -> bool;
+}
+unsafe extern "C" {
+    #[doc = "Parses a duration value from a given string and converts it to milliseconds\n\n # Arguments\n\n* `[in]` - args the input string containing the duration value. The string may include units (e.g., \"10s\", \"0.5m\").\n * `[out]` - value pointer to store the parsed value in milliseconds\n * `[in]` - default_unit A default unit to be used if the input string does not contain a valid suffix.\n Supported units: `\"ms\"`, `\"s\"`, `\"m\"`, `\"h\"`\n If NULL, the function will assume milliseconds by default.\n # Returns\n\n`true` if the parsing and conversion succeeded, `false` otherwise."]
+    pub fn args_read_duration(
+        args: *mut FuriString,
+        value: *mut u32,
+        default_unit: *const core::ffi::c_char,
+    ) -> bool;
 }
 unsafe extern "C" {
     #[doc = "Get length of first word from arguments string\n\n # Arguments\n\n* `args` - arguments string\n # Returns\n\nsize_t length of first word"]
@@ -25720,7 +26166,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Convert ASCII hex value to byte\n # Arguments\n\n* `hi` - hi nibble text\n * `low` - low nibble text\n * `value` - output value\n\n # Returns\n\nbool conversion status"]
     pub fn hex_char_to_uint8(hi: core::ffi::c_char, low: core::ffi::c_char, value: *mut u8)
-        -> bool;
+    -> bool;
 }
 unsafe extern "C" {
     #[doc = "Convert ASCII hex values to uint8_t\n # Arguments\n\n* `value_str` - ASCII data\n * `value` - output value\n\n # Returns\n\nbool conversion status"]
@@ -25846,7 +26292,7 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn manchester_encoder_finish(state: *mut ManchesterEncoderState)
-        -> ManchesterEncoderResult;
+    -> ManchesterEncoderResult;
 }
 unsafe extern "C" {
     pub fn md5_calc_file(
@@ -25982,6 +26428,33 @@ unsafe extern "C" {
         version: *mut u8,
         payload_size: *mut usize,
     ) -> bool;
+}
+#[doc = "StrBuffer instance\n\n Place this struct directly wherever you want, it doesn't have to be `alloc`ed\n and `free`d."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StrBuffer {
+    pub owned_strings: *mut *mut core::ffi::c_char,
+    pub n_owned_strings: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of StrBuffer"][::core::mem::size_of::<StrBuffer>() - 8usize];
+    ["Alignment of StrBuffer"][::core::mem::align_of::<StrBuffer>() - 4usize];
+    ["Offset of field: StrBuffer::owned_strings"]
+        [::core::mem::offset_of!(StrBuffer, owned_strings) - 0usize];
+    ["Offset of field: StrBuffer::n_owned_strings"]
+        [::core::mem::offset_of!(StrBuffer, n_owned_strings) - 4usize];
+};
+unsafe extern "C" {
+    #[doc = "Makes a owned duplicate of the provided string\n\n # Arguments\n\n* `buffer` (direction in) - StrBuffer instance\n * `str` (direction in) - Input C-style string\n\n # Returns\n\nC-style string that contains to be valid event after `str` becomes\n invalid"]
+    pub fn str_buffer_make_owned_clone(
+        buffer: *mut StrBuffer,
+        str_: *const core::ffi::c_char,
+    ) -> *const core::ffi::c_char;
+}
+unsafe extern "C" {
+    #[doc = "Clears all owned duplicates\n\n # Arguments\n\n* `buffer` (direction in) - StrBuffer instance"]
+    pub fn str_buffer_clear_all_clones(buffer: *mut StrBuffer);
 }
 unsafe extern "C" {
     #[doc = "Allocate a file stream with buffered read operations\n # Returns\n\nStream*"]
@@ -26821,7 +27294,7 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn ble_svc_battery_update_level(service: *mut BleServiceBattery, battery_level: u8)
-        -> bool;
+    -> bool;
 }
 unsafe extern "C" {
     pub fn ble_svc_battery_update_power_state(
@@ -26915,6 +27388,9 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn __aeabi_uldivmod(arg1: u64, arg2: u64) -> *mut core::ffi::c_void;
+}
+unsafe extern "C" {
+    pub fn __aeabi_f2d(arg1: f32) -> f64;
 }
 unsafe extern "C" {
     #[doc = "Init memory pool manager"]

@@ -87,7 +87,7 @@ pub enum Deed {
     NfcSave,
     NfcDetectReader,
     NfcEmulate,
-    NfcMfcAdd,
+    NfcKeyAdd,
     NfcAddSave,
     NfcAddEmulate,
 
@@ -139,7 +139,7 @@ impl Deed {
             Deed::NfcSave => sys::DolphinDeedNfcSave,
             Deed::NfcDetectReader => sys::DolphinDeedNfcDetectReader,
             Deed::NfcEmulate => sys::DolphinDeedNfcEmulate,
-            Deed::NfcMfcAdd => sys::DolphinDeedNfcMfcAdd,
+            Deed::NfcKeyAdd => sys::DolphinDeedNfcKeyAdd,
             Deed::NfcAddSave => sys::DolphinDeedNfcAddSave,
             Deed::NfcAddEmulate => sys::DolphinDeedNfcAddEmulate,
             Deed::IrSend => sys::DolphinDeedIrSend,
