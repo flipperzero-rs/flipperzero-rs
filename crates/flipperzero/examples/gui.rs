@@ -14,7 +14,7 @@ extern crate flipperzero_rt;
 #[cfg(feature = "alloc")]
 extern crate flipperzero_alloc;
 
-use core::ffi::{c_void, CStr};
+use core::ffi::{CStr, c_void};
 use core::ptr;
 use core::time::Duration;
 

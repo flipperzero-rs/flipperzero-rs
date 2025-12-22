@@ -7,7 +7,7 @@
 // Required for allocator
 extern crate flipperzero_alloc;
 
-use core::ffi::{c_void, CStr};
+use core::ffi::{CStr, c_void};
 use core::mem::{self, MaybeUninit};
 use core::ptr::addr_of;
 

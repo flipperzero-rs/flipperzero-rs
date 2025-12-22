@@ -7,8 +7,8 @@ use std::{
 };
 
 use elf::{
-    abi::SHT_REL, endian::LittleEndian, relocation::RelIterator, string_table::StringTable,
-    symbol::SymbolTable, ElfBytes,
+    ElfBytes, abi::SHT_REL, endian::LittleEndian, relocation::RelIterator,
+    string_table::StringTable, symbol::SymbolTable,
 };
 use md5::{Digest, Md5};
 use tempfile::tempdir;

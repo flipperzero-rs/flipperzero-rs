@@ -15,7 +15,7 @@ use core::ffi::CStr;
 
 use flipperzero::furi::event_flag::EventFlag;
 use flipperzero::furi::time::FuriDuration;
-use flipperzero::serial::{SerialHandle, SerialId, LPUART};
+use flipperzero::serial::{LPUART, SerialHandle, SerialId};
 use flipperzero::{debug, info};
 use flipperzero_rt::{entry, manifest};
 

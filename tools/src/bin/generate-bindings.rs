@@ -5,8 +5,8 @@
 use std::borrow::Cow;
 use std::{env, fs};
 
-use bindgen::callbacks::ParseCallbacks;
 use bindgen::EnumVariation;
+use bindgen::callbacks::ParseCallbacks;
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::{crate_authors, crate_description, crate_version, value_parser};
 use once_cell::sync::Lazy;
@@ -313,6 +313,8 @@ fn main() {
         .prepend_enum_name(false)
         .ctypes_prefix("core::ffi")
         .allowlist_var("API_VERSION")
+        .rust_target(bindgen::RustTarget::nightly())
+        .rust_edition(bindgen::RustEdition::Edition2024)
         .wrap_unsafe_ops(true)
         .header_contents("header.h", &bindings_header);
 

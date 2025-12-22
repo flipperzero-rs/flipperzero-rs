@@ -1,5 +1,5 @@
 use flipperzero_sys as sys;
-use rand_core::{impls, CryptoRng, Error, RngCore};
+use rand_core::{CryptoRng, Error, RngCore, impls};
 
 /// A random number generator that retrieves randomness from the Flipper Zero hardware.
 ///

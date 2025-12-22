@@ -3,7 +3,7 @@ name = "flipperzero-tools"
 description = "Rust for Flipper Zero (tools)"
 license = "MIT"
 version = "0.15.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 bindgen = "0.72.1"

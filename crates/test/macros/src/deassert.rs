@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{parse, Block, Expr, ExprMacro, ExprTuple, Stmt};
+use syn::{Block, Expr, ExprMacro, ExprTuple, Stmt, parse};
 
 /// Find and replace macro assertions inside the given block with `return Err(..)`.
 ///
