@@ -13,7 +13,7 @@ autobenches = false
 
 [dependencies]
 flipperzero-sys.workspace = true
-flipperzero-test-macros = { version = "=0.15.0", path = "macros" }
+flipperzero-test-macros = { version = "=0.16.0", path = "macros" }
 ufmt.workspace = true
 
 [lib]

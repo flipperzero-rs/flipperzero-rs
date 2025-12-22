@@ -24,6 +24,7 @@ The crate major version number will be updated after a bump in [API version](htt
 | Crate version | API version |
 | ------------- | ----------- |
 | HEAD          | 87.1        |
+| 0.16.x        | 87.1        |
 | 0.15.x        | 86.0        |
 | 0.14.x        | 79.2        |
 | 0.13.x        | 78.0        |

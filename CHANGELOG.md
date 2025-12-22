@@ -9,6 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+### Changed
+
+### Removed
+
+## [0.16.0]
+
+### Added
+
 - Added `flipperzero::prelude` for standard exports
 - `flipperzero::bluetooth`, providing APIs for interacting with Bluetooth:
   - `beacon` module for operating with the built-in Bluetooth LE beacon.
@@ -311,7 +319,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 Initial release!
 
-[Unreleased]: https://github.com/flipperzero-rs/flipperzero/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/flipperzero-rs/flipperzero/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.15.0
 [0.15.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.15.0
 [0.14.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.14.0
 [0.13.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.13.0

@@ -3,7 +3,7 @@ members = ["alloc", "flipperzero", "sys", "rt", "test", "test/macros"]
 resolver = "2"
 
 [workspace.package]
-version = "0.15.0"
+version = "0.16.0"
 description = "Rust for Flipper Zero"
 edition = "2024"
 rust-version = "1.85.0"
@@ -12,10 +12,10 @@ readme = "../README.md"
 license = "MIT"
 
 [workspace.dependencies]
-flipperzero-sys = { path = "sys", version = "0.15.0" }
-flipperzero-rt = { path = "rt", version = "0.15.0" }
-flipperzero-alloc = { path = "alloc", version = "0.15.0" }
-flipperzero-test = { path = "test", version = "0.15.0" }
+flipperzero-sys = { path = "sys", version = "0.16.0" }
+flipperzero-rt = { path = "rt", version = "0.16.0" }
+flipperzero-alloc = { path = "alloc", version = "0.16.0" }
+flipperzero-test = { path = "test", version = "0.16.0" }
 ufmt = "0.2.0"
 document-features = "0.2.0"
 
