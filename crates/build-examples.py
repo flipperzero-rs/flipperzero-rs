@@ -11,7 +11,7 @@ import sys
 PYTHON = 'python'
 TOOLS_PATH = '../tools'
 INSTALL_PATH = PurePosixPath('/ext/apps/Examples')
-ALL_EXAMPLES = {"dialog", "embedded-graphics", "example_images", "gpio", "gui", "hello-rust", "notification", "serial-echo", "storage"}
+ALL_EXAMPLES = {"bluetooth", "dialog", "embedded-graphics", "example_images", "gpio", "gui", "hello-rust", "notification", "serial-echo", "storage"}
 
 
 def parse_args():
