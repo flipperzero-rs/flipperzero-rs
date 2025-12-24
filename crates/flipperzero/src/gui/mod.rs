@@ -2,6 +2,15 @@
 
 pub mod canvas;
 pub mod icon;
+<<<<<<< HEAD
+||||||| parent of f9278c7 (Add callbacks for view, viewport, view dispatcher)
+pub mod variable_item_list;
+=======
+pub mod variable_item_list;
+pub mod view;
+pub mod view_dispatcher;
+pub mod view_port;
+>>>>>>> f9278c7 (Add callbacks for view, viewport, view dispatcher)
 
 use core::ffi::CStr;
 use core::ops::{Deref, DerefMut};
