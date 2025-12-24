@@ -27,7 +27,8 @@ impl<M: Sized> MessageQueue<M> {
         }
     }
 
-    // Attempts to add the message to the end of the queue, waiting up to timeout ticks.
+    // Attempts to add the message to the end of the queue, waiting for as long as the timeout, in
+    // the case that the queue is already full to capacity.
     pub fn put(&self, msg: M, timeout: FuriDuration) -> furi::Result<()> {
         let mut msg = core::mem::ManuallyDrop::new(msg);
 
