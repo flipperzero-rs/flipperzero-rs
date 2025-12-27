@@ -12,9 +12,7 @@ pub use color::*;
 pub use font::*;
 pub use font_parameters::*;
 
-use crate::gui::{
-    icon::Icon,
-};
+use crate::gui::{icon::Icon, icon_animation::{IconAnimation, IconAnimationCallbacks}};
 use core::{
     ffi::CStr,
     marker::PhantomData,
@@ -235,9 +233,22 @@ impl CanvasView<'_> {
 
     // TODO `canvas_draw_bitmap` compressed bitmap support
 
-    pub fn draw_icon<'a, 'b: 'a>(&'a mut self, x: i32, y: i32, animation: &'b Icon) {
+    pub fn draw_icon_animation<'a, 'b: 'a>(
+        &'a mut self,
+        x: i32,
+        y: i32,
+        icon_animation: &'b IconAnimation<'_, impl IconAnimationCallbacks>,
+    ) {
         let raw = self.raw.as_ptr();
-        let icon = animation.as_raw();
+        let icon_animation = icon_animation.as_raw();
+        // SAFETY: `raw` is always valid
+        // and `icon_animation` is always valid and outlives this canvas view
+        unsafe { sys::canvas_draw_icon_animation(raw, x, y, icon_animation) }
+    }
+
+    pub fn draw_icon<'a, 'b: 'a>(&'a mut self, x: i32, y: i32, icon: &'b Icon) {
+        let raw = self.raw.as_ptr();
+        let icon = icon.as_raw();
         // SAFETY: `raw` is always valid
         // and `icon` is always valid and outlives this canvas view
         unsafe { sys::canvas_draw_icon(raw, x, y, icon) }
