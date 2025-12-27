@@ -7,6 +7,8 @@ pub mod icon;
 pub mod view;
 pub mod view_dispatcher;
 pub mod view_port;
+#[cfg(feature = "xbm")]
+pub mod xbm;
 
 use core::ffi::CStr;
 use core::ops::{Deref, DerefMut};

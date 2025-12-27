@@ -81,6 +81,13 @@ miri = ["embedded-graphics"]
 alloc = []
 not-miri = []
 
+#! ## Utilities
+#!
+#! These APIs provide extra functionality required for specific use-cases.
+
+## Enables APIs for working with XBM-images.
+xbm = []
+
 ## Enable embedded-graphics driver
 embedded-graphics = ["dep:embedded-graphics-core"]
 
@@ -111,10 +118,6 @@ name = "embedded-graphics"
 required-features = ["embedded-graphics", "not-miri"]
 
 [[example]]
-name = "example_images"
-required-features = ["not-miri"]
-
-[[example]]
 name = "gpio"
 required-features = ["not-miri"]
 
@@ -127,6 +130,10 @@ required-features = ["not-miri"]
 
 [[example]]
 name = "i2c-ds3231"
+required-features = ["not-miri"]
+
+[[example]]
+name = "images"
 required-features = ["not-miri"]
 
 [[example]]

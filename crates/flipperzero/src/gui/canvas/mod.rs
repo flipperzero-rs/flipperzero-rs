@@ -12,7 +12,9 @@ pub use color::*;
 pub use font::*;
 pub use font_parameters::*;
 
-use crate::gui::icon::Icon;
+use crate::gui::{
+    icon::Icon,
+};
 use core::{
     ffi::CStr,
     marker::PhantomData,
@@ -22,6 +24,11 @@ use core::{
 use flipperzero_sys::{
     self as sys, Canvas as SysCanvas, CanvasFontParameters as SysCanvasFontParameters,
 };
+
+#[cfg(feature = "xbm")]
+use crate::gui::xbm::XbmImage;
+#[cfg(feature = "xbm")]
+use core::ops::Deref;
 
 /// System Canvas view.
 pub struct CanvasView<'a> {
@@ -234,6 +241,20 @@ impl CanvasView<'_> {
         // SAFETY: `raw` is always valid
         // and `icon` is always valid and outlives this canvas view
         unsafe { sys::canvas_draw_icon(raw, x, y, icon) }
+    }
+
+    #[cfg(feature = "xbm")]
+    pub fn draw_xbm(&mut self, x: i32, y: i32, xbm: &XbmImage<impl Deref<Target = [u8]>>) {
+        let raw = self.raw.as_ptr();
+        let width = xbm.width() as usize;
+        let height = xbm.height() as usize;
+
+        let data = xbm.data().as_ptr();
+
+        // SAFETY: `raw` is always valid
+        // and `data` is always valid and does not have to outlive the view
+        // as it is copied
+        unsafe { sys::canvas_draw_xbm(raw, x, y, width, height, data) };
     }
 
     // TODO:
