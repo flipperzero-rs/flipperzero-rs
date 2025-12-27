@@ -11,19 +11,33 @@ use canvas::Canvas;
 use flipperzero_sys as sys;
 use flipperzero_sys::furi::UnsafeRecord;
 
-/// GUI service record.
+/// System GUI wrapper.
 pub struct Gui {
     record: UnsafeRecord<sys::Gui>,
 }
 
 impl Gui {
-    const NAME: &CStr = c"gui";
+    /// Furi record corresponding to GUI.
+    pub const NAME: &'static CStr = c"gui";
 
     /// Open record to GUI service.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use flipperzero::gui::{view_port::ViewPort, Gui, GuiLayer};
+    /// let view_port = ViewPort::new(());
+    /// // create a GUI with a view port added to it
+    /// let mut gui = Gui::new();
+    /// let view_port = gui.add_view_port(view_port, GuiLayer::Desktop);
+    /// ```
     pub fn open() -> Self {
-        Self {
-            record: unsafe { UnsafeRecord::open(Self::NAME) },
-        }
+        // SAFETY: `RECORD` is a constant
+        let gui = unsafe { UnsafeRecord::open(Self::NAME) };
+
+        Self { record: gui }
     }
 
     /// Obtain raw pointer to GUI service.
