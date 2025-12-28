@@ -1,5 +1,7 @@
 //! GUI service.
 
+mod gui_layer;
+
 pub mod canvas;
 pub mod icon;
 pub mod view;
@@ -12,6 +14,9 @@ use core::ops::{Deref, DerefMut};
 use canvas::CanvasView;
 use flipperzero_sys as sys;
 use flipperzero_sys::furi::UnsafeRecord;
+use crate::gui::view_port::{ViewPort, ViewPortCallbacks};
+
+pub use gui_layer::*;
 
 /// System GUI wrapper.
 pub struct Gui {
@@ -50,6 +55,24 @@ impl Gui {
         self.record.as_ptr()
     }
 
+    pub fn add_view_port<VPC: ViewPortCallbacks>(
+        &mut self,
+        view_port: ViewPort<VPC>,
+        layer: GuiLayer,
+    ) -> GuiViewPort<'_, VPC> {
+        let raw = self.as_ptr();
+        let view_port_ptr = view_port.as_raw();
+        let layer = layer.into();
+
+        // SAFETY: all pointers are valid and `view_port` outlives this `Gui`
+        unsafe { sys::gui_add_view_port(raw, view_port_ptr, layer) };
+
+        GuiViewPort {
+            parent: self,
+            view_port,
+        }
+    }
+
     /// Get gui canvas frame buffer size in bytes.
     pub fn get_framebuffer_size(&self) -> usize {
         unsafe { sys::gui_get_framebuffer_size(self.as_ptr()) }
@@ -73,6 +96,67 @@ impl Gui {
         let canvas = unsafe { CanvasView::from_raw(sys::gui_direct_draw_acquire(raw)) };
 
         ExclusiveCanvas { gui: self, canvas }
+    }
+}
+
+/// `ViewPort` bound to a `Gui`.
+pub struct GuiViewPort<'a, VPC: ViewPortCallbacks> {
+    parent: &'a Gui,
+    view_port: ViewPort<VPC>,
+}
+
+impl<'a, VPC: ViewPortCallbacks> GuiViewPort<'a, VPC> {
+    /// Get the underlying `ViewPort`
+    pub fn view_port(&self) -> &ViewPort<VPC> {
+        &self.view_port
+    }
+
+    /// Get a mutable reference to the underlying `ViewPort`
+    pub fn view_port_mut(&mut self) -> &mut ViewPort<VPC> {
+        &mut self.view_port
+    }
+
+    /// Send this view port to the front of the GUI.
+    pub fn send_to_front(&mut self) {
+        let gui = self.parent.as_ptr();
+        let view_port = self.view_port.as_raw();
+
+        // SAFETY: `self.parent` outlives this `GuiVewPort`
+        unsafe { sys::gui_view_port_send_to_front(gui, view_port) };
+    }
+
+    // pub fn send_to_back(&mut self) {
+    //     let gui = self.parent.as_gui();
+    //     let view_port = self.view_port.as_raw();
+    //
+    //     unsafe { sys::gui_view_port_send_to_back(gui, view_port) };
+    // }
+
+    /// Queue a GUI update.
+    ///
+    /// Note that the actual update will happen on another thread, whenever the GUI service
+    /// receives the signal. This method will not block.
+    pub fn update(&mut self) {
+        let view_port = self.view_port.as_raw();
+
+        // SAFETY: `view_port` is a valid pointer
+        unsafe { sys::view_port_update(view_port) }
+    }
+}
+
+impl<VPC: ViewPortCallbacks> Drop for GuiViewPort<'_, VPC> {
+    fn drop(&mut self) {
+        let gui = self.parent.as_ptr();
+        let view_port = self.view_port().as_raw();
+
+        // SAFETY: `gui` and `view_port` are valid pointers
+        // and this view port should have been added to the gui on creation
+        unsafe {
+            sys::view_port_enabled_set(view_port, false);
+            sys::gui_remove_view_port(gui, view_port);
+            // the object has to be deallocated since the ownership was transferred to the `Gui`
+            sys::view_port_free(view_port);
+        }
     }
 }
 
