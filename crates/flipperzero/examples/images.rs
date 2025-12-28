@@ -4,9 +4,7 @@
 #![no_std]
 #![no_main]
 
-use core::ffi::{c_char, c_void};
-use core::mem::{self, MaybeUninit};
-use core::time::Duration;
+use core::ffi::{CStr, c_void};
 use flipperzero::{
     furi::message_queue::MessageQueue,
     gui::{
@@ -17,14 +15,13 @@ use flipperzero::{
     },
     input::{InputEvent, InputKey, InputType},
 };
-use flipperzero_sys::furi::UnsafeRecord;
 
 extern crate flipperzero_alloc;
 
 use flipperzero_rt as rt;
 use flipperzero_sys as sys;
 
-use sys::Icon;
+use flipperzero::furi::time::FuriDuration;
 
 rt::manifest!(name = "Example: Images");
 rt::entry!(main);
@@ -45,19 +42,6 @@ struct ImagePosition {
     pub y: i32,
 }
 
-// Screen is 128x64 px
-extern "C" fn app_draw_callback(canvas: *mut sys::Canvas, _ctx: *mut c_void) {
-    unsafe {
-        sys::canvas_clear(canvas);
-        sys::canvas_draw_icon(
-            canvas,
-            IMAGE_POSITION.x,
-            IMAGE_POSITION.y,
-            addr_of!(TARGET_ICON) as *const Icon as *const c_void as *const sys::Icon,
-        );
-    }
-}
-
 extern "C" fn app_input_callback(input_event: *mut sys::InputEvent, ctx: *mut c_void) {
     unsafe {
         let event_queue = ctx as *mut sys::FuriMessageQueue;
@@ -65,7 +49,7 @@ extern "C" fn app_input_callback(input_event: *mut sys::InputEvent, ctx: *mut c_
     }
 }
 
-fn main(_args: *mut u8) -> i32 {
+fn main(_args: Option<&CStr>) -> i32 {
     // SAFETY: `Icon` is a read-only;
     // there will be a safe API for this in this future
     let icon = unsafe { Icon::from_raw(&SYS_ICON as *const _ as *mut _) };
@@ -108,7 +92,7 @@ fn main(_args: *mut u8) -> i32 {
                     // we make `Ok` button (un)hide the canvas
                     InputKey::Ok => self.hidden = !self.hidden,
                     _ => {
-                        let _ = self.exit_queue.put_now(());
+                        let _ = self.exit_queue.put((), FuriDuration::ZERO);
                     }
                 }
             }
@@ -128,12 +112,12 @@ fn main(_args: *mut u8) -> i32 {
     });
 
     // Register view port in GUI
-    let mut gui = Gui::new();
+    let mut gui = Gui::open();
     let mut view_port = gui.add_view_port(view_port, GuiLayer::Fullscreen);
 
     let mut running = true;
     while running {
-        if exit_queue.get(Duration::from_millis(100)).is_ok() {
+        if exit_queue.get(FuriDuration::from_millis(100)).is_ok() {
             running = false
         }
         view_port.update();

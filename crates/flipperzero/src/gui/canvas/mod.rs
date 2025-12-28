@@ -12,7 +12,9 @@ pub use color::*;
 pub use font::*;
 pub use font_parameters::*;
 
-use crate::gui::{icon::Icon, icon_animation::{IconAnimation, IconAnimationCallbacks}};
+use crate::gui::icon::Icon;
+#[cfg(not(miri))]
+use crate::gui::icon_animation::{IconAnimation, IconAnimationCallbacks};
 use core::{
     ffi::CStr,
     marker::PhantomData,
@@ -23,9 +25,9 @@ use flipperzero_sys::{
     self as sys, Canvas as SysCanvas, CanvasFontParameters as SysCanvasFontParameters,
 };
 
-#[cfg(feature = "xbm")]
+#[cfg(all(feature = "xbm", not(miri)))]
 use crate::gui::xbm::XbmImage;
-#[cfg(feature = "xbm")]
+#[cfg(all(feature = "xbm", not(miri)))]
 use core::ops::Deref;
 
 /// System Canvas view.
@@ -233,6 +235,7 @@ impl CanvasView<'_> {
 
     // TODO `canvas_draw_bitmap` compressed bitmap support
 
+    #[cfg(not(miri))]
     pub fn draw_icon_animation<'a, 'b: 'a>(
         &'a mut self,
         x: i32,
@@ -254,7 +257,7 @@ impl CanvasView<'_> {
         unsafe { sys::canvas_draw_icon(raw, x, y, icon) }
     }
 
-    #[cfg(feature = "xbm")]
+    #[cfg(all(feature = "xbm", not(miri)))]
     pub fn draw_xbm(&mut self, x: i32, y: i32, xbm: &XbmImage<impl Deref<Target = [u8]>>) {
         let raw = self.raw.as_ptr();
         let width = xbm.width() as usize;

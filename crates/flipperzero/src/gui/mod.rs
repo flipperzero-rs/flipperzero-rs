@@ -4,6 +4,7 @@ mod gui_layer;
 
 pub mod canvas;
 pub mod icon;
+#[cfg(not(miri))]
 pub mod icon_animation;
 pub mod view;
 pub mod view_dispatcher;

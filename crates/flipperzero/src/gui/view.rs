@@ -15,7 +15,7 @@ use crate::{gui::canvas::CanvasView, input::InputEvent};
 #[cfg(feature = "alloc")]
 pub struct View<C: ViewCallbacks> {
     inner: ViewInner,
-    callbacks: NonUniqueBox<C>,
+    _callbacks: NonUniqueBox<C>,
 }
 
 /// UI view.
@@ -31,7 +31,11 @@ impl<C: ViewCallbacks> View<C> {
         let inner = ViewInner::new();
         let callbacks = NonUniqueBox::new(callbacks);
 
-        let view = Self { inner, callbacks };
+        let view = Self {
+            inner,
+            _callbacks: callbacks,
+        };
+        let raw = view.inner.0.as_ptr();
 
         {
             pub unsafe extern "C" fn dispatch_draw<C: ViewCallbacks>(
@@ -48,7 +52,9 @@ impl<C: ViewCallbacks> View<C> {
             }
 
             let callback = Some(dispatch_draw::<C> as _);
-            unsafe { sys::view_set_draw_callback(view.inner.0.as_ptr(), callback) };
+            // SAFETY: `raw` is valid
+            // and `callbacks` is valid and lives with this struct
+            unsafe { sys::view_set_draw_callback(raw, callback) };
         }
 
         {
@@ -65,7 +71,9 @@ impl<C: ViewCallbacks> View<C> {
             }
 
             let callback = Some(dispatch_previous::<C> as _);
-            unsafe { sys::view_set_previous_callback(view.inner.0.as_ptr(), callback) };
+            // SAFETY: `raw` is valid
+            // and `callbacks` is valid and lives with this struct
+            unsafe { sys::view_set_previous_callback(raw, callback) };
         }
 
         {
@@ -73,6 +81,8 @@ impl<C: ViewCallbacks> View<C> {
                 input_event: *mut SysInputEvent,
                 context: *mut c_void,
             ) -> bool {
+                // SAFETY: `input_event` guaranteed to be a valid pointer, and is not aliased, as
+                // it exists for only the duration of the input event, which is single threaded
                 let input_event: InputEvent = (unsafe { *input_event })
                     .try_into()
                     .expect("`input_event` should be a valid event");
@@ -80,14 +90,13 @@ impl<C: ViewCallbacks> View<C> {
                 let context: *mut C = context.cast();
                 // SAFETY: `context` is stored in a `Box` which is a member of `View`
                 // and the callback is accessed exclusively by this function
-                match unsafe { &mut *context }.on_input(input_event) {
-                    EventBubbling::Consumed => true,
-                    EventBubbling::ReturnForAdditionalProcessing => false,
-                }
+                unsafe { &mut *context }.on_input(input_event) == EventBubbling::Consumed
             }
 
             let callback = Some(dispatch_input::<C> as _);
-            unsafe { sys::view_set_input_callback(view.inner.0.as_ptr(), callback) };
+            // SAFETY: `raw` is valid
+            // and `callbacks` is valid and lives with this struct
+            unsafe { sys::view_set_input_callback(raw, callback) };
         }
 
         view
@@ -110,7 +119,9 @@ impl ViewInner {
     fn new() -> Self {
         // SAFETY: allocation either succeeds producing a valid non-null pointer
         // or stops the system on OOM
-        Self(unsafe { NonNull::new_unchecked(sys::view_alloc()) })
+        let view = unsafe { sys::view_alloc() };
+        // SAFETY: `view` is guaranteed to be not null
+        Self(unsafe { NonNull::new_unchecked(view) })
     }
 }
 
@@ -122,6 +133,7 @@ impl Drop for ViewInner {
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
 pub enum EventBubbling {
     Consumed,
     ReturnForAdditionalProcessing,

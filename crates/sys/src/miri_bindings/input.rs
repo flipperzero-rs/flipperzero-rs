@@ -1,4 +1,3 @@
-
 #[doc = "< Press event, emitted after debounce"]
 pub const InputTypePress: InputType = InputType(0);
 #[doc = "< Release event, emitted after debounce"]
@@ -107,7 +106,8 @@ impl InputEvent__bindgen_ty_1__bindgen_ty_1 {
         sequence_source: u8,
         sequence_counter: u32,
     ) -> super::__BindgenBitfieldUnit<[u8; 4usize]> {
-        let mut __bindgen_bitfield_unit: super::__BindgenBitfieldUnit<[u8; 4usize]> = Default::default();
+        let mut __bindgen_bitfield_unit: super::__BindgenBitfieldUnit<[u8; 4usize]> =
+            Default::default();
         __bindgen_bitfield_unit.set(0usize, 2u8, {
             let sequence_source: u8 = unsafe { ::core::mem::transmute(sequence_source) };
             sequence_source as u64
@@ -130,3 +130,27 @@ pub const InputKeyMAX: InputKey = InputKey(6);
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct InputKey(pub core::ffi::c_uchar);
+
+#[doc = "Get human readable input key name\n # Arguments\n\n* `key` - - InputKey\n # Returns\n\nstring"]
+pub unsafe fn input_get_key_name(key: InputKey) -> *const core::ffi::c_char {
+    match key {
+        InputKeyUp => c"Up",
+        InputKeyDown => c"Down",
+        InputKeyRight => c"Right",
+        InputKeyLeft => c"Left",
+        InputKeyOk => c"Ok",
+        InputKeyBack => c"Back",
+        _ => c"Err",
+    }.as_ptr()
+}
+
+pub unsafe fn input_get_type_name(type_: InputType) -> *const core::ffi::c_char {
+    match type_ {
+        InputTypePress => c"Press",
+        InputTypeRelease => c"Release",
+        InputTypeShort => c"Short",
+        InputTypeLong => c"Long",
+        InputTypeRepeat => c"Repeat",
+        _ => c"Err",
+    }.as_ptr()
+}

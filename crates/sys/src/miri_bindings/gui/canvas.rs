@@ -146,15 +146,6 @@ pub unsafe fn canvas_draw_icon_ex(
 ) {
     todo!()
 }
-#[doc = "Draw animation at position defined by x,y.\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `icon_animation` - IconAnimation instance"]
-pub unsafe fn canvas_draw_icon_animation(
-    canvas: *mut Canvas,
-    x: i32,
-    y: i32,
-    icon_animation: *mut super::IconAnimation,
-) {
-    todo!()
-}
 #[doc = "Draw icon at position defined by x,y.\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `icon` - Icon instance"]
 pub unsafe fn canvas_draw_icon(canvas: *mut Canvas, x: i32, y: i32, icon: *const super::Icon) {
     todo!()
