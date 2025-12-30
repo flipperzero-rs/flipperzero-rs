@@ -133,8 +133,8 @@ impl<'a> DialogMessage<'a> {
                 header.as_ptr(),
                 x,
                 y,
-                horizontal.to_sys(),
-                vertical.to_sys(),
+                horizontal.into(),
+                vertical.into(),
             );
         }
     }
@@ -155,8 +155,8 @@ impl<'a> DialogMessage<'a> {
                 text.as_ptr(),
                 x,
                 y,
-                horizontal.to_sys(),
-                vertical.to_sys(),
+                horizontal.into(),
+                vertical.into(),
             );
         }
     }

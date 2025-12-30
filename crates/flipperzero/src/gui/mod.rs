@@ -1,13 +1,12 @@
 //! GUI service.
 
 pub mod canvas;
+pub mod icon;
 
 use core::ffi::CStr;
-use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
-use core::ptr;
 
-use canvas::Canvas;
+use canvas::CanvasView;
 use flipperzero_sys as sys;
 use flipperzero_sys::furi::UnsafeRecord;
 
@@ -34,7 +33,7 @@ impl Gui {
     /// let view_port = gui.add_view_port(view_port, GuiLayer::Desktop);
     /// ```
     pub fn open() -> Self {
-        // SAFETY: `RECORD` is a constant
+        // SAFETY: `NAME` is a constant
         let gui = unsafe { UnsafeRecord::open(Self::NAME) };
 
         Self { record: gui }
@@ -64,8 +63,13 @@ impl Gui {
     /// While holding the Direct Draw lock, all input and draw call dispatch
     /// functions in the GUI service are disabled. No other applications or
     /// services will be able to draw until the lock is released.
-    pub fn direct_draw_acquire(&self) -> ExclusiveCanvas<'_> {
-        ExclusiveCanvas::new(self)
+    pub fn direct_draw_acquire(&mut self) -> ExclusiveCanvas<'_> {
+        let raw = self.as_ptr();
+
+        // SAFETY: `raw` is a valid pointer
+        let canvas = unsafe { CanvasView::from_raw(sys::gui_direct_draw_acquire(raw)) };
+
+        ExclusiveCanvas { gui: self, canvas }
     }
 }
 
@@ -77,64 +81,30 @@ impl Gui {
 /// applications or services will be able to draw until `direct_draw_release`
 /// call.
 pub struct ExclusiveCanvas<'a> {
-    gui: &'a Gui,
-    canvas: ptr::NonNull<sys::Canvas>,
-    _marker: PhantomData<&'a mut Canvas>,
-}
-
-impl<'a> ExclusiveCanvas<'a> {
-    fn new(gui: &'a Gui) -> Self {
-        ExclusiveCanvas {
-            gui,
-            // SAFETY: Returned pointer is always a valid non-null Canvas.
-            canvas: unsafe {
-                ptr::NonNull::new_unchecked(sys::gui_direct_draw_acquire(gui.as_ptr()))
-            },
-            _marker: PhantomData,
-        }
-    }
-
-    /// Get Canvas.
-    ///
-    /// This can't be used with a temporary reference.
-    ///
-    /// ```compile_fail
-    /// # let gui = Gui::open();
-    /// let canvas = gui.direct_draw_acquire().canvas();
-    /// ```
-    pub fn canvas(&self) -> &Canvas {
-        unsafe { Canvas::from_raw(self.canvas.as_ptr()) }
-    }
-
-    /// Get mutable Canvas.
-    ///
-    /// This can't be used with a temporary reference.
-    ///
-    /// ```compile_fail
-    /// # let gui = Gui::open();
-    /// let canvas = gui.direct_draw_acquire().canvas_mut();
-    /// ```
-    pub fn canvas_mut(&mut self) -> &mut Canvas {
-        unsafe { Canvas::from_raw_mut(self.canvas.as_ptr()) }
-    }
-}
-
-impl Deref for ExclusiveCanvas<'_> {
-    type Target = Canvas;
-
-    fn deref(&self) -> &Self::Target {
-        self.canvas()
-    }
-}
-
-impl DerefMut for ExclusiveCanvas<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.canvas_mut()
-    }
+    gui: &'a mut Gui,
+    canvas: CanvasView<'a>,
 }
 
 impl Drop for ExclusiveCanvas<'_> {
     fn drop(&mut self) {
-        unsafe { sys::gui_direct_draw_release(self.gui.as_ptr()) }
+        let gui = self.gui.as_ptr();
+        // SAFETY: this instance should have been created from `gui`
+        // using `gui_direct_draw_acquire`
+        // and will no longer be available since it is dropped
+        unsafe { sys::gui_direct_draw_release(gui) };
+    }
+}
+
+impl<'a> Deref for ExclusiveCanvas<'a> {
+    type Target = CanvasView<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.canvas
+    }
+}
+
+impl<'a> DerefMut for ExclusiveCanvas<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.canvas
     }
 }
