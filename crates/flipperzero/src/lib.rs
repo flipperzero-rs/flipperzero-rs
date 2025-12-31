@@ -5,8 +5,7 @@
 //!
 
 #![no_std]
-#![cfg_attr(all(test, not(miri)), no_main)]
-#![cfg_attr(all(test, miri), feature(start))]
+#![cfg_attr(test, no_main)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![warn(clippy::undocumented_unsafe_blocks)]

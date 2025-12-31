@@ -142,8 +142,8 @@ fn tests_runner_impl(args: TokenStream) -> parse::Result<TokenStream> {
         }
 
         #[cfg(all(test, miri))]
-        #[start]
-        fn main(argc: isize, argv: *const *const u8) -> isize {
+        #[unsafe(no_mangle)]
+        fn miri_start(argc: isize, argv: *const *const u8) -> isize {
             // TODO: Is there any benefit to Miri in hooking up the binary arguments to
             // the test runner?
             let ret = __test_runner::main(None);
