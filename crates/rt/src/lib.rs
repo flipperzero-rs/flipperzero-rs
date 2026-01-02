@@ -7,6 +7,7 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 
 pub mod manifest;
+#[cfg(not(miri))]
 pub mod panic_handler;
 mod thread;
 

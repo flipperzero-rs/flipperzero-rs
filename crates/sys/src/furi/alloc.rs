@@ -26,6 +26,15 @@ impl<T> FuriBox<T> {
         }
     }
 
+    #[cfg(miri)]
+    /// Allocates and initializes a correctly aligned value on the system heap.
+    pub fn new(value: T) -> Self {
+        unsafe {
+            // SAFETY: Pointer is non-null, aligned and represents a valid `T`
+            FuriBox::from_raw(value)
+        }
+    }
+
     /// Consume the box and return raw pointer.
     ///
     /// Caller is responsible for calling `T::drop()` and freeing the pointer with `aligned_free`.
