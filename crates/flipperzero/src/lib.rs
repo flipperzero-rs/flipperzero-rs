@@ -14,21 +14,31 @@
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 extern crate alloc;
 
+#[cfg(not(miri))]
 pub mod bluetooth;
+#[cfg(not(miri))]
 pub mod datetime;
+#[cfg(not(miri))]
 pub mod dialogs;
+#[cfg(not(miri))]
 pub mod dolphin;
 pub mod furi;
 pub mod gpio;
 pub mod gui;
+#[cfg(not(miri))]
 pub mod io;
+#[cfg(not(miri))]
 pub mod locale;
 pub mod macros;
+#[cfg(not(miri))]
 pub mod notification;
 pub mod path;
 pub mod prelude;
+#[cfg(not(miri))]
 pub mod serial;
+#[cfg(not(miri))]
 pub mod storage;
+#[cfg(not(miri))]
 pub mod toolbox;
 pub mod version;
 

@@ -13,8 +13,10 @@ use flipperzero_sys as sys;
 /// Memory is allocated using the firmware's `aligned_malloc` and so may only be
 /// manually freed with `aligned_free`. It is not safe to use regular `realloc` or `free`
 /// on memory obtained from this allocator.
+#[cfg(not(miri))]
 pub struct FuriAlloc;
 
+#[cfg(not(miri))]
 unsafe impl GlobalAlloc for FuriAlloc {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
@@ -34,5 +36,6 @@ unsafe impl GlobalAlloc for FuriAlloc {
     }
 }
 
-#[global_allocator]
+#[cfg_attr(not(miri), global_allocator)]
+#[cfg(not(miri))]
 static ALLOCATOR: FuriAlloc = FuriAlloc;
