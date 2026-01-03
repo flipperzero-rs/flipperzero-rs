@@ -8,10 +8,8 @@ use core::alloc::{GlobalAlloc, Layout};
 
 use flipperzero_sys as sys;
 
-#[cfg(not(miri))]
 pub struct FuriAlloc;
 
-#[cfg(not(miri))]
 unsafe impl GlobalAlloc for FuriAlloc {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
@@ -30,6 +28,5 @@ unsafe impl GlobalAlloc for FuriAlloc {
     }
 }
 
-#[cfg_attr(not(miri), global_allocator)]
-#[cfg(not(miri))]
+#[global_allocator]
 static ALLOCATOR: FuriAlloc = FuriAlloc;
