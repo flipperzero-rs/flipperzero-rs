@@ -139,3 +139,16 @@ fn main(_args: Option<&CStr>) -> i32 {
 
     0
 }
+
+#[cfg(miri)]
+#[unsafe(no_mangle)]
+fn miri_start(_argc: isize, _argv: *const *const u8) -> isize {
+    // TODO: Is there any benefit to Miri in hooking up the binary arguments to
+    // the test runner?
+    let ret = main(None);
+
+    // Clean up app state.
+    ::flipperzero_rt::__macro_support::__wait_for_thread_completion();
+
+    ret.try_into().unwrap_or(isize::MAX)
+}
