@@ -18,6 +18,7 @@ mod thread;
 /// # Safety
 ///
 /// This should never be called manually.
+#[cfg(not(miri))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn _start(args: *mut u8) -> i32 {
     unsafe extern "Rust" {
