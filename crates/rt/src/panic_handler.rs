@@ -5,6 +5,7 @@ use core::panic::PanicInfo;
 
 use flipperzero_sys as sys;
 
+#[cfg(not(miri))]
 #[panic_handler]
 pub fn panic(panic_info: &PanicInfo<'_>) -> ! {
     // Format: "thread: 'App Name' panicked at 'panic!', panic.rs:5"
@@ -38,4 +39,25 @@ pub fn panic(panic_info: &PanicInfo<'_>) -> ! {
 
         sys::crash!("Rust panic")
     }
+}
+
+#[cfg(miri)]
+unsafe extern "Rust" {
+    safe fn miri_write_to_stderr(bytes: &[u8]);
+}
+
+#[cfg(miri)]
+#[panic_handler]
+fn panic(panic_info: &PanicInfo<'_>) -> ! {
+    miri_write_to_stderr(
+        panic_info
+            .message()
+            .as_str()
+            .unwrap_or(
+                "Panicked (panic macro was given a message with arguments, which cannot be logged)",
+            )
+            .as_bytes(),
+    );
+    miri_write_to_stderr(b"\n");
+    core::intrinsics::abort(); //~ ERROR: the program aborted execution
 }
