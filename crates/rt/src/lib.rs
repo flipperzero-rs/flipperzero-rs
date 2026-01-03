@@ -3,11 +3,11 @@
 //! This must be build with `-Z no-unique-section-names` to ensure that this module
 //! is linked directly into the `.text` section.
 
+#![cfg_attr(miri, feature(core_intrinsics))]
 #![no_std]
 #![deny(rustdoc::broken_intra_doc_links)]
 
 pub mod manifest;
-#[cfg(not(miri))]
 pub mod panic_handler;
 mod thread;
 
