@@ -7,6 +7,7 @@ mod kernel;
 mod string;
 mod thread;
 mod version;
+mod sync;
 
 pub use event::*;
 pub use gui::*;
