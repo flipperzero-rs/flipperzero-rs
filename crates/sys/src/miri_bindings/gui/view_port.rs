@@ -1,3 +1,5 @@
+use crate::miri_bindings::utils::*;
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ViewPort {
