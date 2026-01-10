@@ -1,3 +1,5 @@
+use crate::miri_bindings::utils::*;
+
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct FuriWait(pub core::ffi::c_uint);

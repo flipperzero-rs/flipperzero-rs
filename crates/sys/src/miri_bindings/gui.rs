@@ -14,6 +14,8 @@ pub use view_dispatcher::*;
 pub use view_port::*;
 pub use widget::*;
 
+use crate::miri_bindings::utils::*;
+
 #[doc = "Set lockdown mode\n\n When lockdown mode is enabled, only GuiLayerDesktop is shown.\n This feature prevents services from showing sensitive information when flipper is locked.\n\n # Arguments\n\n* `gui` - Gui instance\n * `lockdown` - bool, true if enabled"]
 pub unsafe fn gui_set_lockdown(gui: *mut Gui, lockdown: bool) {
     todo!()
