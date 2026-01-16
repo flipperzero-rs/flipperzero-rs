@@ -8,7 +8,8 @@ mod string;
 mod thread;
 mod utils;
 mod version;
-mod sync;
+
+pub extern crate alloc;
 
 pub use event::*;
 pub use gui::*;
@@ -17,6 +18,9 @@ pub use kernel::*;
 pub use string::*;
 pub use thread::*;
 pub use version::*;
+
+use core::ffi::CStr;
+use alloc::sync::Arc;
 
 pub const API_VERSION: u32 = 5701633;
 
@@ -311,11 +315,21 @@ pub struct GPIO_TypeDef {
 
 #[doc = "Open record\n\n # Arguments\n\n* `name` - record name\n\n # Returns\n\npointer to the record\n > **Note:** Thread safe. Open and close must be executed from the same\n thread. Suspends caller thread till record is available"]
 pub unsafe fn furi_record_open(name: *const core::ffi::c_char) -> *mut core::ffi::c_void {
-    todo!()
+    let name = unsafe { CStr::from_ptr(name) };
+    if name == c"gui" {
+        Arc::into_raw(Gui::spawn()).cast_mut() as *mut _
+    } else {
+        unimplemented!()
+    }
 }
 #[doc = "Close record\n\n # Arguments\n\n* `name` - record name\n > **Note:** Thread safe. Open and close must be executed from the same\n thread."]
 pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
-    todo!()
+    let name = unsafe { CStr::from_ptr(name) };
+    if name == c"gui" {
+        todo!()
+    } else {
+        unimplemented!()
+    }
 }
 
 #[doc = "Get current tick counter\n\n System uptime, may overflow.\n\n # Returns\n\nCurrent ticks in milliseconds"]

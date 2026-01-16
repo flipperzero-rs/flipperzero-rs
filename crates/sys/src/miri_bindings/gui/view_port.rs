@@ -1,9 +1,13 @@
+use core::ptr::NonNull;
+use core::ffi::c_void;
+use core::alloc::Layout;
 use crate::miri_bindings::utils::*;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ViewPort {
-    _unused: [u8; 0],
+    draw_callback: ViewPortDrawCallback,
+    draw_callback_context: *mut c_void,
 }
 pub const ViewPortOrientationHorizontal: ViewPortOrientation = ViewPortOrientation(0);
 pub const ViewPortOrientationHorizontalFlip: ViewPortOrientation = ViewPortOrientation(1);
@@ -16,20 +20,26 @@ pub const ViewPortOrientationMAX: ViewPortOrientation = ViewPortOrientation(4);
 pub struct ViewPortOrientation(pub core::ffi::c_uchar);
 #[doc = "ViewPort Draw callback\n called from GUI thread"]
 pub type ViewPortDrawCallback = ::core::option::Option<
-    unsafe extern "C" fn(canvas: *mut super::Canvas, context: *mut core::ffi::c_void),
+    unsafe extern "C" fn(canvas: *mut super::Canvas, context: *mut c_void),
 >;
 #[doc = "ViewPort Input callback\n called from GUI thread"]
 pub type ViewPortInputCallback = ::core::option::Option<
-    unsafe extern "C" fn(event: *mut crate::InputEvent, context: *mut core::ffi::c_void),
+    unsafe extern "C" fn(event: *mut crate::InputEvent, context: *mut c_void),
 >;
+
 #[doc = "ViewPort allocator\n\n always returns view_port or stops system if not enough memory.\n\n # Returns\n\nViewPort instance"]
-pub fn view_port_alloc() -> *mut ViewPort {
-    todo!()
+pub unsafe fn view_port_alloc() -> *mut ViewPort {
+    let layout = Layout::new::<ViewPort>();
+    let ptr = unsafe { miri_alloc(layout.size(), layout.align()) as *mut _ };
+    ptr
 }
+
 #[doc = "ViewPort deallocator\n\n Ensure that view_port was unregistered in GUI system before use.\n\n # Arguments\n\n* `view_port` - ViewPort instance"]
-pub fn view_port_free(view_port: *mut ViewPort) {
-    todo!()
+pub unsafe fn view_port_free(view_port: *mut ViewPort) {
+    let layout = Layout::new::<ViewPort>();
+    unsafe { miri_dealloc(view_port as *mut _, layout.size(), layout.align()) };
 }
+
 #[doc = "Set view_port width.\n\n Will be used to limit canvas drawing area and autolayout feature.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `width` - wanted width, 0 - auto."]
 pub fn view_port_set_width(view_port: *mut ViewPort, width: u8) {
     todo!()
@@ -51,18 +61,22 @@ pub fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
 pub fn view_port_is_enabled(view_port: *const ViewPort) -> bool {
     todo!()
 }
+
 #[doc = "ViewPort event callbacks\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `callback` - appropriate callback function\n * `context` - context to pass to callback"]
 pub fn view_port_draw_callback_set(
     view_port: *mut ViewPort,
     callback: ViewPortDrawCallback,
-    context: *mut core::ffi::c_void,
+    context: *mut c_void,
 ) {
-    todo!()
+    let mut view_port = unsafe { view_port.as_mut() }.expect("ptr is valid");
+    view_port.draw_callback = callback;
+    view_port.draw_callback_context = context;
 }
+
 pub fn view_port_input_callback_set(
     view_port: *mut ViewPort,
     callback: ViewPortInputCallback,
-    context: *mut core::ffi::c_void,
+    context: *mut c_void,
 ) {
     todo!()
 }
