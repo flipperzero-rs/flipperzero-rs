@@ -70,6 +70,7 @@ pub mod __macro_support {
     }
 }
 
+#[cfg(not(miri))]
 flipperzero_test::tests_runner!(
     name = "flipperzero-rs Unit Tests",
     stack_size = 4096,
