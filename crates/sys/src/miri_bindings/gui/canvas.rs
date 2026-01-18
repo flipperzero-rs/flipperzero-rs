@@ -79,7 +79,8 @@ pub unsafe fn canvas_get_font_params(canvas: *const Canvas, font: Font) -> *cons
 }
 #[doc = "Clear canvas\n\n # Arguments\n\n* `canvas` - Canvas instance"]
 pub unsafe fn canvas_clear(canvas: *mut Canvas) {
-    todo!()
+    // we're not storing any data in the canvas at the moment, as we assume that no data is stored
+    // from the borrowed data passed in here, only read and converted into pixel values
 }
 #[doc = "Set drawing color\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `color` - Color"]
 pub unsafe fn canvas_set_color(canvas: *mut Canvas, color: Color) {

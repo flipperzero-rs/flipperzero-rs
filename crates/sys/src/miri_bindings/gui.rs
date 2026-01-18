@@ -59,9 +59,9 @@ pub type Gui = SpinLock<gui_inner::GuiInner>;
 pub(crate) mod gui_inner {
     extern crate alloc;
 
-    use super::canvas::Canvas;
-    use super::view_port::{ViewPort, ViewPortInnerDrawCallback};
-    use crate::{InputEvent, view_port_is_enabled};
+    use super::canvas::{self, Canvas};
+    use super::view_port::{self, ViewPort, ViewPortInnerDrawCallback};
+    use crate::InputEvent;
     use crate::miri_bindings::utils::*;
 
     use crate::miri_bindings::lock::SpinLock;
@@ -138,11 +138,14 @@ pub(crate) mod gui_inner {
         }
 
         fn redraw(&mut self) -> () {
-            let view_port = self
-                .view_port
-                .expect("nothing to do if there's no view port");
+            unsafe { canvas::canvas_clear(&mut self.canvas) };
 
-            if !unsafe { view_port_is_enabled(view_port.as_ref()) } {
+            let Some(view_port) = self.view_port else {
+                // nothing to do if there's no view port
+                return;
+            };
+
+            if !unsafe { view_port::view_port_is_enabled(view_port.as_ref()) } {
                 return;
             }
 
