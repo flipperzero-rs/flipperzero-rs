@@ -43,7 +43,11 @@ pub type ViewPortInputCallback = ::core::option::Option<
 
 #[doc = "ViewPort allocator\n\n always returns view_port or stops system if not enough memory.\n\n # Returns\n\nViewPort instance"]
 pub unsafe fn view_port_alloc() -> *mut ViewPort {
-    let view_port = SpinLock::new(ViewPortInner { draw_callback: None, enabled: false, gui: None });
+    let view_port = SpinLock::new(ViewPortInner {
+        draw_callback: None,
+        enabled: false,
+        gui: None,
+    });
     {
         let mut view_port = view_port.lock();
         view_port.enabled = true;
@@ -54,9 +58,7 @@ pub unsafe fn view_port_alloc() -> *mut ViewPort {
 
 #[doc = "ViewPort deallocator\n\n Ensure that view_port was unregistered in GUI system before use.\n\n # Arguments\n\n* `view_port` - ViewPort instance"]
 pub unsafe fn view_port_free(view_port: *mut ViewPort) {
-    let view_port_ptr = *(unsafe { Box::from_raw(view_port) });
-    let layout = Layout::new::<ViewPortInner>();
-    unsafe { miri_dealloc(view_port as *mut _, layout.size(), layout.align()) };
+    drop(unsafe { Box::from_raw(view_port) });
 }
 
 #[doc = "Set view_port width.\n\n Will be used to limit canvas drawing area and autolayout feature.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `width` - wanted width, 0 - auto."]
