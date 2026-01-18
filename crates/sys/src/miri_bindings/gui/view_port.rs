@@ -22,7 +22,7 @@ pub struct ViewPortInner {
     pub gui: Option<Arc<super::Gui>>,
 }
 
-pub type ViewPort = SpinLock<&'static mut ViewPortInner>;
+pub type ViewPort = SpinLock<ViewPortInner>;
 
 pub const ViewPortOrientationHorizontal: ViewPortOrientation = ViewPortOrientation(0);
 pub const ViewPortOrientationHorizontalFlip: ViewPortOrientation = ViewPortOrientation(1);
@@ -43,10 +43,7 @@ pub type ViewPortInputCallback = ::core::option::Option<
 
 #[doc = "ViewPort allocator\n\n always returns view_port or stops system if not enough memory.\n\n # Returns\n\nViewPort instance"]
 pub unsafe fn view_port_alloc() -> *mut ViewPort {
-    let layout = Layout::new::<ViewPortInner>();
-    let ptr = unsafe { miri_alloc(layout.size(), layout.align()) } as *mut ViewPortInner;
-
-    let view_port = SpinLock::new(unsafe { &mut *ptr });
+    let view_port = SpinLock::new(ViewPortInner { draw_callback: None, enabled: false, gui: None });
     {
         let mut view_port = view_port.lock();
         view_port.enabled = true;

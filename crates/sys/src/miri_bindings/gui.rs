@@ -61,7 +61,7 @@ pub(crate) mod gui_inner {
 
     use super::canvas::Canvas;
     use super::view_port::{ViewPort, ViewPortInnerDrawCallback};
-    use crate::InputEvent;
+    use crate::{InputEvent, view_port_is_enabled};
     use crate::miri_bindings::utils::*;
 
     use crate::miri_bindings::lock::SpinLock;
@@ -142,7 +142,12 @@ pub(crate) mod gui_inner {
                 .view_port
                 .expect("nothing to do if there's no view port");
 
+            if !unsafe { view_port_is_enabled(view_port.as_ref()) } {
+                return;
+            }
+
             let mut view_port = (unsafe { view_port.as_ref() }).lock();
+
             let &mut ViewPortInnerDrawCallback { callback: ref draw_callback, context: mut draw_callback_context } = view_port.draw_callback
                 .as_mut()
                 .expect("ViewPorts should only be registered with the GUI after their draw callbacks have been set");
