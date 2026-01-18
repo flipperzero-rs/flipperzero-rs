@@ -328,6 +328,9 @@ pub unsafe fn furi_record_open(name: *const core::ffi::c_char) -> *mut c_void {
 pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
     let name = unsafe { CStr::from_ptr(name) };
     if name == c"gui" {
+        // TODO: I think that properly decrementing the Gui Arc will require a rethink about how
+        // we're handling things there -- might need to change either the spawn or record_open
+        // methods to also store the arc in a static
         todo!()
     } else {
         unimplemented!()
