@@ -3,6 +3,7 @@
 
 use core::panic::PanicInfo;
 
+#[cfg(not(miri))]
 use flipperzero_sys as sys;
 
 #[cfg(not(miri))]
