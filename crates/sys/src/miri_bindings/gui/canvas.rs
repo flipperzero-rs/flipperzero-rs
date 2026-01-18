@@ -54,51 +54,51 @@ pub struct Canvas {
     _unused: [u8; 0],
 }
 #[doc = "Reset canvas drawing tools configuration\n\n # Arguments\n\n* `canvas` - Canvas instance"]
-pub fn canvas_reset(canvas: *mut Canvas) {
+pub unsafe fn canvas_reset(canvas: *mut Canvas) {
     todo!()
 }
 #[doc = "Commit canvas. Send buffer to display\n\n # Arguments\n\n* `canvas` - Canvas instance"]
-pub fn canvas_commit(canvas: *mut Canvas) {
+pub unsafe fn canvas_commit(canvas: *mut Canvas) {
     todo!()
 }
 #[doc = "Get Canvas width\n\n # Arguments\n\n* `canvas` - Canvas instance\n\n # Returns\n\nwidth in pixels."]
-pub fn canvas_width(canvas: *const Canvas) -> usize {
+pub unsafe fn canvas_width(canvas: *const Canvas) -> usize {
     todo!()
 }
 #[doc = "Get Canvas height\n\n # Arguments\n\n* `canvas` - Canvas instance\n\n # Returns\n\nheight in pixels."]
-pub fn canvas_height(canvas: *const Canvas) -> usize {
+pub unsafe fn canvas_height(canvas: *const Canvas) -> usize {
     todo!()
 }
 #[doc = "Get current font height\n\n # Arguments\n\n* `canvas` - Canvas instance\n\n # Returns\n\nheight in pixels."]
-pub fn canvas_current_font_height(canvas: *const Canvas) -> usize {
+pub unsafe fn canvas_current_font_height(canvas: *const Canvas) -> usize {
     todo!()
 }
 #[doc = "Get font parameters\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `font` - Font\n\n # Returns\n\npointer to CanvasFontParameters structure"]
-pub fn canvas_get_font_params(canvas: *const Canvas, font: Font) -> *const CanvasFontParameters {
+pub unsafe fn canvas_get_font_params(canvas: *const Canvas, font: Font) -> *const CanvasFontParameters {
     todo!()
 }
 #[doc = "Clear canvas\n\n # Arguments\n\n* `canvas` - Canvas instance"]
-pub fn canvas_clear(canvas: *mut Canvas) {
+pub unsafe fn canvas_clear(canvas: *mut Canvas) {
     todo!()
 }
 #[doc = "Set drawing color\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `color` - Color"]
-pub fn canvas_set_color(canvas: *mut Canvas, color: Color) {
+pub unsafe fn canvas_set_color(canvas: *mut Canvas, color: Color) {
     todo!()
 }
 #[doc = "Set font swap Argument String Rotation Description\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `dir` - Direction font"]
-pub fn canvas_set_font_direction(canvas: *mut Canvas, dir: CanvasDirection) {
+pub unsafe fn canvas_set_font_direction(canvas: *mut Canvas, dir: CanvasDirection) {
     todo!()
 }
 #[doc = "Invert drawing color\n\n # Arguments\n\n* `canvas` - Canvas instance"]
-pub fn canvas_invert_color(canvas: *mut Canvas) {
+pub unsafe fn canvas_invert_color(canvas: *mut Canvas) {
     todo!()
 }
 #[doc = "Set drawing font\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `font` - Font"]
-pub fn canvas_set_font(canvas: *mut Canvas, font: Font) {
+pub unsafe fn canvas_set_font(canvas: *mut Canvas, font: Font) {
     todo!()
 }
 #[doc = "Set custom drawing font\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `font` - Pointer to u8g2 const uint8_t* font array"]
-pub fn canvas_set_custom_u8g2_font(canvas: *mut Canvas, font: *const u8) {
+pub unsafe fn canvas_set_custom_u8g2_font(canvas: *mut Canvas, font: *const u8) {
     todo!()
 }
 #[doc = "Draw string at position of baseline defined by x, y.\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - anchor point x coordinate\n * `y` - anchor point y coordinate\n * `str` - C-string"]
@@ -106,7 +106,7 @@ pub fn canvas_draw_str(canvas: *mut Canvas, x: i32, y: i32, str_: *const core::f
     todo!()
 }
 #[doc = "Draw aligned string defined by x, y.\n\n Align calculated from position of baseline, string width and ascent (height\n of the glyphs above the baseline)\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - anchor point x coordinate\n * `y` - anchor point y coordinate\n * `horizontal` - horizontal alignment\n * `vertical` - vertical alignment\n * `str` - C-string"]
-pub fn canvas_draw_str_aligned(
+pub unsafe fn canvas_draw_str_aligned(
     canvas: *mut Canvas,
     x: i32,
     y: i32,
@@ -117,15 +117,15 @@ pub fn canvas_draw_str_aligned(
     todo!()
 }
 #[doc = "Get string width\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `str` - C-string\n\n # Returns\n\nwidth in pixels."]
-pub fn canvas_string_width(canvas: *mut Canvas, str_: *const core::ffi::c_char) -> u16 {
+pub unsafe fn canvas_string_width(canvas: *mut Canvas, str_: *const core::ffi::c_char) -> u16 {
     todo!()
 }
 #[doc = "Get glyph width\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `symbol` (direction in) - character\n\n # Returns\n\nwidth in pixels"]
-pub fn canvas_glyph_width(canvas: *mut Canvas, symbol: u16) -> usize {
+pub unsafe fn canvas_glyph_width(canvas: *mut Canvas, symbol: u16) -> usize {
     todo!()
 }
 #[doc = "Draw bitmap picture at position defined by x,y.\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` - width of bitmap\n * `height` - height of bitmap\n * `compressed_bitmap_data` - compressed bitmap data"]
-pub fn canvas_draw_bitmap(
+pub unsafe fn canvas_draw_bitmap(
     canvas: *mut Canvas,
     x: i32,
     y: i32,
@@ -136,7 +136,7 @@ pub fn canvas_draw_bitmap(
     todo!()
 }
 #[doc = "Draw icon at position defined by x,y with rotation and flip.\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `icon` - Icon instance\n * `rotation` - IconRotation"]
-pub fn canvas_draw_icon_ex(
+pub unsafe fn canvas_draw_icon_ex(
     canvas: *mut Canvas,
     x: i32,
     y: i32,
@@ -146,7 +146,7 @@ pub fn canvas_draw_icon_ex(
     todo!()
 }
 #[doc = "Draw animation at position defined by x,y.\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `icon_animation` - IconAnimation instance"]
-pub fn canvas_draw_icon_animation(
+pub unsafe fn canvas_draw_icon_animation(
     canvas: *mut Canvas,
     x: i32,
     y: i32,
@@ -155,11 +155,11 @@ pub fn canvas_draw_icon_animation(
     todo!()
 }
 #[doc = "Draw icon at position defined by x,y.\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `icon` - Icon instance"]
-pub fn canvas_draw_icon(canvas: *mut Canvas, x: i32, y: i32, icon: *const super::Icon) {
+pub unsafe fn canvas_draw_icon(canvas: *mut Canvas, x: i32, y: i32, icon: *const super::Icon) {
     todo!()
 }
 #[doc = "Draw XBM bitmap\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` (direction in) - bitmap width\n * `height` (direction in) - bitmap height\n * `bitmap` - pointer to XBM bitmap data"]
-pub fn canvas_draw_xbm(
+pub unsafe fn canvas_draw_xbm(
     canvas: *mut Canvas,
     x: i32,
     y: i32,
@@ -170,7 +170,7 @@ pub fn canvas_draw_xbm(
     todo!()
 }
 #[doc = "Draw rotated XBM bitmap\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` (direction in) - bitmap width\n * `height` (direction in) - bitmap height\n * `rotation` (direction in) - bitmap rotation\n * `bitmap_data` - pointer to XBM bitmap data"]
-pub fn canvas_draw_xbm_ex(
+pub unsafe fn canvas_draw_xbm_ex(
     canvas: *mut Canvas,
     x: i32,
     y: i32,
@@ -182,31 +182,31 @@ pub fn canvas_draw_xbm_ex(
     todo!()
 }
 #[doc = "Draw dot at x,y\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate"]
-pub fn canvas_draw_dot(canvas: *mut Canvas, x: i32, y: i32) {
+pub unsafe fn canvas_draw_dot(canvas: *mut Canvas, x: i32, y: i32) {
     todo!()
 }
 #[doc = "Draw box of width, height at x,y\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` - box width\n * `height` - box height"]
-pub fn canvas_draw_box(canvas: *mut Canvas, x: i32, y: i32, width: usize, height: usize) {
+pub unsafe fn canvas_draw_box(canvas: *mut Canvas, x: i32, y: i32, width: usize, height: usize) {
     todo!()
 }
 #[doc = "Draw frame of width, height at x,y\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` - frame width\n * `height` - frame height"]
-pub fn canvas_draw_frame(canvas: *mut Canvas, x: i32, y: i32, width: usize, height: usize) {
+pub unsafe fn canvas_draw_frame(canvas: *mut Canvas, x: i32, y: i32, width: usize, height: usize) {
     todo!()
 }
 #[doc = "Draw line from x1,y1 to x2,y2\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x1` - x1 coordinate\n * `y1` - y1 coordinate\n * `x2` - x2 coordinate\n * `y2` - y2 coordinate"]
-pub fn canvas_draw_line(canvas: *mut Canvas, x1: i32, y1: i32, x2: i32, y2: i32) {
+pub unsafe fn canvas_draw_line(canvas: *mut Canvas, x1: i32, y1: i32, x2: i32, y2: i32) {
     todo!()
 }
 #[doc = "Draw circle at x,y with radius r\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `radius` - radius"]
-pub fn canvas_draw_circle(canvas: *mut Canvas, x: i32, y: i32, radius: usize) {
+pub unsafe fn canvas_draw_circle(canvas: *mut Canvas, x: i32, y: i32, radius: usize) {
     todo!()
 }
 #[doc = "Draw disc at x,y with radius r\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `radius` - radius"]
-pub fn canvas_draw_disc(canvas: *mut Canvas, x: i32, y: i32, radius: usize) {
+pub unsafe fn canvas_draw_disc(canvas: *mut Canvas, x: i32, y: i32, radius: usize) {
     todo!()
 }
 #[doc = "Draw triangle with given base and height lengths and their intersection\n coordinate\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate of base and height intersection\n * `y` - y coordinate of base and height intersection\n * `base` - length of triangle side\n * `height` - length of triangle height\n * `dir` - CanvasDirection triangle orientation"]
-pub fn canvas_draw_triangle(
+pub unsafe fn canvas_draw_triangle(
     canvas: *mut Canvas,
     x: i32,
     y: i32,
@@ -217,15 +217,15 @@ pub fn canvas_draw_triangle(
     todo!()
 }
 #[doc = "Draw glyph\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `ch` - character"]
-pub fn canvas_draw_glyph(canvas: *mut Canvas, x: i32, y: i32, ch: u16) {
+pub unsafe fn canvas_draw_glyph(canvas: *mut Canvas, x: i32, y: i32, ch: u16) {
     todo!()
 }
 #[doc = "Set transparency mode\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `alpha` - transparency mode"]
-pub fn canvas_set_bitmap_mode(canvas: *mut Canvas, alpha: bool) {
+pub unsafe fn canvas_set_bitmap_mode(canvas: *mut Canvas, alpha: bool) {
     todo!()
 }
 #[doc = "Draw rounded-corner frame of width, height at x,y, with round value radius\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` - frame width\n * `height` - frame height\n * `radius` - frame corner radius"]
-pub fn canvas_draw_rframe(
+pub unsafe fn canvas_draw_rframe(
     canvas: *mut Canvas,
     x: i32,
     y: i32,
@@ -236,7 +236,7 @@ pub fn canvas_draw_rframe(
     todo!()
 }
 #[doc = "Draw rounded-corner box of width, height at x,y, with round value raduis\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - x coordinate\n * `y` - y coordinate\n * `width` - box width\n * `height` - box height\n * `radius` - box corner radius"]
-pub fn canvas_draw_rbox(
+pub unsafe fn canvas_draw_rbox(
     canvas: *mut Canvas,
     x: i32,
     y: i32,

@@ -57,7 +57,7 @@ where
         Self::extract_bit(byte, index)
     }
     #[inline]
-    pub fn raw_get_bit(this: *const Self, index: usize) -> bool {
+    pub unsafe fn raw_get_bit(this: *const Self, index: usize) -> bool {
         debug_assert!(index / 8 < core::mem::size_of::<Storage>());
         let byte_index = index / 8;
         let byte = unsafe {
@@ -83,7 +83,7 @@ where
         *byte = Self::change_bit(*byte, index, val);
     }
     #[inline]
-    pub fn raw_set_bit(this: *mut Self, index: usize, val: bool) {
+    pub unsafe fn raw_set_bit(this: *mut Self, index: usize, val: bool) {
         debug_assert!(index / 8 < core::mem::size_of::<Storage>());
         let byte_index = index / 8;
         let byte = unsafe {
@@ -110,7 +110,7 @@ where
         val
     }
     #[inline]
-    pub fn raw_get(this: *const Self, bit_offset: usize, bit_width: u8) -> u64 {
+    pub unsafe fn raw_get(this: *const Self, bit_offset: usize, bit_width: u8) -> u64 {
         debug_assert!(bit_width <= 64);
         debug_assert!(bit_offset / 8 < core::mem::size_of::<Storage>());
         debug_assert!((bit_offset + (bit_width as usize)) / 8 <= core::mem::size_of::<Storage>());
@@ -144,7 +144,7 @@ where
         }
     }
     #[inline]
-    pub fn raw_set(this: *mut Self, bit_offset: usize, bit_width: u8, val: u64) {
+    pub unsafe fn raw_set(this: *mut Self, bit_offset: usize, bit_width: u8, val: u64) {
         debug_assert!(bit_width <= 64);
         debug_assert!(bit_offset / 8 < core::mem::size_of::<Storage>());
         debug_assert!((bit_offset + (bit_width as usize)) / 8 <= core::mem::size_of::<Storage>());
@@ -361,7 +361,7 @@ pub const FuriLogLevelTrace: FuriLogLevel = FuriLogLevel(6);
 pub struct FuriLogLevel(pub core::ffi::c_uchar);
 
 #[doc = "Get log level\n\n # Returns\n\nThe furi log level."]
-pub fn furi_log_get_level() -> FuriLogLevel {
+pub unsafe fn furi_log_get_level() -> FuriLogLevel {
     todo!()
 }
 #[doc = "Print log record\n\n # Arguments\n\n* `level` -\n * `tag` -\n * `format` -\n * `...` -"]
