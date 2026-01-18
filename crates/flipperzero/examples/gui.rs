@@ -48,8 +48,8 @@ fn main(_args: Option<&CStr>) -> i32 {
 
             sleep(Duration::from_secs(1));
 
-            sys::view_port_enabled_set(view_port, false);
             sys::gui_remove_view_port(gui.as_ptr(), view_port);
+            sys::view_port_enabled_set(view_port, false);
         }
         sys::view_port_free(view_port);
     }
