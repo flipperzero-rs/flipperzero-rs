@@ -191,15 +191,16 @@ pub struct View {
     _unused: [u8; 0],
 }
 #[doc = "Add view_port to view_port tree\n\n > thread safe\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance\n * `layer` (direction in) - GuiLayer where to place view_port"]
-pub fn gui_add_view_port(gui: *mut Gui, view_port: *mut ViewPort, layer: GuiLayer) {
+pub unsafe fn gui_add_view_port(gui: *mut Gui, view_port: *mut ViewPort, layer: GuiLayer) {
     todo!()
 }
+
 #[doc = "Remove view_port from rendering tree\n\n > thread safe\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance"]
-pub fn gui_remove_view_port(gui: *mut Gui, view_port: *mut ViewPort) {
+pub unsafe fn gui_remove_view_port(gui: *mut Gui, view_port: *mut ViewPort) {
     todo!()
 }
 #[doc = "Send ViewPort to the front\n\n Places selected ViewPort to the top of the drawing stack\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance"]
-pub fn gui_view_port_send_to_front(gui: *mut Gui, view_port: *mut ViewPort) {
+pub unsafe fn gui_view_port_send_to_front(gui: *mut Gui, view_port: *mut ViewPort) {
     todo!()
 }
 pub const GuiButtonTypeLeft: GuiButtonType = GuiButtonType(0);
