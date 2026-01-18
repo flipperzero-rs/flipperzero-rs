@@ -16,13 +16,11 @@ pub use view_dispatcher::*;
 pub use view_port::*;
 pub use widget::*;
 
-use crate::InputEvent;
-use crate::miri_bindings::utils::*;
+pub use gui_inner::GuiInner;
+
+use crate::miri_bindings::lock::SpinLock;
 use alloc::sync::Arc;
-use core::cell::UnsafeCell;
-use core::ops::{Deref, DerefMut};
-use core::ptr;
-use core::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
+use core::ptr::NonNull;
 
 #[doc = "Set lockdown mode\n\n When lockdown mode is enabled, only GuiLayerDesktop is shown.\n This feature prevents services from showing sensitive information when flipper is locked.\n\n # Arguments\n\n* `gui` - Gui instance\n * `lockdown` - bool, true if enabled"]
 pub unsafe fn gui_set_lockdown(gui: *mut Gui, lockdown: bool) {
@@ -56,132 +54,106 @@ pub const GuiLayerMAX: GuiLayer = GuiLayer(5);
 #[doc = "Gui layers"]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct GuiLayer(pub core::ffi::c_uchar);
+pub type Gui = SpinLock<gui_inner::GuiInner>;
 
-mod lock {
+pub(crate) mod gui_inner {
+    extern crate alloc;
+
+    use super::canvas::Canvas;
+    use super::view_port::{ViewPort, ViewPortInnerDrawCallback};
+    use crate::InputEvent;
     use crate::miri_bindings::utils::*;
-    use core::cell::UnsafeCell;
-    use core::ops::{Deref, DerefMut};
-    use core::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 
-    pub struct SpinLock<T> {
-        data: UnsafeCell<T>,
-        inner: AtomicBool,
+    use crate::miri_bindings::lock::SpinLock;
+    use alloc::sync::Arc;
+    use core::ptr::NonNull;
+
+    #[repr(C)]
+    pub struct GuiInner {
+        canvas: Canvas,
+
+        thread_id: usize,
+        input_channel: Option<InputEvent>,
+        request_redraw: bool,
+        stop: bool,
+
+        pub view_port: Option<NonNull<ViewPort>>,
     }
 
-    pub struct SpinLockGuard<'a, T> {
-        lock: &'a SpinLock<T>,
-    }
+    impl GuiInner {
+        // This isn't _entirely_ correct to the source; in that, the GUI record is created and
+        // populated by the GUI svc thread, not the other way around.
+        pub fn spawn() -> Arc<SpinLock<Self>> {
+            let canvas = Canvas {};
 
-    impl<T> SpinLock<T> {
-        pub fn new(data: T) -> Self {
-            Self {
-                data: data.into(),
-                inner: AtomicBool::new(false),
-            }
-        }
+            let gui = Self {
+                canvas,
+                thread_id: 0,
+                input_channel: None,
+                request_redraw: false,
+                stop: false,
+                view_port: None,
+            };
+            let gui = Arc::new(SpinLock::new(gui));
 
-        pub fn lock(&self) -> SpinLockGuard<'_, T> {
-            // NOTE: SeqCst has been used all over here, bcs it's definitely correct, and I haven't got
-            // a good enough handle on the other orderings to pick one that would also be correct but
-            // more efficient.
-            while !self
-                .inner
-                .compare_exchange_weak(false, true, Ordering::SeqCst, Ordering::SeqCst)
-                .is_ok()
+            let thread_id = {
+                let gui = gui.clone();
+                let gui_ptr = Arc::into_raw(gui);
+                // SAFETY: Arc was generated above
+                unsafe { miri_thread_spawn(thread_start, gui_ptr as *mut _) }
+            };
+
             {
-                miri_spin_loop();
+                gui.lock().thread_id = thread_id;
             }
-            SpinLockGuard { lock: self }
-        }
-    }
 
-    impl<'a, T> Deref for SpinLockGuard<'a, T> {
-        type Target = T;
+            extern "Rust" fn thread_start(data: *mut ()) {
+                // SAFETY: data is guaranteed to have been created from an arc, just above
+                let gui: Arc<SpinLock<GuiInner>> = unsafe { Arc::from_raw(data as *const _) };
 
-        fn deref(&self) -> &T {
-            unsafe { &*self.lock.data.get() }
-        }
-    }
+                loop {
+                    let gui = &mut gui.lock();
 
-    impl<'a, T> DerefMut for SpinLockGuard<'a, T> {
-        fn deref_mut(&mut self) -> &mut T {
-            unsafe { &mut *self.lock.data.get() }
-        }
-    }
+                    if let Some(input) = gui.input_channel.take() {
+                        gui.process_input(input);
+                    }
 
-    impl<'a, T> Drop for SpinLockGuard<'a, T> {
-        fn drop(&mut self) {
-            // NOTE: SeqCst has been used all over here, bcs it's definitely correct, and I haven't got
-            // a good enough handle on the other orderings to pick one that would also be correct but
-            // more efficient.
-            self.lock.inner.store(false, Ordering::SeqCst);
-        }
-    }
-}
+                    if gui.request_redraw {
+                        gui.redraw();
+                    }
 
-#[repr(C)]
-pub struct Gui {
-    thread_id: usize,
-    input_channel: Option<InputEvent>,
-    request_redraw: bool,
-    stop: bool,
-}
+                    if gui.stop {
+                        break;
+                    }
 
-impl Gui {
-    // This isn't _entirely_ correct to the source; in that, the GUI record is created and
-    // populated by the GUI svc thread, not the other way around.
-    pub fn spawn() -> Arc<lock::SpinLock<Self>> {
-        let gui = Self {
-            thread_id: 0,
-            input_channel: None,
-            request_redraw: false,
-            stop: false,
-        };
-        let mut gui = Arc::new(lock::SpinLock::new(gui));
-
-        let thread_id = {
-            let gui = gui.clone();
-            let gui_ptr = Arc::into_raw(gui);
-            // SAFETY: Arc was generated above
-            unsafe { miri_thread_spawn(thread_start, gui_ptr as *mut _) }
-        };
-
-        {
-            gui.lock().thread_id = thread_id;
-        }
-
-        extern "Rust" fn thread_start(data: *mut ()) {
-            // SAFETY: data is guaranteed to have been created from an arc, just above
-            let gui: Arc<lock::SpinLock<Gui>> = unsafe { Arc::from_raw(data as *const _) };
-
-            loop {
-                let gui = &mut gui.lock();
-
-                if let Some(input) = gui.input_channel.take() {
-                    gui.process_input(input);
+                    miri_spin_loop();
                 }
-
-                if gui.request_redraw {
-                    gui.redraw();
-                }
-
-                if gui.stop {
-                    break;
-                }
-
-                miri_spin_loop();
             }
+
+            gui
         }
 
-        gui
-    }
+        fn process_input(&self, input: InputEvent) -> () {
+            todo!();
+        }
 
-    fn process_input(&self, input: InputEvent) -> () {
-        todo!();
-    }
+        fn redraw(&mut self) -> () {
+            let view_port = self
+                .view_port
+                .expect("nothing to do if there's no view port");
 
-    fn redraw(&self) -> () {
-        todo!()
+            let mut view_port = (unsafe { view_port.as_ref() }).lock();
+            let &mut ViewPortInnerDrawCallback { callback: ref draw_callback, context: mut draw_callback_context } = view_port.draw_callback
+                .as_mut()
+                .expect("ViewPorts should only be registered with the GUI after their draw callbacks have been set");
+            let draw_callback =
+                draw_callback.expect("ViewPortDrawCallback is only nullable for FFI reasons");
+            unsafe { draw_callback(&raw mut self.canvas, draw_callback_context) };
+        }
+
+        pub fn request_redraw(&mut self) -> () {
+            self.request_redraw = true;
+        }
     }
 }
 
@@ -192,12 +164,31 @@ pub struct View {
 }
 #[doc = "Add view_port to view_port tree\n\n > thread safe\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance\n * `layer` (direction in) - GuiLayer where to place view_port"]
 pub unsafe fn gui_add_view_port(gui: *mut Gui, view_port: *mut ViewPort, layer: GuiLayer) {
-    todo!()
+    let gui: Arc<Gui> = unsafe { Arc::from_raw(gui) };
+    {
+        let mut view_port = unsafe { &mut *view_port }.lock();
+        // FIXME: this is failing MIRI, as we can't tell that view_port.gui isn't already Some(_),
+        // which would require the current value to be dropped, which isn't possible in the case
+        // that this is set??
+        view_port.gui = Some(gui.clone());
+    }
+
+    let mut gui = gui.lock();
+
+    let view_port = unsafe { NonNull::new_unchecked(view_port) };
+    gui.view_port.replace(view_port);
+
+    gui.request_redraw();
 }
 
 #[doc = "Remove view_port from rendering tree\n\n > thread safe\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance"]
 pub unsafe fn gui_remove_view_port(gui: *mut Gui, view_port: *mut ViewPort) {
-    todo!()
+    let gui: Arc<Gui> = unsafe { Arc::from_raw(gui) };
+    let mut gui = gui.lock();
+
+    gui.view_port = None;
+
+    gui.request_redraw();
 }
 #[doc = "Send ViewPort to the front\n\n Places selected ViewPort to the top of the drawing stack\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance"]
 pub unsafe fn gui_view_port_send_to_front(gui: *mut Gui, view_port: *mut ViewPort) {

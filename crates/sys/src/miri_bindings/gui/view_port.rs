@@ -1,14 +1,29 @@
-use core::ptr::NonNull;
-use core::ffi::c_void;
-use core::alloc::Layout;
+extern crate alloc;
+
+use crate::lock::SpinLock;
 use crate::miri_bindings::utils::*;
+use alloc::boxed::Box;
+use alloc::sync::{Arc, Weak};
+use core::alloc::Layout;
+use core::ffi::c_void;
+use core::ptr::NonNull;
+
+pub struct ViewPortInnerDrawCallback {
+    pub callback: ViewPortDrawCallback,
+    pub context: *mut c_void,
+}
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct ViewPort {
-    draw_callback: ViewPortDrawCallback,
-    draw_callback_context: *mut c_void,
+pub struct ViewPortInner {
+    pub draw_callback: Option<ViewPortInnerDrawCallback>,
+
+    enabled: bool,
+
+    pub gui: Option<Arc<super::Gui>>,
 }
+
+pub type ViewPort = SpinLock<&'static mut ViewPortInner>;
+
 pub const ViewPortOrientationHorizontal: ViewPortOrientation = ViewPortOrientation(0);
 pub const ViewPortOrientationHorizontalFlip: ViewPortOrientation = ViewPortOrientation(1);
 pub const ViewPortOrientationVertical: ViewPortOrientation = ViewPortOrientation(2);
@@ -19,9 +34,8 @@ pub const ViewPortOrientationMAX: ViewPortOrientation = ViewPortOrientation(4);
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ViewPortOrientation(pub core::ffi::c_uchar);
 #[doc = "ViewPort Draw callback\n called from GUI thread"]
-pub type ViewPortDrawCallback = ::core::option::Option<
-    unsafe extern "C" fn(canvas: *mut super::Canvas, context: *mut c_void),
->;
+pub type ViewPortDrawCallback =
+    ::core::option::Option<unsafe extern "C" fn(canvas: *mut super::Canvas, context: *mut c_void)>;
 #[doc = "ViewPort Input callback\n called from GUI thread"]
 pub type ViewPortInputCallback = ::core::option::Option<
     unsafe extern "C" fn(event: *mut crate::InputEvent, context: *mut c_void),
@@ -29,14 +43,22 @@ pub type ViewPortInputCallback = ::core::option::Option<
 
 #[doc = "ViewPort allocator\n\n always returns view_port or stops system if not enough memory.\n\n # Returns\n\nViewPort instance"]
 pub unsafe fn view_port_alloc() -> *mut ViewPort {
-    let layout = Layout::new::<ViewPort>();
-    let ptr = unsafe { miri_alloc(layout.size(), layout.align()) as *mut _ };
-    ptr
+    let layout = Layout::new::<ViewPortInner>();
+    let ptr = unsafe { miri_alloc(layout.size(), layout.align()) } as *mut ViewPortInner;
+
+    let view_port = SpinLock::new(unsafe { &mut *ptr });
+    {
+        let mut view_port = view_port.lock();
+        view_port.enabled = true;
+        view_port.gui = None;
+    }
+    Box::into_raw(Box::new(view_port))
 }
 
 #[doc = "ViewPort deallocator\n\n Ensure that view_port was unregistered in GUI system before use.\n\n # Arguments\n\n* `view_port` - ViewPort instance"]
 pub unsafe fn view_port_free(view_port: *mut ViewPort) {
-    let layout = Layout::new::<ViewPort>();
+    let view_port_ptr = *(unsafe { Box::from_raw(view_port) });
+    let layout = Layout::new::<ViewPortInner>();
     unsafe { miri_dealloc(view_port as *mut _, layout.size(), layout.align()) };
 }
 
@@ -56,10 +78,18 @@ pub unsafe fn view_port_get_height(view_port: *const ViewPort) -> u8 {
 }
 #[doc = "Enable or disable view_port rendering.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `enabled` - Indicates if enabled\n automatically dispatches update event"]
 pub unsafe fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
-    todo!()
+    let mut view_port = (unsafe { &mut *view_port }).lock();
+    view_port.enabled = enabled;
+
+    {
+        let gui = view_port.gui.as_mut().expect("ViewPort must have been added to the GUI in order to be Enabled");
+        gui.lock().request_redraw();
+    }
 }
+
 pub unsafe fn view_port_is_enabled(view_port: *const ViewPort) -> bool {
-    todo!()
+    let view_port = (unsafe { &*view_port }).lock();
+    view_port.enabled
 }
 
 #[doc = "ViewPort event callbacks\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `callback` - appropriate callback function\n * `context` - context to pass to callback"]
@@ -68,9 +98,8 @@ pub unsafe fn view_port_draw_callback_set(
     callback: ViewPortDrawCallback,
     context: *mut c_void,
 ) {
-    let mut view_port = unsafe { view_port.as_mut() }.expect("ptr is valid");
-    view_port.draw_callback = callback;
-    view_port.draw_callback_context = context;
+    let mut view_port = (unsafe { &mut *view_port }).lock();
+    view_port.draw_callback = Some(ViewPortInnerDrawCallback { callback, context });
 }
 
 pub unsafe fn view_port_input_callback_set(

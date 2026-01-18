@@ -1,3 +1,5 @@
+use core::ffi::CStr;
+
 pub const ColorWhite: Color = Color(0);
 pub const ColorBlack: Color = Color(1);
 pub const ColorXOR: Color = Color(2);
@@ -50,9 +52,7 @@ pub struct CanvasFontParameters {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Canvas {
-    _unused: [u8; 0],
-}
+pub struct Canvas {}
 #[doc = "Reset canvas drawing tools configuration\n\n # Arguments\n\n* `canvas` - Canvas instance"]
 pub unsafe fn canvas_reset(canvas: *mut Canvas) {
     todo!()
@@ -102,8 +102,8 @@ pub unsafe fn canvas_set_custom_u8g2_font(canvas: *mut Canvas, font: *const u8) 
     todo!()
 }
 #[doc = "Draw string at position of baseline defined by x, y.\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - anchor point x coordinate\n * `y` - anchor point y coordinate\n * `str` - C-string"]
-pub fn canvas_draw_str(canvas: *mut Canvas, x: i32, y: i32, str_: *const core::ffi::c_char) {
-    todo!()
+pub unsafe fn canvas_draw_str(canvas: *mut Canvas, x: i32, y: i32, str_: *const core::ffi::c_char) {
+    let _s = unsafe { CStr::from_ptr(str_) };
 }
 #[doc = "Draw aligned string defined by x, y.\n\n Align calculated from position of baseline, string width and ascent (height\n of the glyphs above the baseline)\n\n # Arguments\n\n* `canvas` - Canvas instance\n * `x` - anchor point x coordinate\n * `y` - anchor point y coordinate\n * `horizontal` - horizontal alignment\n * `vertical` - vertical alignment\n * `str` - C-string"]
 pub unsafe fn canvas_draw_str_aligned(
