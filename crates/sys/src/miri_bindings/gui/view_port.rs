@@ -77,13 +77,29 @@ pub unsafe fn view_port_get_height(view_port: *const ViewPort) -> u8 {
 }
 #[doc = "Enable or disable view_port rendering.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `enabled` - Indicates if enabled\n automatically dispatches update event"]
 pub unsafe fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
-    let mut view_port = (unsafe { &mut *view_port }).lock();
+    // NOTE: we're intentionally being extra specific with dereferences here, so that it's clearer
+    // where the locks are being taken, and where they're being used
+    let mut view_port_guard = (unsafe { &mut *view_port }).lock();
+    let mut view_port = &mut *view_port_guard;
     view_port.enabled = enabled;
 
-    {
-        let gui = view_port.gui.as_mut().expect("ViewPort must have been added to the GUI in order to be Enabled");
-        gui.lock().request_redraw();
-    }
+    let gui_arc = view_port
+        .gui
+        .as_mut()
+        .expect("ViewPort must have been added to the GUI in order to be Enabled");
+
+    let mut gui_guard = gui_arc.lock();
+    let mut gui = &mut *gui_guard;
+    // calling this makes the GUI service thread stop, waiting for the lock (that is
+    // currently being held here, to allow this mutable method call to be made).
+    // as soon as it acquires the lock, it attempts to read its view_port.
+    // since we are still reading the view_port here (we've not dropped the guard yet, and can't
+    // until after the gui_guard is dropped bcs of how that was acquired), that causes UB, due to
+    // Stacked Borrrow rules.
+    // TODO: FIX?? maybe the ViewPort = SpinLock<ViewPortInner> is at fault, and we should instead
+    // make ViewPort into a struct: { Inner: SpinLock<ViewPortInner>, Gui }? Then, we can drop the
+    // locks in the correct order?
+    gui.request_redraw();
 }
 
 pub unsafe fn view_port_is_enabled(view_port: *const ViewPort) -> bool {
