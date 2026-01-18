@@ -19,7 +19,7 @@ pub use string::*;
 pub use thread::*;
 pub use version::*;
 
-use core::ffi::CStr;
+use core::ffi::{c_void, CStr};
 use alloc::sync::Arc;
 
 pub const API_VERSION: u32 = 5701633;
@@ -314,10 +314,12 @@ pub struct GPIO_TypeDef {
 }
 
 #[doc = "Open record\n\n # Arguments\n\n* `name` - record name\n\n # Returns\n\npointer to the record\n > **Note:** Thread safe. Open and close must be executed from the same\n thread. Suspends caller thread till record is available"]
-pub unsafe fn furi_record_open(name: *const core::ffi::c_char) -> *mut core::ffi::c_void {
+pub unsafe fn furi_record_open(name: *const core::ffi::c_char) -> *mut c_void {
     let name = unsafe { CStr::from_ptr(name) };
     if name == c"gui" {
-        Arc::into_raw(Gui::spawn()).cast_mut() as *mut _
+        let gui = GuiInner::spawn();
+        let gui_ptr: *const Gui = Arc::into_raw(gui);
+        gui_ptr.cast::<c_void>().cast_mut()
     } else {
         unimplemented!()
     }
@@ -338,15 +340,21 @@ pub unsafe fn furi_get_tick() -> u32 {
 }
 #[doc = "Delay execution\n\n This should never be called in interrupt request context.\n\n Also keep in mind delay is aliased to scheduler timer intervals.\n\n # Arguments\n\n* `ticks` (direction in) - The ticks count to pause"]
 pub unsafe fn furi_delay_tick(ticks: u32) {
-    todo!()
+    // NOTE: none of the tests we're writing care about specific timing, so we're just spinning
+    // here to allow for another thread to take over
+    utils::miri_spin_loop();
 }
 #[doc = "Delay in milliseconds\n\n This method uses kernel ticks on the inside, which causes delay to be aliased to scheduler timer intervals.\n Real wait time will be between X+ milliseconds.\n Special value: 0, will cause task yield.\n Also if used when kernel is not running will fall back to `furi_delay_us`.\n\n Cannot be used from ISR\n\n # Arguments\n\n* `milliseconds` (direction in) - milliseconds to wait"]
 pub unsafe fn furi_delay_ms(milliseconds: u32) {
-    todo!()
+    // NOTE: none of the tests we're writing care about specific timing, so we're just spinning
+    // here to allow for another thread to take over
+    utils::miri_spin_loop();
 }
 #[doc = "Delay in microseconds\n\n Implemented using Cortex DWT counter. Blocking and non aliased.\n\n # Arguments\n\n* `microseconds` (direction in) - microseconds to wait"]
 pub unsafe fn furi_delay_us(microseconds: u32) {
-    todo!()
+    // NOTE: none of the tests we're writing care about specific timing, so we're just spinning
+    // here to allow for another thread to take over
+    utils::miri_spin_loop();
 }
 
 pub const FuriLogLevelDefault: FuriLogLevel = FuriLogLevel(0);
@@ -384,4 +392,66 @@ pub unsafe fn memmgr_get_total_heap() -> usize {
 #[doc = "Get heap watermark\n\n # Returns\n\nminimum heap in bytes"]
 pub unsafe fn memmgr_get_minimum_free_heap() -> usize {
     todo!()
+}
+
+pub(super) mod lock {
+    use crate::miri_bindings::utils::*;
+    use core::cell::UnsafeCell;
+    use core::ops::{Deref, DerefMut};
+    use core::sync::atomic::{AtomicBool, Ordering};
+
+    pub struct SpinLock<T> {
+        data: UnsafeCell<T>,
+        inner: AtomicBool,
+    }
+
+    pub struct SpinLockGuard<'a, T> {
+        lock: &'a SpinLock<T>,
+    }
+
+    impl<T> SpinLock<T> {
+        pub fn new(data: T) -> Self {
+            Self {
+                data: data.into(),
+                inner: AtomicBool::new(false),
+            }
+        }
+
+        pub fn lock(&self) -> SpinLockGuard<'_, T> {
+            // NOTE: SeqCst has been used all over here, bcs it's definitely correct, and I haven't got
+            // a good enough handle on the other orderings to pick one that would also be correct but
+            // more efficient.
+            while !self
+                .inner
+                .compare_exchange_weak(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
+            {
+                miri_spin_loop();
+            }
+            SpinLockGuard { lock: self }
+        }
+    }
+
+    impl<'a, T> Deref for SpinLockGuard<'a, T> {
+        type Target = T;
+
+        fn deref(&self) -> &T {
+            unsafe { &*self.lock.data.get() }
+        }
+    }
+
+    impl<'a, T> DerefMut for SpinLockGuard<'a, T> {
+        fn deref_mut(&mut self) -> &mut T {
+            unsafe { &mut *self.lock.data.get() }
+        }
+    }
+
+    impl<'a, T> Drop for SpinLockGuard<'a, T> {
+        fn drop(&mut self) {
+            // NOTE: SeqCst has been used all over here, bcs it's definitely correct, and I haven't got
+            // a good enough handle on the other orderings to pick one that would also be correct but
+            // more efficient.
+            self.lock.inner.store(false, Ordering::SeqCst);
+        }
+    }
 }
