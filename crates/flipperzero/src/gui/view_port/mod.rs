@@ -14,7 +14,9 @@ use flipperzero_sys::{
 };
 pub use orientation::*;
 
-use crate::{gui::canvas::CanvasView, input::InputEvent, internals::alloc::NonUniqueBox};
+#[cfg(feature = "alloc")]
+use crate::internals::alloc::NonUniqueBox;
+use crate::{gui::canvas::CanvasView, input::InputEvent};
 
 /// System ViewPort.
 ///
@@ -23,11 +25,27 @@ use crate::{gui::canvas::CanvasView, input::InputEvent, internals::alloc::NonUni
 /// If you are creating an application that only needs to interact with simple views, you probably
 /// need to use this, unless you are doing something non-standard. Instead, prefer to use
 /// [crate::gui::view_dispatcher::ViewDispatcher].
+#[cfg(feature = "alloc")]
 pub struct ViewPort<C: ViewPortCallbacks> {
     inner: ViewPortInner,
     callbacks: NonUniqueBox<C>,
 }
 
+/// System ViewPort.
+///
+/// The lowest level GUI structure. A collection of these structures is owned by the GUI.
+///
+/// If you are creating an application that only needs to interact with simple views, you probably
+/// need to use this, unless you are doing something non-standard. Instead, prefer to use
+/// [crate::gui::view_dispatcher::ViewDispatcher].
+#[cfg(not(feature = "alloc"))]
+pub struct ViewPort<C> {
+    inner: ViewPortInner,
+    callbacks: core::marker::PhantomData<C>,
+}
+
+
+#[cfg(feature = "alloc")]
 impl<C: ViewPortCallbacks> ViewPort<C> {
     /// Creates a new `ViewPort`.
     ///
@@ -102,7 +120,9 @@ impl<C: ViewPortCallbacks> ViewPort<C> {
 
         view_port
     }
+}
 
+impl<C: ViewPortCallbacks> ViewPort<C> {
     /// Creates a copy of the raw pointer to the [`sys::ViewPort`].
     #[inline]
     #[must_use]

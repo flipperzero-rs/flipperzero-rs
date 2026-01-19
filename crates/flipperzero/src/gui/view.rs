@@ -7,14 +7,25 @@ use flipperzero_sys::{
     self as sys, Canvas as SysCanvas, InputEvent as SysInputEvent, View as SysView,
 };
 
-use crate::{gui::canvas::CanvasView, input::InputEvent, internals::alloc::NonUniqueBox};
+#[cfg(feature = "alloc")]
+use crate::internals::alloc::NonUniqueBox;
+use crate::{gui::canvas::CanvasView, input::InputEvent};
 
 /// UI view.
+#[cfg(feature = "alloc")]
 pub struct View<C: ViewCallbacks> {
     inner: ViewInner,
     callbacks: NonUniqueBox<C>,
 }
 
+/// UI view.
+#[cfg(not(feature = "alloc"))]
+pub struct View<C: ViewCallbacks> {
+    inner: ViewInner,
+    callbacks: core::marker::PhantomData<C>,
+}
+
+#[cfg(feature = "alloc")]
 impl<C: ViewCallbacks> View<C> {
     pub fn new(callbacks: C) -> Self {
         let inner = ViewInner::new();
@@ -81,7 +92,9 @@ impl<C: ViewCallbacks> View<C> {
 
         view
     }
+}
 
+impl<C: ViewCallbacks> View<C> {
     /// Creates a copy of raw pointer to the [`sys::View`].
     #[inline]
     #[must_use]

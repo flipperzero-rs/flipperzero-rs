@@ -2,7 +2,9 @@
 
 mod r#type;
 
+extern crate alloc;
 use alloc::collections::BTreeSet;
+
 use core::{
     ffi::c_void,
     marker::PhantomData,
@@ -13,7 +15,9 @@ use core::{
 use flipperzero_sys::{self as sys, ViewDispatcher as SysViewDispatcher};
 pub use r#type::*;
 
-use crate::{gui::Gui, internals::alloc::NonUniqueBox};
+use crate::gui::Gui;
+#[cfg(feature = "alloc")]
+use crate::internals::alloc::NonUniqueBox;
 
 type ViewSet = BTreeSet<u32>;
 
@@ -30,9 +34,21 @@ pub mod view_id {
 ///
 /// A holder for a collection of views, which can be switched between. The current view will be
 /// drawn to the canvas, and will receive all input events.
+#[cfg(feature = "alloc")]
 pub struct ViewDispatcher<'a, C: ViewDispatcherCallbacks> {
     inner: ViewDispatcherInner,
     context: NonUniqueBox<Context<C>>,
+    _phantom: PhantomData<&'a mut Gui>,
+}
+
+/// System ViewDispatcher.
+///
+/// A holder for a collection of views, which can be switched between. The current view will be
+/// drawn to the canvas, and will receive all input events.
+#[cfg(not(feature = "alloc"))]
+pub struct ViewDispatcher<'a, C: ViewDispatcherCallbacks> {
+    inner: ViewDispatcherInner,
+    _context: PhantomData<Context<C>>,
     _phantom: PhantomData<&'a mut Gui>,
 }
 
@@ -44,6 +60,7 @@ struct Context<C: ViewDispatcherCallbacks> {
     views: ViewSet,
 }
 
+#[cfg(feature = "alloc")]
 impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     ///
     /// # Examples
@@ -205,7 +222,9 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
 
         view_dispatcher
     }
+}
 
+impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     #[inline]
     #[must_use]
     pub const fn as_raw(&self) -> *mut SysViewDispatcher {
@@ -255,7 +274,10 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     //         unsafe { sys::view_dispatcher_add_view(raw, id, view) };
     //     }
     // }
+}
 
+#[cfg(feature = "alloc")]
+impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     pub fn switch_to_view(&mut self, id: u32) {
         if self.views().contains(&id) {
             let raw = self.as_raw();
