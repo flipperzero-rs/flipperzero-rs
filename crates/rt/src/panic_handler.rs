@@ -52,12 +52,7 @@ unsafe extern "Rust" {
 fn panic(panic_info: &PanicInfo<'_>) -> ! {
     use flipperzero_sys::alloc::string::ToString;
 
-    miri_write_to_stderr(
-        panic_info
-            .message()
-            .to_string()
-            .as_bytes(),
-    );
+    miri_write_to_stderr(panic_info.message().to_string().as_bytes());
     miri_write_to_stderr(b"\n");
     core::intrinsics::abort(); //~ ERROR: the program aborted execution
 }
