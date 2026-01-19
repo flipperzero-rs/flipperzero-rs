@@ -50,13 +50,12 @@ unsafe extern "Rust" {
 #[cfg(miri)]
 #[panic_handler]
 fn panic(panic_info: &PanicInfo<'_>) -> ! {
+    use flipperzero_sys::alloc::string::ToString;
+
     miri_write_to_stderr(
         panic_info
             .message()
-            .as_str()
-            .unwrap_or(
-                "Panicked (panic macro was given a message with arguments, which cannot be logged)",
-            )
+            .to_string()
             .as_bytes(),
     );
     miri_write_to_stderr(b"\n");
