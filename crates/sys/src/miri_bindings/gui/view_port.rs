@@ -57,8 +57,10 @@ pub unsafe fn view_port_alloc() -> *mut ViewPort {
 }
 
 #[doc = "ViewPort deallocator\n\n Ensure that view_port was unregistered in GUI system before use.\n\n # Arguments\n\n* `view_port` - ViewPort instance"]
-pub unsafe fn view_port_free(view_port: *mut ViewPort) {
-    drop(unsafe { Box::from_raw(view_port) });
+pub unsafe fn view_port_free(view_port: *mut SpinLock<ViewPortInner>) {
+    let view_port_ref: &SpinLock<ViewPortInner> = unsafe { &mut *view_port };
+    let view_port = unsafe { Box::from_raw(view_port) };
+    drop(view_port);
 }
 
 #[doc = "Set view_port width.\n\n Will be used to limit canvas drawing area and autolayout feature.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `width` - wanted width, 0 - auto."]
@@ -83,10 +85,9 @@ pub unsafe fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
     let mut view_port = &mut *view_port_guard;
     view_port.enabled = enabled;
 
-    let gui_arc = view_port
-        .gui
-        .as_mut()
-        .expect("ViewPort must have been added to the GUI in order to be Enabled");
+    let Some(gui_arc) = view_port.gui.as_mut() else {
+        return;
+    };
 
     let mut gui_guard = gui_arc.lock();
     let mut gui = &mut *gui_guard;

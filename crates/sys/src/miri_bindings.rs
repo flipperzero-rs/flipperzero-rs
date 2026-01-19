@@ -19,8 +19,9 @@ pub use string::*;
 pub use thread::*;
 pub use version::*;
 
-use core::ffi::{c_void, CStr};
 use alloc::sync::Arc;
+use core::cell::OnceCell;
+use core::ffi::{CStr, c_void};
 
 pub const API_VERSION: u32 = 5701633;
 
@@ -201,7 +202,6 @@ pub struct DateTime {
     pub weekday: u8,
 }
 
-
 #[doc = "< Operation completed successfully."]
 pub const FuriStatusOk: FuriStatus = FuriStatus(0);
 pub const FuriStatusError: FuriStatus = FuriStatus(-1);
@@ -313,25 +313,76 @@ pub struct GPIO_TypeDef {
     pub BRR: u32,
 }
 
+static GUI: lock::SpinLock<OnceCell<Arc<Gui>>> = lock::SpinLock::new(OnceCell::new());
+
 #[doc = "Open record\n\n # Arguments\n\n* `name` - record name\n\n # Returns\n\npointer to the record\n > **Note:** Thread safe. Open and close must be executed from the same\n thread. Suspends caller thread till record is available"]
 pub unsafe fn furi_record_open(name: *const core::ffi::c_char) -> *mut c_void {
     let name = unsafe { CStr::from_ptr(name) };
     if name == c"gui" {
-        let gui = GuiInner::spawn();
-        let gui_ptr: *const Gui = Arc::into_raw(gui);
-        gui_ptr.cast::<c_void>().cast_mut()
+        let gui_cell = GUI.lock();
+        match gui_cell.get() {
+            Some(_gui) => {
+                todo!("we currently don't support the same record being opened multiple times")
+            }
+            None => {
+                let gui: Arc<Gui> = GuiInner::spawn();
+
+                // Gui is owned by the background Gui service thread, and also by this thread
+                debug_assert_eq!(
+                    Arc::strong_count(&gui),
+                    2,
+                    "[furi_record_open, gui service thread]"
+                );
+                let _ = gui_cell.set(gui.clone());
+                debug_assert_eq!(
+                    Arc::strong_count(&gui),
+                    3,
+                    "[furi_record_open, static cell, gui service thread]"
+                );
+                let gui_ptr: *const Gui = Arc::into_raw(gui.clone());
+                debug_assert_eq!(
+                    Arc::strong_count(&gui),
+                    4,
+                    "[furi_record open (local), furi_record open (to return), static cell, gui service thread]"
+                );
+                gui_ptr.cast::<c_void>().cast_mut()
+            }
+        }
     } else {
         unimplemented!()
     }
 }
+
 #[doc = "Close record\n\n # Arguments\n\n* `name` - record name\n > **Note:** Thread safe. Open and close must be executed from the same\n thread."]
 pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
     let name = unsafe { CStr::from_ptr(name) };
     if name == c"gui" {
-        // TODO: I think that properly decrementing the Gui Arc will require a rethink about how
-        // we're handling things there -- might need to change either the spawn or record_open
-        // methods to also store the arc in a static
-        todo!()
+        let mut gui_cell = GUI.lock();
+        {
+            let gui = gui_cell.get().unwrap();
+            assert_eq!(Arc::strong_count(&gui), 3, "[unsafe record (needs manually dropping), gui service thread, static cell]");
+        }
+        let gui: Arc<lock::SpinLock<GuiInner>> =
+            OnceCell::take(&mut gui_cell).expect("GUI must have been opened before being closed");
+        // This method is called on UnsafeRecord, which owns a copy of the Arc<Gui>. As such, there
+        // should only be three references at this point;
+        // 1. in the static, that we just took,
+        // 2. one in the UnsafeRecord.data
+        // 3. one held by the Gui service thread
+        assert_eq!(Arc::strong_count(&gui), 3, "[unsafe record (needs manually dropping), gui service thread, local from static cell]");
+
+        let gui_thread_id = {
+            let mut gui = gui.lock();
+            gui.stop = true;
+            gui.thread_id
+        };
+
+        unsafe { utils::miri_thread_join(gui_thread_id) };
+
+        assert_eq!(Arc::strong_count(&gui), 2, "[unsafe record (needs manually dropping), local]");
+        // We drop Gui here, and then the only remaining reference to the Arc is in the Record,
+        // which will go out of scope immediate after this when the record is dropped
+        unsafe { Arc::decrement_strong_count(Arc::as_ptr(&gui)) };
     } else {
         unimplemented!()
     }
@@ -412,10 +463,12 @@ pub(super) mod lock {
         lock: &'a SpinLock<T>,
     }
 
+    unsafe impl<T> Sync for SpinLock<T> {}
+
     impl<T> SpinLock<T> {
-        pub fn new(data: T) -> Self {
+        pub const fn new(data: T) -> Self {
             Self {
-                data: data.into(),
+                data: UnsafeCell::new(data),
                 inner: AtomicBool::new(false),
             }
         }
