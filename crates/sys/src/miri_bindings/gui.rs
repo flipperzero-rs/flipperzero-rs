@@ -72,10 +72,10 @@ pub(crate) mod gui_inner {
     pub struct GuiInner {
         canvas: Canvas,
 
-        thread_id: usize,
+        pub thread_id: usize,
         input_channel: Option<InputEvent>,
         request_redraw: bool,
-        stop: bool,
+        pub stop: bool,
 
         pub view_port: Option<NonNull<ViewPort>>,
     }
@@ -97,8 +97,7 @@ pub(crate) mod gui_inner {
             let gui = Arc::new(SpinLock::new(gui));
 
             let thread_id = {
-                let gui = gui.clone();
-                let gui_ptr = Arc::into_raw(gui);
+                let gui_ptr = Arc::into_raw(gui.clone());
                 // SAFETY: Arc was generated above
                 unsafe { miri_thread_spawn(thread_start, gui_ptr as *mut _) }
             };
@@ -110,6 +109,7 @@ pub(crate) mod gui_inner {
             extern "Rust" fn thread_start(data: *mut ()) {
                 // SAFETY: data is guaranteed to have been created from an arc, just above
                 let gui: Arc<SpinLock<GuiInner>> = unsafe { Arc::from_raw(data as *const _) };
+                debug_assert_eq!(Arc::strong_count(&gui), 2, "immediately post gui thread spawn");
 
                 loop {
                     let gui = &mut gui.lock();
@@ -175,7 +175,9 @@ pub unsafe fn gui_add_view_port(gui: *mut Gui, view_port: *mut ViewPort, layer: 
     {
         let view_port: &SpinLock<ViewPortInner> = unsafe { &mut *view_port };
         let mut view_port = view_port.lock();
-        view_port.gui = Some(unsafe { Arc::from_raw(gui) });
+        let main_gui = unsafe { Arc::from_raw(gui) };
+        view_port.gui = Some(main_gui.clone());
+        let _ = Arc::into_raw(main_gui);
     }
 
     let gui: &Gui = unsafe { &*gui };
