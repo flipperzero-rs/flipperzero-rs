@@ -172,31 +172,24 @@ pub struct View {
 }
 #[doc = "Add view_port to view_port tree\n\n > thread safe\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance\n * `layer` (direction in) - GuiLayer where to place view_port"]
 pub unsafe fn gui_add_view_port(gui: *mut Gui, view_port: *mut ViewPort, layer: GuiLayer) {
-    let gui: Arc<Gui> = unsafe { Arc::from_raw(gui) };
     {
         let view_port: &SpinLock<ViewPortInner> = unsafe { &mut *view_port };
         let mut view_port = view_port.lock();
-        view_port.gui = Some(gui.clone());
+        view_port.gui = Some(unsafe { Arc::from_raw(gui) });
     }
 
+    let gui: &Gui = unsafe { &*gui };
     let mut gui_guard = gui.lock();
 
     let view_port = unsafe { NonNull::new_unchecked(view_port) };
     gui_guard.view_port.replace(view_port);
 
     gui_guard.request_redraw();
-
-    // SAFETY: the Arc clone that we have in this method is owned by the main thread. We
-    // reconstructed it here, but we don't want to decrement the reference count at the end of this
-    // method, since it's still referenced by the main thread.
-    // We could alternatively turn the gui back into a raw pointer using Arc::into_raw, and opt out
-    // of the reference count decrement that way.
-    unsafe { Arc::increment_strong_count(&gui) };
 }
 
 #[doc = "Remove view_port from rendering tree\n\n > thread safe\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance"]
 pub unsafe fn gui_remove_view_port(gui: *mut Gui, view_port: *mut ViewPort) {
-    let gui: Arc<Gui> = unsafe { Arc::from_raw(gui) };
+    let gui: &Gui = unsafe { &*gui };
     // NOTE: we need to take the GUI lock here to ensure that the service thread isn't able to
     // proceed, as it might attempt to reference the view_port at the same time that we do
     let mut gui_guard = gui.lock();
@@ -210,13 +203,6 @@ pub unsafe fn gui_remove_view_port(gui: *mut Gui, view_port: *mut ViewPort) {
     gui_guard.view_port = None;
 
     gui_guard.request_redraw();
-
-    // SAFETY: the Arc clone that we have in this method is owned by the main thread. We
-    // reconstructed it here, but we don't want to decrement the reference count at the end of this
-    // method, since it's still referenced by the main thread.
-    // We could alternatively turn the gui back into a raw pointer using Arc::into_raw, and opt out
-    // of the reference count decrement that way.
-    unsafe { Arc::increment_strong_count(&gui) };
 }
 
 #[doc = "Send ViewPort to the front\n\n Places selected ViewPort to the top of the drawing stack\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance"]
