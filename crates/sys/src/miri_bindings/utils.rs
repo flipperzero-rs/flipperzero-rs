@@ -6,4 +6,6 @@ unsafe extern "Rust" {
     pub fn miri_thread_join(thread_id: usize) -> bool;
 
     pub safe fn miri_spin_loop();
+
+    pub safe fn miri_write_to_stdout(bytes: &[u8]);
 }
