@@ -62,7 +62,7 @@ pub(crate) mod gui_inner {
     extern crate alloc;
 
     use super::canvas::{self, Canvas};
-    use super::view_port::{self, ViewPort, ViewPortInnerDrawCallback};
+    use super::view_port::{self, ViewPort, ViewPortInnerCallback};
     use crate::InputEvent;
     use crate::miri_bindings::utils::*;
 
@@ -111,7 +111,11 @@ pub(crate) mod gui_inner {
             extern "Rust" fn thread_start(data: *mut ()) {
                 // SAFETY: data is guaranteed to have been created from an arc, just above
                 let gui: Arc<SpinLock<GuiInner>> = unsafe { Arc::from_raw(data as *const _) };
-                debug_assert_eq!(Arc::strong_count(&gui), 2, "immediately post gui thread spawn");
+                debug_assert_eq!(
+                    Arc::strong_count(&gui),
+                    2,
+                    "immediately post gui thread spawn"
+                );
 
                 loop {
                     let gui = &mut gui.lock();
@@ -135,11 +139,48 @@ pub(crate) mod gui_inner {
             gui
         }
 
-        fn process_input(&self, input: InputEvent) -> () {
-            todo!();
+        fn process_input(&self, mut input: InputEvent) -> () {
+            // NOTE: In the C codebase, this almost always dispatches to the following stack;
+            //  -> view dispatcher (as this is usually the active ViewPort)
+            //   -> which pushes values into the view dispatcher's input queue, which are then
+            //   popped by the event_loop processing thread (view_dispatcher_run)
+            //  -> which then calls view_input on the current view
+            // often, this is transformed to a custom_event,
+            //  -> which is passed to the view dispatcher
+            //   -> which pushes values into the view dispatcher's event queue, which are then
+            //   popped by the event loop processing thread
+            //  -> which then calls view_custom on the current view (not often set),
+            //  -> and falls back to the view_dispatcher's custom event callback
+            //  -> which almost always dispatches to the app's custom event callback
+            //  -> which almost always dispatches to the scene_manager's current event handler, to
+            //  switch to another view
+
+            let Some(view_port) = self.view_port else {
+                // nothing to do if there's no view port
+                return;
+            };
+
+            if !unsafe { view_port::view_port_is_enabled(view_port.as_ref()) } {
+                return;
+            }
+
+            let mut view_port = (unsafe { view_port.as_ref() }).lock();
+
+            let &mut ViewPortInnerCallback { callback: ref input_callback, context: mut input_callback_context } = view_port.input_callback
+                .as_mut()
+                .expect("ViewPorts should only be registered with the GUI after their input callbacks have been set");
+            let input_callback =
+                input_callback.expect("ViewPortInputCallback is only nullable for FFI reasons");
+            unsafe { input_callback(&raw mut input, input_callback_context) };
         }
 
         fn redraw(&mut self) -> () {
+            // NOTE: in the C codebase, this is almost always triggered by a view method that calls
+            // the helper macro with_view_model, often in response to a custom event or a tick
+            // event. specifically, this is because
+            //  -> view_commit_model calls the view's update callback
+            //  -> which is almost always set to invoke view_dispatcher_update
+            //  -> which in turn invokes view_port_update
             unsafe { canvas::canvas_clear(&mut self.canvas) };
 
             let Some(view_port) = self.view_port else {
@@ -153,12 +194,22 @@ pub(crate) mod gui_inner {
 
             let mut view_port = (unsafe { view_port.as_ref() }).lock();
 
-            let &mut ViewPortInnerDrawCallback { callback: ref draw_callback, context: mut draw_callback_context } = view_port.draw_callback
+            let &mut ViewPortInnerCallback { callback: ref draw_callback, context: mut draw_callback_context } = view_port.draw_callback
                 .as_mut()
                 .expect("ViewPorts should only be registered with the GUI after their draw callbacks have been set");
             let draw_callback =
                 draw_callback.expect("ViewPortDrawCallback is only nullable for FFI reasons");
             unsafe { draw_callback(&raw mut self.canvas, draw_callback_context) };
+        }
+
+        pub fn send_input_event(&mut self, input_event: InputEvent) -> () {
+            let old_input_event = self.input_channel.replace(input_event);
+            debug_assert!(old_input_event.is_none());
+
+            // spin until the other thread takes the input out of the channel
+            while !self.input_channel.is_none() {
+                miri_spin_loop();
+            }
         }
 
         pub fn request_redraw(&mut self) -> () {

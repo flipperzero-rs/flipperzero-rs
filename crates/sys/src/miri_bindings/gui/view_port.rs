@@ -8,14 +8,15 @@ use core::alloc::Layout;
 use core::ffi::c_void;
 use core::ptr::NonNull;
 
-pub struct ViewPortInnerDrawCallback {
-    pub callback: ViewPortDrawCallback,
+pub struct ViewPortInnerCallback<T> {
+    pub callback: T,
     pub context: *mut c_void,
 }
 
 #[repr(C)]
 pub struct ViewPortInner {
-    pub draw_callback: Option<ViewPortInnerDrawCallback>,
+    pub draw_callback: Option<ViewPortInnerCallback<ViewPortDrawCallback>>,
+    pub input_callback: Option<ViewPortInnerCallback<ViewPortInputCallback>>,
 
     enabled: bool,
 
@@ -45,6 +46,7 @@ pub type ViewPortInputCallback = ::core::option::Option<
 pub unsafe fn view_port_alloc() -> *mut ViewPort {
     let view_port = SpinLock::new(ViewPortInner {
         draw_callback: None,
+        input_callback: None,
         enabled: false,
         gui: None,
     });
@@ -115,7 +117,7 @@ pub unsafe fn view_port_draw_callback_set(
     context: *mut c_void,
 ) {
     let mut view_port = (unsafe { &mut *view_port }).lock();
-    view_port.draw_callback = Some(ViewPortInnerDrawCallback { callback, context });
+    view_port.draw_callback = Some(ViewPortInnerCallback { callback, context });
 }
 
 pub unsafe fn view_port_input_callback_set(
@@ -123,7 +125,8 @@ pub unsafe fn view_port_input_callback_set(
     callback: ViewPortInputCallback,
     context: *mut c_void,
 ) {
-    todo!()
+    let mut view_port = (unsafe { &mut *view_port }).lock();
+    view_port.input_callback = Some(ViewPortInnerCallback { callback, context });
 }
 #[doc = "Emit update signal to GUI system.\n\n Rendering will happen later after GUI system process signal.\n\n # Arguments\n\n* `view_port` - ViewPort instance"]
 pub unsafe fn view_port_update(view_port: *mut ViewPort) {
