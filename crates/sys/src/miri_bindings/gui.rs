@@ -125,6 +125,7 @@ pub(crate) mod gui_inner {
                     }
 
                     if gui.request_redraw {
+                        gui.request_redraw = false;
                         gui.redraw();
                     }
 
