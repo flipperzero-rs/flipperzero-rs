@@ -158,8 +158,6 @@ impl<VPC: ViewPortCallbacks> Drop for GuiViewPort<'_, VPC> {
         unsafe {
             sys::view_port_enabled_set(view_port, false);
             sys::gui_remove_view_port(gui, view_port);
-            // the object has to be deallocated since the ownership was transferred to the `Gui`
-            sys::view_port_free(view_port);
         }
     }
 }
