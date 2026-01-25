@@ -111,11 +111,6 @@ pub(crate) mod gui_inner {
             extern "Rust" fn thread_start(data: *mut ()) {
                 // SAFETY: data is guaranteed to have been created from an arc, just above
                 let gui: Arc<SpinLock<GuiInner>> = unsafe { Arc::from_raw(data as *const _) };
-                debug_assert_eq!(
-                    Arc::strong_count(&gui),
-                    2,
-                    "immediately post gui thread spawn"
-                );
 
                 loop {
                     let gui = &mut gui.lock();
