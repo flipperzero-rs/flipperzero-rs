@@ -218,6 +218,14 @@ pub(crate) mod gui_inner {
             debug_assert!(old_input_event.is_none());
 
             gui_lock.unlock();
+            // OPTIMISATION: we unlock the GUI here to allow the service thread to `take` the input
+            // event we just inserted. there's no point doing that if we're not going to yield
+            // here to allow that other thread to run.
+            //
+            // even without this, we'll yield in the loop below anyway. additionally, miri is
+            // probably able to randomly switch threads, and so we might get lucky any not need to
+            // loop anyway
+            miri_spin_loop();
 
             // spin until the other thread takes the input out of the channel
             loop {
