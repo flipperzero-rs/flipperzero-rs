@@ -131,6 +131,8 @@ pub(crate) mod gui_inner {
                         break;
                     }
 
+                    drop(gui_guard);
+
                     miri_spin_loop();
                 }
             }
