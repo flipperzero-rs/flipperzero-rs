@@ -161,11 +161,11 @@ pub(crate) mod gui_inner {
                 return;
             };
 
-            if !unsafe { view_port::view_port_is_enabled(view_port.as_ref()) } {
+            let view_port = unsafe { view_port.as_ref() };
+
+            if !unsafe { view_port::view_port_is_enabled(view_port) } {
                 return;
             }
-
-            let mut view_port = (unsafe { view_port.as_ref() }).lock();
 
             let &mut ViewPortInnerCallback { callback: ref input_callback, context: mut input_callback_context } = view_port.input_callback
                 .as_mut()
@@ -189,11 +189,12 @@ pub(crate) mod gui_inner {
                 return;
             };
 
-            if !unsafe { view_port::view_port_is_enabled(view_port.as_ref()) } {
+            let view_port = unsafe { view_port.as_ref() };
+
+            if !unsafe { view_port::view_port_is_enabled(view_port) } {
                 return;
             }
 
-            let mut view_port = (unsafe { view_port.as_ref() }).lock();
 
             let &mut ViewPortInnerCallback { callback: ref draw_callback, context: mut draw_callback_context } = view_port.draw_callback
                 .as_mut()
