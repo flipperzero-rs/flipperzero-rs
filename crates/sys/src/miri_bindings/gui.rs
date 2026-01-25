@@ -105,6 +105,8 @@ pub(crate) mod gui_inner {
                 unsafe { miri_thread_spawn(thread_start, gui_ptr as *mut _) }
             };
 
+            let _ = unsafe { miri_set_thread_name(thread_id, c"gui service".as_ptr()) };
+
             {
                 gui.lock().thread_id = thread_id;
             }
