@@ -360,7 +360,11 @@ pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
         let mut gui_cell = GUI.lock();
         {
             let gui = gui_cell.get().unwrap();
-            assert_eq!(Arc::strong_count(&gui), 3, "[unsafe record (needs manually dropping), gui service thread, static cell]");
+            assert_eq!(
+                Arc::strong_count(&gui),
+                3,
+                "[unsafe record (needs manually dropping), gui service thread, static cell]"
+            );
         }
         let gui: Arc<lock::SpinLock<GuiInner>> =
             OnceCell::take(&mut gui_cell).expect("GUI must have been opened before being closed");
@@ -369,7 +373,11 @@ pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
         // 1. in the static, that we just took,
         // 2. one in the UnsafeRecord.data
         // 3. one held by the Gui service thread
-        assert_eq!(Arc::strong_count(&gui), 3, "[unsafe record (needs manually dropping), gui service thread, local from static cell]");
+        assert_eq!(
+            Arc::strong_count(&gui),
+            3,
+            "[unsafe record (needs manually dropping), gui service thread, local from static cell]"
+        );
 
         let gui_thread_id = {
             let mut gui = gui.lock();
@@ -379,7 +387,11 @@ pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
 
         unsafe { utils::miri_thread_join(gui_thread_id) };
 
-        assert_eq!(Arc::strong_count(&gui), 2, "[unsafe record (needs manually dropping), local]");
+        assert_eq!(
+            Arc::strong_count(&gui),
+            2,
+            "[unsafe record (needs manually dropping), local]"
+        );
         // We drop Gui here, and then the only remaining reference to the Arc is in the Record,
         // which will go out of scope immediate after this when the record is dropped
         unsafe { Arc::decrement_strong_count(Arc::as_ptr(&gui)) };
@@ -502,12 +514,29 @@ pub(super) mod lock {
         }
     }
 
-    impl<'a, T> Drop for SpinLockGuard<'a, T> {
-        fn drop(&mut self) {
+    impl<T> SpinLockGuard<'_, T> {
+        pub(crate) fn unlock(&mut self) {
             // NOTE: SeqCst has been used all over here, bcs it's definitely correct, and I haven't got
             // a good enough handle on the other orderings to pick one that would also be correct but
             // more efficient.
             self.lock.inner.store(false, Ordering::SeqCst);
+        }
+
+        pub(crate) fn reacquire(&mut self) {
+            while !self
+                .lock
+                .inner
+                .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
+            {
+                miri_spin_loop();
+            }
+        }
+    }
+
+    impl<'a, T> Drop for SpinLockGuard<'a, T> {
+        fn drop(&mut self) {
+            self.unlock();
         }
     }
 }
