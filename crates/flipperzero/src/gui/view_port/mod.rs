@@ -44,7 +44,6 @@ pub struct ViewPort<C> {
     callbacks: core::marker::PhantomData<C>,
 }
 
-
 #[cfg(feature = "alloc")]
 impl<C: ViewPortCallbacks> ViewPort<C> {
     /// Creates a new `ViewPort`.
@@ -264,8 +263,6 @@ impl<C: ViewPortCallbacks> ViewPort<C> {
         }
     }
 
-    // TODO: add method for binding to GUI
-
     pub fn update(&mut self) {
         let raw = self.as_raw();
         // SAFETY: `raw` is always valid
@@ -375,8 +372,15 @@ impl<C: ViewPortCallbacks> Drop for ViewPort<C> {
     }
 }
 
-/// Plain alloc-free wrapper over a [`SysViewPort`].
+/// Wrapper over a [`SysViewPort`].
+///
+/// [`SysViewPort`] internally holds a Mutex, which is acquired before any operation (loading or
+/// setting the enabledness, setting callbacks, drawing, or handling inputs). As such, it's safe to
+/// [Send] and [Sync] when considering mutability. However, extra care must be taken to avoid
+/// aliasing.
 struct ViewPortInner(NonNull<SysViewPort>);
+
+unsafe impl Send for ViewPortInner {}
 
 impl ViewPortInner {
     fn new() -> Self {
