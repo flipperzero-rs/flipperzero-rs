@@ -66,6 +66,7 @@ pub(crate) mod gui_inner {
     use crate::InputEvent;
     use crate::miri_bindings::utils::*;
 
+    use crate::lock::SpinLockGuard;
     use crate::miri_bindings::lock::SpinLock;
     use alloc::sync::Arc;
     use core::ptr::NonNull;
@@ -118,8 +119,8 @@ pub(crate) mod gui_inner {
                     // to do it. this is only done to make the miri trace easier to parse
                     let gui = &mut *gui_guard;
 
-                    if let Some(input) = gui.input_channel.take() {
-                        gui.process_input(input);
+                    if gui.input_channel.is_some() {
+                        gui.process_input();
                     }
 
                     if gui.request_redraw {
@@ -140,7 +141,7 @@ pub(crate) mod gui_inner {
             gui
         }
 
-        fn process_input(&self, mut input: InputEvent) -> () {
+        fn process_input(&mut self) -> () {
             // NOTE: In the C codebase, this almost always dispatches to the following stack;
             //  -> view dispatcher (as this is usually the active ViewPort)
             //   -> which pushes values into the view dispatcher's input queue, which are then
@@ -164,10 +165,17 @@ pub(crate) mod gui_inner {
             let view_port = unsafe { view_port.as_ref() };
 
             if !unsafe { view_port::view_port_is_enabled(view_port) } {
+                let _ = self.input_channel.take();
                 return;
             }
 
-            let &mut ViewPortInnerCallback { callback: ref input_callback, context: mut input_callback_context } = view_port.input_callback
+            let mut view_port_inner = view_port.inner.lock();
+
+            let Some(mut input) = self.input_channel.take() else {
+                unreachable!("Checked before entering this method that the input_channel was populated, and we're the only thread that can take from it")
+            };
+
+            let &mut ViewPortInnerCallback { callback: ref input_callback, context: mut input_callback_context } = view_port_inner.input_callback
                 .as_mut()
                 .expect("ViewPorts should only be registered with the GUI after their input callbacks have been set");
             let input_callback =
@@ -195,8 +203,9 @@ pub(crate) mod gui_inner {
                 return;
             }
 
+            let mut view_port_inner = view_port.inner.lock();
 
-            let &mut ViewPortInnerCallback { callback: ref draw_callback, context: mut draw_callback_context } = view_port.draw_callback
+            let &mut ViewPortInnerCallback { callback: ref draw_callback, context: mut draw_callback_context } = view_port_inner.draw_callback
                 .as_mut()
                 .expect("ViewPorts should only be registered with the GUI after their draw callbacks have been set");
             let draw_callback =
@@ -235,8 +244,8 @@ pub struct View {
 #[doc = "Add view_port to view_port tree\n\n > thread safe\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance\n * `layer` (direction in) - GuiLayer where to place view_port"]
 pub unsafe fn gui_add_view_port(gui: *mut Gui, view_port: *mut ViewPort, layer: GuiLayer) {
     {
-        let view_port: &SpinLock<ViewPortInner> = unsafe { &mut *view_port };
-        let mut view_port = view_port.lock();
+        let view_port: &mut ViewPort = unsafe { &mut *view_port };
+        let view_port_guard = view_port.inner.lock();
         let main_gui = unsafe { Arc::from_raw(gui) };
         view_port.gui = Some(main_gui.clone());
         let _ = Arc::into_raw(main_gui);
@@ -259,8 +268,8 @@ pub unsafe fn gui_remove_view_port(gui: *mut Gui, view_port: *mut ViewPort) {
     let mut gui_guard = gui.lock();
 
     {
-        let view_port: &SpinLock<ViewPortInner> = unsafe { &mut *view_port };
-        let mut view_port = view_port.lock();
+        let view_port: &mut ViewPort = unsafe { &mut *view_port };
+        let mut view_port_lock = view_port.inner.lock();
         view_port.gui = None;
     }
 
