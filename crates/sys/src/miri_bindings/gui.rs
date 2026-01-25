@@ -113,7 +113,10 @@ pub(crate) mod gui_inner {
                 let gui: Arc<SpinLock<GuiInner>> = unsafe { Arc::from_raw(data as *const _) };
 
                 loop {
-                    let gui = &mut gui.lock();
+                    let mut gui_guard = gui.lock();
+                    // OPTIMISATION: intentional deref here to prevent the calls below from having
+                    // to do it. this is only done to make the miri trace easier to parse
+                    let gui = &mut *gui_guard;
 
                     if let Some(input) = gui.input_channel.take() {
                         gui.process_input(input);
