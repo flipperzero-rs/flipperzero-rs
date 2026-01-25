@@ -204,12 +204,19 @@ pub(crate) mod gui_inner {
             unsafe { draw_callback(&raw mut self.canvas, draw_callback_context) };
         }
 
-        pub fn send_input_event(&mut self, input_event: InputEvent) -> () {
-            let old_input_event = self.input_channel.replace(input_event);
+        pub fn send_input_event(gui_lock: &mut SpinLockGuard<'_, Self>, input_event: InputEvent) -> () {
+            let old_input_event = gui_lock.input_channel.replace(input_event);
             debug_assert!(old_input_event.is_none());
 
+            gui_lock.unlock();
+
             // spin until the other thread takes the input out of the channel
-            while !self.input_channel.is_none() {
+            loop {
+                gui_lock.reacquire();
+                if gui_lock.input_channel.is_none() {
+                    break;
+                }
+                gui_lock.unlock();
                 miri_spin_loop();
             }
         }
