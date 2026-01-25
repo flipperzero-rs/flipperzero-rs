@@ -1,6 +1,7 @@
 extern crate alloc;
 
 use crate::lock::SpinLock;
+use crate::miri_bindings::utils::*;
 use alloc::boxed::Box;
 use alloc::sync::{Arc, Weak};
 use core::alloc::Layout;
@@ -76,6 +77,11 @@ pub unsafe fn view_port_get_height(view_port: *const ViewPort) -> u8 {
 }
 #[doc = "Enable or disable view_port rendering.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `enabled` - Indicates if enabled\n automatically dispatches update event"]
 pub unsafe fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
+    miri_write_to_stdout(if enabled {
+        b"Enabling view port\n"
+    } else {
+        b"Disabling view port\n"
+    });
     // NOTE: we're intentionally being extra specific with dereferences here, so that it's clearer
     // where the locks are being taken, and where they're being used
     let view_port = unsafe { &mut *view_port };

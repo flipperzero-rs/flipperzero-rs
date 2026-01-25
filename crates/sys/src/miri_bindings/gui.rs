@@ -21,6 +21,7 @@ pub use widget::*;
 pub use gui_inner::GuiInner;
 
 use crate::miri_bindings::lock::SpinLock;
+use crate::miri_bindings::utils::*;
 use alloc::sync::Arc;
 use core::ptr::NonNull;
 
@@ -120,8 +121,10 @@ pub(crate) mod gui_inner {
                     // OPTIMISATION: intentional deref here to prevent the calls below from having
                     // to do it. this is only done to make the miri trace easier to parse
                     let gui = &mut *gui_guard;
+                    miri_write_to_stdout(b"Loop!\n");
 
                     if gui.input_channel.is_some() {
+                        miri_write_to_stdout(b"Processing input\n");
                         gui.process_input();
                     }
 
@@ -186,6 +189,7 @@ pub(crate) mod gui_inner {
         }
 
         fn redraw(&mut self) -> () {
+            miri_write_to_stdout(b"Redraw!\n");
             // NOTE: in the C codebase, this is almost always triggered by a view method that calls
             // the helper macro with_view_model, often in response to a custom event or a tick
             // event. specifically, this is because
@@ -241,6 +245,7 @@ pub(crate) mod gui_inner {
         }
 
         pub fn request_redraw(&mut self) -> () {
+            miri_write_to_stdout(b"Requesting redraw\n");
             self.request_redraw = true;
         }
     }
@@ -253,6 +258,7 @@ pub struct View {
 }
 #[doc = "Add view_port to view_port tree\n\n > thread safe\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance\n * `layer` (direction in) - GuiLayer where to place view_port"]
 pub unsafe fn gui_add_view_port(gui: *mut Gui, view_port: *mut ViewPort, layer: GuiLayer) {
+    miri_write_to_stdout(b"Adding view port to GUI\n");
     {
         let view_port: &mut ViewPort = unsafe { &mut *view_port };
         let view_port_guard = view_port.inner.lock();
@@ -272,6 +278,7 @@ pub unsafe fn gui_add_view_port(gui: *mut Gui, view_port: *mut ViewPort, layer: 
 
 #[doc = "Remove view_port from rendering tree\n\n > thread safe\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance"]
 pub unsafe fn gui_remove_view_port(gui: *mut Gui, view_port: *mut ViewPort) {
+    miri_write_to_stdout(b"Removing view port from GUI\n");
     let gui: &Gui = unsafe { &*gui };
     // NOTE: we need to take the GUI lock here to ensure that the service thread isn't able to
     // proceed, as it might attempt to reference the view_port at the same time that we do
