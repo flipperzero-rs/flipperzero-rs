@@ -3,7 +3,7 @@
 mod r#type;
 
 extern crate alloc;
-use alloc::collections::BTreeSet;
+use alloc::{collections::BTreeSet, sync::Arc};
 
 use core::{
     ffi::c_void,
@@ -57,7 +57,7 @@ struct Context<C: ViewDispatcherCallbacks> {
     callbacks: C,
     // TODO: propose API to Flipper for checked view addition/removal, which would allow for this
     // local field to be removed
-    views: ViewSet,
+    views: Arc<ViewSet>,
 }
 
 #[cfg(feature = "alloc")]
@@ -115,7 +115,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
         let context = NonUniqueBox::new(Context {
             view_dispatcher: inner.0,
             callbacks,
-            views: BTreeSet::new(),
+            views: Arc::new(BTreeSet::new()),
         });
 
         {
@@ -161,7 +161,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
                 context.callbacks.on_custom(
                     ViewDispatcherRef {
                         raw: context.view_dispatcher,
-                        views: &mut context.views,
+                        views: unsafe { Arc::get_mut_unchecked(&mut context.views) },
                         _phantom: PhantomData,
                     },
                     event,
@@ -187,7 +187,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
                 let context = unsafe { &mut *context };
                 context.callbacks.on_navigation(ViewDispatcherRef {
                     raw: context.view_dispatcher,
-                    views: &mut context.views,
+                    views: unsafe { Arc::get_mut_unchecked(&mut context.views) },
                     _phantom: PhantomData,
                 }) == StopDispatcher::Yes
             }
@@ -208,7 +208,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
                 let context = unsafe { &mut *context };
                 context.callbacks.on_tick(ViewDispatcherRef {
                     raw: context.view_dispatcher,
-                    views: &mut context.views,
+                    views: unsafe { Arc::get_mut_unchecked(&mut context.views) },
                     _phantom: PhantomData,
                 });
             }
@@ -233,6 +233,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
 }
 
 /// Reference to a ViewDispatcher.
+#[allow(unused)]
 pub struct ViewDispatcherRef<'a> {
     raw: NonNull<SysViewDispatcher>,
     views: &'a mut ViewSet,
@@ -286,7 +287,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     }
 
     pub fn remove_view(&mut self, id: u32) -> Option<()> {
-        if self.views_mut().remove(&id) {
+        if unsafe { self.views_mut() }.remove(&id) {
             let raw = self.as_raw();
             unsafe { sys::view_dispatcher_remove_view(raw, id) }
             Some(())
@@ -296,19 +297,20 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     }
 
     #[inline(always)]
-    fn views(&self) -> &ViewSet {
+    fn views(&self) -> Arc<ViewSet> {
         let context = self.context.as_ptr();
         // SAFETY: if this method is accessed through `ViewDispatcher`
         // then no one else should be able to use it
-        &unsafe { &*context }.views
+        (unsafe { &*context }.views).clone()
     }
 
     #[inline(always)]
-    fn views_mut(&mut self) -> &mut ViewSet {
+    unsafe fn views_mut(&mut self) -> &mut ViewSet {
         let context = self.context.as_ptr();
         // SAFETY: if this method is accessed through `ViewDispatcher`
         // then no one else should be able to use it
-        &mut unsafe { &mut *context }.views
+        let views = &mut unsafe { &mut *context }.views;
+        unsafe { Arc::get_mut_unchecked(views) }
     }
 }
 

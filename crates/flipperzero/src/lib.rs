@@ -4,6 +4,8 @@
 #![cfg_attr(feature = "document-features", doc = document_features::document_features!())]
 //!
 
+#![feature(get_mut_unchecked)]
+
 #![no_std]
 #![cfg_attr(all(test, not(miri)), no_main)]
 #![cfg_attr(all(test, miri), feature(start))]
