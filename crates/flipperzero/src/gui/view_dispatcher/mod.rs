@@ -118,15 +118,6 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
             views: Arc::new(BTreeSet::new()),
         });
 
-        {
-            let raw = inner.0.as_ptr();
-            let gui = gui.as_ptr();
-            let kind = kind.into();
-            // SAFETY: both pointers are valid and `kind` is a valid numeric value
-            // and the newly created view dispatcher does not have a Gui yet
-            unsafe { sys::view_dispatcher_attach_to_gui(raw, gui, kind) };
-        }
-
         // SAFETY: both pointers are guaranteed to be non-null
         let view_dispatcher = Self {
             inner,
@@ -218,6 +209,15 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
             // SAFETY: `raw` is valid
             // and `callbacks` is valid and lives with this struct
             unsafe { sys::view_dispatcher_set_tick_event_callback(raw, callback, tick_period) };
+        }
+
+        {
+            let raw = view_dispatcher.as_raw();
+            let gui = gui.as_ptr();
+            let kind = kind.into();
+            // SAFETY: both pointers are valid and `kind` is a valid numeric value
+            // and the newly created view dispatcher does not have a Gui yet
+            unsafe { sys::view_dispatcher_attach_to_gui(raw, gui, kind) };
         }
 
         view_dispatcher
