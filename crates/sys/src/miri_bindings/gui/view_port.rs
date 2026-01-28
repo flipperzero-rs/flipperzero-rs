@@ -3,8 +3,7 @@ extern crate alloc;
 use crate::lock::SpinLock;
 use crate::miri_bindings::utils::*;
 use alloc::boxed::Box;
-use alloc::sync::{Arc, Weak};
-use core::alloc::Layout;
+use alloc::sync::Arc;
 use core::ffi::c_void;
 use core::ptr::NonNull;
 
@@ -50,7 +49,10 @@ pub unsafe fn view_port_alloc() -> *mut ViewPort {
         input_callback: None,
         enabled: true,
     });
-    let view_port = ViewPort { inner: view_port, gui: None };
+    let view_port = ViewPort {
+        inner: view_port,
+        gui: None,
+    };
     Box::into_raw(Box::new(view_port))
 }
 
@@ -86,7 +88,7 @@ pub unsafe fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
     // where the locks are being taken, and where they're being used
     let view_port = unsafe { &mut *view_port };
     let mut view_port_guard = view_port.inner.lock();
-    let mut view_port_inner = &mut *view_port_guard;
+    let view_port_inner = &mut *view_port_guard;
     view_port_inner.enabled = enabled;
 
     let Some(gui_arc) = view_port.gui.as_mut() else {
@@ -94,7 +96,7 @@ pub unsafe fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
     };
 
     let mut gui_guard = gui_arc.lock();
-    let mut gui = &mut *gui_guard;
+    let gui = &mut *gui_guard;
     gui.request_redraw();
 
     drop(view_port_guard);

@@ -177,10 +177,12 @@ pub(crate) mod gui_inner {
             let mut view_port_inner = view_port.inner.lock();
 
             let Some(mut input) = self.input_channel.take() else {
-                unreachable!("Checked before entering this method that the input_channel was populated, and we're the only thread that can take from it")
+                unreachable!(
+                    "Checked before entering this method that the input_channel was populated, and we're the only thread that can take from it"
+                )
             };
 
-            let &mut ViewPortInnerCallback { callback: ref input_callback, context: mut input_callback_context } = view_port_inner.input_callback
+            let &mut ViewPortInnerCallback { callback: ref input_callback, context: input_callback_context } = view_port_inner.input_callback
                 .as_mut()
                 .expect("ViewPorts should only be registered with the GUI after their input callbacks have been set");
             let input_callback =
@@ -211,7 +213,7 @@ pub(crate) mod gui_inner {
 
             let mut view_port_inner = view_port.inner.lock();
 
-            let &mut ViewPortInnerCallback { callback: ref draw_callback, context: mut draw_callback_context } = view_port_inner.draw_callback
+            let &mut ViewPortInnerCallback { callback: ref draw_callback, context: draw_callback_context } = view_port_inner.draw_callback
                 .as_mut()
                 .expect("ViewPorts should only be registered with the GUI after their draw callbacks have been set");
             let draw_callback =
@@ -219,7 +221,10 @@ pub(crate) mod gui_inner {
             unsafe { draw_callback(&raw mut self.canvas, draw_callback_context) };
         }
 
-        pub fn send_input_event(gui_lock: &mut SpinLockGuard<'_, Self>, input_event: InputEvent) -> () {
+        pub fn send_input_event(
+            gui_lock: &mut SpinLockGuard<'_, Self>,
+            input_event: InputEvent,
+        ) -> () {
             let old_input_event = gui_lock.input_channel.replace(input_event);
             debug_assert!(old_input_event.is_none());
 
@@ -286,7 +291,7 @@ pub unsafe fn gui_remove_view_port(gui: *mut Gui, view_port: *mut ViewPort) {
 
     {
         let view_port: &mut ViewPort = unsafe { &mut *view_port };
-        let mut view_port_lock = view_port.inner.lock();
+        let view_port_guard = view_port.inner.lock();
         view_port.gui = None;
     }
 
