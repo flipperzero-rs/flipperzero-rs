@@ -103,6 +103,16 @@ impl<C: ViewCallbacks> View<C> {
     }
 }
 
+impl View<()> {
+    pub unsafe fn new_from_raw(raw: *mut sys::View) -> Self {
+        let inner = ViewInner(unsafe { NonNull::new_unchecked(raw) });
+        Self {
+            inner,
+            _callbacks: NonUniqueBox::new(()),
+        }
+    }
+}
+
 impl<C: ViewCallbacks> View<C> {
     /// Creates a copy of raw pointer to the [`sys::View`].
     #[inline]
@@ -166,5 +176,6 @@ pub trait ViewCallbacks: Send {
     }
 }
 
-// TODO: is there a case for implementing ViewCallbacks on the unit type?? why would you want to?
-// impl ViewCallbacks for () {}
+impl ViewCallbacks for () {
+    fn on_draw(&mut self, _canvas: CanvasView) {}
+}
