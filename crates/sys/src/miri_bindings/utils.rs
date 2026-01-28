@@ -1,3 +1,4 @@
+#[allow(unused)]
 unsafe extern "Rust" {
     pub fn miri_alloc(size: usize, align: usize) -> *mut u8;
     pub fn miri_dealloc(ptr: *mut u8, size: usize, align: usize);
