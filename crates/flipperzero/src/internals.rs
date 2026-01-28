@@ -3,7 +3,7 @@
 #[cfg(feature = "alloc")]
 pub(crate) mod alloc {
     use alloc::boxed::Box;
-    use core::{mem, ptr::NonNull};
+    use core::{mem, ops::{Deref, DerefMut}, ptr::NonNull};
 
     /// Wrapper for a [`NonNull`] created from [`Box`]
     /// which does not imply uniqueness which the box does.
@@ -86,6 +86,21 @@ pub(crate) mod alloc {
             Self(unsafe { NonNull::new_unchecked(value) })
         }
     }
+
+    impl<T: ?Sized> Deref for NonUniqueBox<T> {
+        type Target = T;
+
+        fn deref(&self) -> &Self::Target {
+            unsafe { self.0.as_ref() }
+        }
+    }
+
+    impl<T: ?Sized> DerefMut for NonUniqueBox<T> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            unsafe { self.0.as_mut() }
+        }
+    }
+
 
     impl<T: ?Sized> NonUniqueBox<T> {
         #[inline(always)]

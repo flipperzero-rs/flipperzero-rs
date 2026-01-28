@@ -15,7 +15,10 @@ use core::{
 use flipperzero_sys::{self as sys, ViewDispatcher as SysViewDispatcher};
 pub use r#type::*;
 
-use crate::gui::Gui;
+use crate::gui::{
+    Gui,
+    view::{View, ViewCallbacks},
+};
 #[cfg(feature = "alloc")]
 use crate::internals::alloc::NonUniqueBox;
 
@@ -267,14 +270,48 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
         unsafe { sys::view_dispatcher_send_custom_event(raw, event) };
     }
 
-    // TODO: reason about lifetimes
-    // TODO: make falible, if trying to replace a view that's already assigned
-    // fn add_view(&mut self, id: u32, view: &mut View<'_>) {
-    //     if self.views().insert(id) {
-    //         let raw = self.raw();
-    //         unsafe { sys::view_dispatcher_add_view(raw, id, view) };
-    //     }
-    // }
+    pub fn add_view<VC: ViewCallbacks>(
+        &mut self,
+        id: u32,
+        view: View<VC>,
+    ) -> Result<ViewDispatcherView<'a, VC>, View<VC>> {
+        if unsafe { self.views_mut() }.insert(id) {
+            let raw = self.as_raw();
+            let view_ptr = view.as_raw();
+            unsafe { sys::view_dispatcher_add_view(raw, id, view_ptr) };
+
+            Ok(ViewDispatcherView {
+                view_dispatcher: unsafe { NonNull::new_unchecked(self.as_raw()) },
+                views: self.views(),
+                _phantom: PhantomData,
+                view,
+                id,
+            })
+        } else {
+            Err(view)
+        }
+    }
+
+    pub fn get_context_mut(&mut self) -> &mut C {
+        let context: &mut Context<C> = &mut *self.context;
+        &mut context.callbacks
+    }
+}
+
+pub struct ViewDispatcherView<'a, VC: ViewCallbacks> {
+    view_dispatcher: NonNull<sys::ViewDispatcher>,
+    views: Arc<ViewSet>,
+    view: View<VC>,
+    id: u32,
+    _phantom: PhantomData<&'a mut ViewDispatcherInner>,
+}
+
+impl<VC: ViewCallbacks> Drop for ViewDispatcherView<'_, VC> {
+    fn drop(&mut self) {
+        unsafe { sys::view_dispatcher_remove_view(self.view_dispatcher.as_ptr(), self.id) };
+        let views = unsafe { Arc::get_mut_unchecked(&mut self.views) };
+        views.remove(&self.id);
+    }
 }
 
 #[cfg(feature = "alloc")]
