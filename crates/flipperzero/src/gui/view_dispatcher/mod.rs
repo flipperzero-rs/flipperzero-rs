@@ -99,6 +99,9 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     /// // should print `10 + 20 = 30`
     /// ```
     pub fn new(callbacks: C, gui: &'a Gui, kind: ViewDispatcherType) -> Self {
+        unsafe extern "Rust" {
+            pub safe fn miri_write_to_stdout(bytes: &[u8]);
+        }
         // discover which callbacks should be registered
         let register_custom_event = !ptr::eq(
             C::on_custom as *const c_void,
@@ -108,6 +111,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
             C::on_navigation as *const c_void,
             <() as ViewDispatcherCallbacks>::on_navigation as *const c_void,
         );
+
         let tick_period = (!ptr::eq(
             C::on_tick as *const c_void,
             <() as ViewDispatcherCallbacks>::on_tick as *const c_void,
@@ -139,6 +143,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
         }
 
         if register_custom_event {
+            miri_write_to_stdout(b"registering custom event handler\n");
             pub unsafe extern "C" fn dispatch_custom<C: ViewDispatcherCallbacks>(
                 context: *mut c_void,
                 event: u32,
@@ -166,7 +171,9 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
             // SAFETY: `raw` is valid and `callbacks` is valid and lives with this struct
             unsafe { sys::view_dispatcher_set_custom_event_callback(raw, callback) };
         }
+
         if register_navigation_callback {
+            miri_write_to_stdout(b"registering navigation event handler\n");
             pub unsafe extern "C" fn dispatch_navigation<C: ViewDispatcherCallbacks>(
                 context: *mut c_void,
             ) -> bool {
@@ -193,6 +200,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
         }
 
         if let Some(tick_period) = tick_period {
+            miri_write_to_stdout(b"registering tick event handler\n");
             pub unsafe extern "C" fn dispatch_tick<C: ViewDispatcherCallbacks>(
                 context: *mut c_void,
             ) {
