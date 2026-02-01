@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Fixed `flipperzero_sys::furi::alloc::FuriBox` not calling `Drop` on `T`
+
 ### Removed
 
 ## [0.16.0]

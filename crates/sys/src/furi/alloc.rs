@@ -78,8 +78,12 @@ impl<T> FuriBox<T> {
 
 impl<T: ?Sized> Drop for FuriBox<T> {
     fn drop(&mut self) {
-        // SAFETY: Pointer was allocated by `aligned_malloc`
-        unsafe { crate::aligned_free(self.0.as_ptr().cast()) }
+        // SAFETY: Pointer is valid, correctly-aligned, non-null (enforced by `new`)
+        // and won't be accessed after `drop_in_place` is called.
+        unsafe {
+            self.0.drop_in_place();
+            crate::aligned_free(self.0.as_ptr().cast());
+        }
     }
 }
 
