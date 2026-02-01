@@ -89,6 +89,7 @@ impl ufmt::uDisplay for Error {
 /// Since these all use the same bit representation, we can just "cast" the returns to this type.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, ufmt::derive::uDebug, Eq, PartialEq)]
+#[must_use]
 pub struct Status(pub i32);
 
 impl Status {
