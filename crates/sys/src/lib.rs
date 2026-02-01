@@ -3,6 +3,8 @@
 #![no_std]
 #![deny(rustdoc::broken_intra_doc_links)]
 
+#![cfg_attr(miri, feature(get_mut_unchecked))]
+
 // Features that identify thumbv7em-none-eabihf.
 // NOTE: `arm_target_feature` is currently unstable (see rust-lang/rust#44839)
 #[cfg(not(any(

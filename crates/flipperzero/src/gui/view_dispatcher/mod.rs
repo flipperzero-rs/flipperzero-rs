@@ -3,13 +3,17 @@
 mod r#type;
 
 extern crate alloc;
-use alloc::{collections::BTreeSet, sync::Arc};
+use alloc::{
+    collections::{BTreeMap, btree_map::Entry},
+    sync::Arc,
+};
 
 use core::{
     ffi::c_void,
     marker::PhantomData,
     num::NonZeroU32,
-    ptr::{self, NonNull},
+    ptr::NonNull,
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 use flipperzero_sys::{self as sys, ViewDispatcher as SysViewDispatcher};
@@ -22,7 +26,7 @@ use crate::gui::{
 #[cfg(feature = "alloc")]
 use crate::internals::alloc::NonUniqueBox;
 
-type ViewSet = BTreeSet<u32>;
+type ViewSet = BTreeMap<u32, AtomicBool>;
 
 #[doc(hidden)]
 pub mod view_id {
@@ -40,7 +44,10 @@ pub mod view_id {
 #[cfg(feature = "alloc")]
 pub struct ViewDispatcher<'a, C: ViewDispatcherCallbacks> {
     inner: ViewDispatcherInner,
-    context: NonUniqueBox<Context<C>>,
+    callbacks: C,
+    // TODO: propose API to Flipper for checked view addition/removal, which would allow for this
+    // local field to be removed
+    views: ViewSet,
     _phantom: PhantomData<&'a mut Gui>,
 }
 
@@ -51,16 +58,11 @@ pub struct ViewDispatcher<'a, C: ViewDispatcherCallbacks> {
 #[cfg(not(feature = "alloc"))]
 pub struct ViewDispatcher<'a, C: ViewDispatcherCallbacks> {
     inner: ViewDispatcherInner,
-    _context: PhantomData<Context<C>>,
-    _phantom: PhantomData<&'a mut Gui>,
-}
-
-struct Context<C: ViewDispatcherCallbacks> {
-    view_dispatcher: NonNull<SysViewDispatcher>,
     callbacks: C,
     // TODO: propose API to Flipper for checked view addition/removal, which would allow for this
     // local field to be removed
     views: Arc<ViewSet>,
+    _phantom: PhantomData<&'a mut Gui>,
 }
 
 #[cfg(feature = "alloc")]
@@ -98,128 +100,33 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     /// view_dispatcher.send_custom_event(20);
     /// // should print `10 + 20 = 30`
     /// ```
-    pub fn new(callbacks: C, gui: &'a Gui, kind: ViewDispatcherType) -> Self {
-        unsafe extern "Rust" {
-            pub safe fn miri_write_to_stdout(bytes: &[u8]);
-        }
-        // discover which callbacks should be registered
-        let register_custom_event = !ptr::eq(
-            C::on_custom as *const c_void,
-            <() as ViewDispatcherCallbacks>::on_custom as *const c_void,
-        );
-        let register_navigation_callback = !ptr::eq(
-            C::on_navigation as *const c_void,
-            <() as ViewDispatcherCallbacks>::on_navigation as *const c_void,
-        );
-
-        let tick_period = (!ptr::eq(
-            C::on_tick as *const c_void,
-            <() as ViewDispatcherCallbacks>::on_tick as *const c_void,
-        ))
-        .then(|| callbacks.tick_period());
-
+    pub fn new(callbacks: C, gui: &'a Gui, kind: ViewDispatcherType) -> Arc<Self> {
         let inner = ViewDispatcherInner::new();
-        let context = NonUniqueBox::new(Context {
-            view_dispatcher: inner.0,
-            callbacks,
-            views: Arc::new(BTreeSet::new()),
-        });
+        let raw = inner.0.as_ptr();
+
+        let register_custom_event_callback = C::BindCustom::bind(&callbacks, raw);
+        let register_navigation_event_callback = C::BindNavigation::bind(&callbacks, raw);
+        let register_tick_event_callback = C::BindTick::bind(&callbacks, raw);
 
         // SAFETY: both pointers are guaranteed to be non-null
-        let view_dispatcher = Self {
+        let view_dispatcher = Arc::new(Self {
             inner,
-            context,
+            callbacks,
+            views: BTreeMap::new(),
             _phantom: PhantomData,
-        };
-
-        let raw = view_dispatcher.as_raw();
+        });
 
         // and store context if at least one event should be registered
-        if register_custom_event || register_navigation_callback || tick_period.is_some() {
-            let context = view_dispatcher.context.as_ptr().cast();
+        if register_custom_event_callback
+            || register_navigation_event_callback
+            || register_tick_event_callback
+        {
+            let context = Arc::into_raw(view_dispatcher.clone())
+                .cast::<c_void>()
+                .cast_mut();
             // SAFETY: `raw` is valid
             // and `callbacks` is valid and lives with this struct
             unsafe { sys::view_dispatcher_set_event_callback_context(raw, context) };
-        }
-
-        if register_custom_event {
-            miri_write_to_stdout(b"registering custom event handler\n");
-            pub unsafe extern "C" fn dispatch_custom<C: ViewDispatcherCallbacks>(
-                context: *mut c_void,
-                event: u32,
-            ) -> bool {
-                let context: *mut Context<C> = context.cast();
-                // SAFETY: `context` is stored in a `Box` which is a member of `ViewDispatcher`
-                // and the callback is accessed exclusively by this function
-                // NOTE: there is no requirement that `Context<C>` be `Send`, as
-                // `dispatch_custom` is only ever called by `raw`'s event loop, which is
-                // (presumably/probably) called on the same thread that `Context<C>` was
-                // constructed on
-                // TODO: `Context<C>` should not be `Send`?
-                let context = unsafe { &mut *context };
-                context.callbacks.on_custom(
-                    ViewDispatcherRef {
-                        raw: context.view_dispatcher,
-                        views: unsafe { Arc::get_mut_unchecked(&mut context.views) },
-                        _phantom: PhantomData,
-                    },
-                    event,
-                )
-            }
-
-            let callback = Some(dispatch_custom::<C> as _);
-            // SAFETY: `raw` is valid and `callbacks` is valid and lives with this struct
-            unsafe { sys::view_dispatcher_set_custom_event_callback(raw, callback) };
-        }
-
-        if register_navigation_callback {
-            miri_write_to_stdout(b"registering navigation event handler\n");
-            pub unsafe extern "C" fn dispatch_navigation<C: ViewDispatcherCallbacks>(
-                context: *mut c_void,
-            ) -> bool {
-                let context: *mut Context<C> = context.cast();
-                // SAFETY: `context` is stored in a `Box` which is a member of `ViewDispatcher`
-                // and the callback is accessed exclusively by this function
-                // NOTE: there is no requirement that `Context<C>` be `Send`, as
-                // `dispatch_custom` is only ever called by `raw`'s event loop, which is
-                // (presumably/probably) called on the same thread that `Context<C>` was
-                // constructed on
-                // TODO: `Context<C>` should not be `Send`?
-                let context = unsafe { &mut *context };
-                context.callbacks.on_navigation(ViewDispatcherRef {
-                    raw: context.view_dispatcher,
-                    views: unsafe { Arc::get_mut_unchecked(&mut context.views) },
-                    _phantom: PhantomData,
-                }) == StopDispatcher::Yes
-            }
-
-            let callback = Some(dispatch_navigation::<C> as _);
-            // SAFETY: `raw` is valid
-            // and `callbacks` is valid and lives with this struct
-            unsafe { sys::view_dispatcher_set_navigation_event_callback(raw, callback) };
-        }
-
-        if let Some(tick_period) = tick_period {
-            miri_write_to_stdout(b"registering tick event handler\n");
-            pub unsafe extern "C" fn dispatch_tick<C: ViewDispatcherCallbacks>(
-                context: *mut c_void,
-            ) {
-                let context: *mut Context<C> = context.cast();
-                // SAFETY: `context` is stored in a `Box` which is a member of `ViewDispatcher`
-                // and the callback is accessed exclusively by this function
-                let context = unsafe { &mut *context };
-                context.callbacks.on_tick(ViewDispatcherRef {
-                    raw: context.view_dispatcher,
-                    views: unsafe { Arc::get_mut_unchecked(&mut context.views) },
-                    _phantom: PhantomData,
-                });
-            }
-
-            let tick_period = tick_period.get();
-            let callback = Some(dispatch_tick::<C> as _);
-            // SAFETY: `raw` is valid
-            // and `callbacks` is valid and lives with this struct
-            unsafe { sys::view_dispatcher_set_tick_event_callback(raw, callback, tick_period) };
         }
 
         {
@@ -280,82 +187,84 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
 
     pub fn add_view<VC: ViewCallbacks>(
         &mut self,
+        view_dispatcher: Arc<Self>,
         id: u32,
         view: View<VC>,
-    ) -> Result<ViewDispatcherView<'a, VC>, View<VC>> {
-        if unsafe { self.views_mut() }.insert(id) {
-            let raw = self.as_raw();
-            let view_ptr = view.as_raw();
-            unsafe { sys::view_dispatcher_add_view(raw, id, view_ptr) };
+    ) -> Result<ViewDispatcherView<'a, VC, C>, View<VC>> {
+        match self.views.entry(id) {
+            Entry::Vacant(entry) => {
+                entry.insert(AtomicBool::new(true));
+                Ok(self.add_view_on_success(view_dispatcher, id, view))
+            }
+            Entry::Occupied(entry) => {
+                let entry = entry.get();
 
-            Ok(ViewDispatcherView {
-                view_dispatcher: unsafe { NonNull::new_unchecked(self.as_raw()) },
-                views: self.views(),
-                _phantom: PhantomData,
-                view,
-                id,
-            })
-        } else {
-            Err(view)
+                if entry
+                    .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                    .is_ok()
+                {
+                    Ok(self.add_view_on_success(view_dispatcher, id, view))
+                } else {
+                    Err(view)
+                }
+            }
+        }
+    }
+
+    fn add_view_on_success<VC: ViewCallbacks>(
+        &self,
+        view_dispatcher: Arc<Self>,
+        id: u32,
+        view: View<VC>,
+    ) -> ViewDispatcherView<'a, VC, C> {
+        let raw = self.as_raw();
+        let view_ptr = view.as_raw();
+        unsafe { sys::view_dispatcher_add_view(raw, id, view_ptr) };
+
+        ViewDispatcherView {
+            view_dispatcher,
+            view,
+            id,
         }
     }
 
     pub fn get_context_mut(&mut self) -> &mut C {
-        let context: &mut Context<C> = &mut *self.context;
-        &mut context.callbacks
+        &mut self.callbacks
     }
 }
 
-pub struct ViewDispatcherView<'a, VC: ViewCallbacks> {
-    view_dispatcher: NonNull<sys::ViewDispatcher>,
-    views: Arc<ViewSet>,
+pub struct ViewDispatcherView<'a, VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> {
+    view_dispatcher: Arc<ViewDispatcher<'a, VDC>>,
     view: View<VC>,
     id: u32,
-    _phantom: PhantomData<&'a mut ViewDispatcherInner>,
 }
 
-impl<VC: ViewCallbacks> Drop for ViewDispatcherView<'_, VC> {
+impl<VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> Drop for ViewDispatcherView<'_, VC, VDC> {
     fn drop(&mut self) {
-        unsafe { sys::view_dispatcher_remove_view(self.view_dispatcher.as_ptr(), self.id) };
-        let views = unsafe { Arc::get_mut_unchecked(&mut self.views) };
-        views.remove(&self.id);
+        unsafe { sys::view_dispatcher_remove_view(self.view_dispatcher.as_raw(), self.id) };
+        let views = self.view_dispatcher.views();
+        let entry = views.get(&self.id).expect("Id must have been inserted for this struct to exist");
+        entry.store(false, Ordering::SeqCst);
     }
 }
 
 #[cfg(feature = "alloc")]
 impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     pub fn switch_to_view(&mut self, id: u32) {
-        if self.views().contains(&id) {
+        if self.views().contains_key(&id) {
             let raw = self.as_raw();
             unsafe { sys::view_dispatcher_switch_to_view(raw, id) };
         }
     }
 
-    pub fn remove_view(&mut self, id: u32) -> Option<()> {
-        if unsafe { self.views_mut() }.remove(&id) {
-            let raw = self.as_raw();
-            unsafe { sys::view_dispatcher_remove_view(raw, id) }
-            Some(())
-        } else {
-            None
-        }
+    #[inline(always)]
+    fn views(&self) -> &ViewSet {
+        &self.views
     }
 
     #[inline(always)]
-    fn views(&self) -> Arc<ViewSet> {
-        let context = self.context.as_ptr();
-        // SAFETY: if this method is accessed through `ViewDispatcher`
-        // then no one else should be able to use it
-        (unsafe { &*context }.views).clone()
-    }
-
-    #[inline(always)]
-    unsafe fn views_mut(&mut self) -> &mut ViewSet {
-        let context = self.context.as_ptr();
-        // SAFETY: if this method is accessed through `ViewDispatcher`
-        // then no one else should be able to use it
-        let views = &mut unsafe { &mut *context }.views;
-        unsafe { Arc::get_mut_unchecked(views) }
+    fn views_mut(&mut self) -> &mut ViewSet {
+        &mut self.views
     }
 }
 
@@ -390,9 +299,117 @@ pub enum StopDispatcher {
     No,
 }
 
+trait BindOption<T: CallbackOption> {
+    fn bind<C: ViewDispatcherCallbacks>(context: &C, raw: *mut SysViewDispatcher) -> bool;
+}
+
+pub struct ShouldBind<T> {
+    _phantom: core::marker::PhantomData<T>,
+}
+impl<T: CallbackOption> BindOption<T> for ShouldBind<T> {
+    fn bind<C: ViewDispatcherCallbacks>(context: &C, raw: *mut SysViewDispatcher) -> bool {
+        T::bind::<C>(context, raw)
+    }
+}
+
+pub struct DontBind;
+
+impl<T: CallbackOption> BindOption<T> for DontBind {
+    fn bind<C>(_context: &C, _raw: *mut SysViewDispatcher) -> bool {
+        false
+    }
+}
+
+trait CallbackOption {
+    fn bind<T: ViewDispatcherCallbacks>(context: &T, raw: *mut SysViewDispatcher) -> bool;
+}
+
+unsafe extern "Rust" {
+    pub safe fn miri_write_to_stdout(bytes: &[u8]);
+}
+
+struct Custom;
+impl CallbackOption for Custom {
+    fn bind<C: ViewDispatcherCallbacks>(_context: &C, raw: *mut SysViewDispatcher) -> bool {
+        miri_write_to_stdout(b"registering custom event handler\n");
+        pub unsafe extern "C" fn dispatch_custom<C: ViewDispatcherCallbacks>(
+            context: *mut c_void,
+            event: u32,
+        ) -> bool {
+            let context: Arc<ViewDispatcher<C>> = unsafe { Arc::from_raw(context as *mut _) };
+            // SAFETY: `context` is stored in a `Box` which is a member of `ViewDispatcher`
+            // and the callback is accessed exclusively by this function
+            // NOTE: there is no requirement that `Context<C>` be `Send`, as
+            // `dispatch_custom` is only ever called by `raw`'s event loop, which is
+            // (presumably/probably) called on the same thread that `Context<C>` was
+            // constructed on
+            // TODO: `Context<C>` should not be `Send`?
+            context.callbacks.on_custom(&context, event)
+        }
+
+        let callback = Some(dispatch_custom::<C> as _);
+        // SAFETY: `raw` is valid and `callbacks` is valid and lives with this struct
+        unsafe { sys::view_dispatcher_set_custom_event_callback(raw, callback) };
+
+        true
+    }
+}
+
+struct Navigation;
+impl CallbackOption for Navigation {
+    fn bind<C: ViewDispatcherCallbacks>(_context: &C, raw: *mut SysViewDispatcher) -> bool {
+        miri_write_to_stdout(b"registering navigation event handler\n");
+        pub unsafe extern "C" fn dispatch_navigation<C: ViewDispatcherCallbacks>(
+            context: *mut c_void,
+        ) -> bool {
+            let context: Arc<ViewDispatcher<C>> = unsafe { Arc::from_raw(context as *mut _) };
+            // SAFETY: `context` is stored in a `Box` which is a member of `ViewDispatcher`
+            // and the callback is accessed exclusively by this function
+            // NOTE: there is no requirement that `Context<C>` be `Send`, as
+            // `dispatch_custom` is only ever called by `raw`'s event loop, which is
+            // (presumably/probably) called on the same thread that `Context<C>` was
+            // constructed on
+            // TODO: `Context<C>` should not be `Send`?
+            context.callbacks.on_navigation(&context) == StopDispatcher::Yes
+        }
+
+        let callback = Some(dispatch_navigation::<C> as _);
+        // SAFETY: `raw` is valid
+        // and `callbacks` is valid and lives with this struct
+        unsafe { sys::view_dispatcher_set_navigation_event_callback(raw, callback) };
+
+        true
+    }
+}
+
+struct Tick;
+impl CallbackOption for Tick {
+    fn bind<C: ViewDispatcherCallbacks>(context: &C, raw: *mut SysViewDispatcher) -> bool {
+        miri_write_to_stdout(b"registering tick event handler\n");
+        pub unsafe extern "C" fn dispatch_tick<C: ViewDispatcherCallbacks>(context: *mut c_void) {
+            let context: Arc<ViewDispatcher<C>> = unsafe { Arc::from_raw(context as *mut _) };
+            // SAFETY: `context` is stored in a `Box` which is a member of `ViewDispatcher`
+            // and the callback is accessed exclusively by this function
+            context.callbacks.on_tick(&context);
+        }
+
+        let tick_period = context.tick_period().get();
+        let callback = Some(dispatch_tick::<C> as _);
+        // SAFETY: `raw` is valid
+        // and `callbacks` is valid and lives with this struct
+        unsafe { sys::view_dispatcher_set_tick_event_callback(raw, callback, tick_period) };
+
+        true
+    }
+}
+
 /// Callbacks for [`ViewDispatcher`].
 #[allow(unused_variables)]
 pub trait ViewDispatcherCallbacks {
+    type BindCustom: BindOption<Custom>;
+    type BindNavigation: BindOption<Navigation>;
+    type BindTick: BindOption<Tick>;
+
     /// Called on a Custom Event [`sys::view_dispatcher_send_custom_event`], if that custom event
     /// is otherwise not consumed.
     ///
@@ -403,7 +420,10 @@ pub trait ViewDispatcherCallbacks {
     ///
     /// The majority of usages of this method in the flipper's codebase is to dispatch to
     /// [`sys::scene_manager_handle_custom_event`].
-    fn on_custom(&mut self, view_dispatcher: ViewDispatcherRef<'_>, event: u32) -> bool {
+    fn on_custom<T>(&self, view_dispatcher: &ViewDispatcher<T>, event: u32) -> bool
+    where
+        T: ViewDispatcherCallbacks,
+    {
         false
     }
 
@@ -412,25 +432,25 @@ pub trait ViewDispatcherCallbacks {
     /// Only called if:
     ///  * the view_dispatcher's current view does not consume the input.
     ///  * the view_dispatcher's current view does not define a previous view.
-    fn on_navigation(&mut self, view_dispatcher: ViewDispatcherRef<'_>) -> StopDispatcher {
+    fn on_navigation<T>(&self, view_dispatcher: &ViewDispatcher<T>) -> StopDispatcher
+    where
+        T: ViewDispatcherCallbacks,
+    {
         StopDispatcher::No
     }
 
     // SAFETY: only ViewDispatcherInners may be created which exclusively own their EventLoops, and
     // so changing the tick_period (which is done alongside setting the tick callback) is
     // permitted.
-    fn on_tick(&mut self, view_dispatcher: ViewDispatcherRef<'_>) {}
+    fn on_tick<T>(&self, view_dispatcher: &ViewDispatcher<T>)
+    where
+        T: ViewDispatcherCallbacks,
+    {
+    }
 
     #[must_use]
     fn tick_period(&self) -> NonZeroU32 {
         // Some arbitrary default
         NonZeroU32::new(100).unwrap()
-    }
-}
-
-impl ViewDispatcherCallbacks for () {
-    // use MAX value since this should never be used normally
-    fn tick_period(&self) -> NonZeroU32 {
-        NonZeroU32::MAX
     }
 }

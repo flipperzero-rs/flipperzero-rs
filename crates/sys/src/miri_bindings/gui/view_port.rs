@@ -17,7 +17,7 @@ pub struct ViewPortInner {
     pub draw_callback: Option<ViewPortInnerCallback<ViewPortDrawCallback>>,
     pub input_callback: Option<ViewPortInnerCallback<ViewPortInputCallback>>,
 
-    enabled: bool,
+    pub(super) enabled: bool,
 }
 
 pub struct ViewPort {

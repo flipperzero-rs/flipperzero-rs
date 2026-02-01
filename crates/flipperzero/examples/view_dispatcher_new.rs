@@ -7,8 +7,10 @@ extern crate alloc;
 extern crate flipperzero_alloc;
 extern crate flipperzero_rt;
 
+use alloc::sync::Arc;
 use core::ffi::{CStr, c_char, c_void};
 use core::ptr::NonNull;
+use flipperzero::gui::view_dispatcher::DontBind;
 use flipperzero::gui::{
     Gui,
     view::{View, ViewCallbacks},
@@ -62,11 +64,14 @@ impl ViewCallbacks for CounterCallback {
 
 fn main(_args: Option<&CStr>) -> i32 {
     struct State<'a> {
-        text_input_view: Option<ViewDispatcherView<'a, ()>>,
-        counter_view: Option<ViewDispatcherView<'a, CounterCallback>>,
+        text_input_view: Option<ViewDispatcherView<'a, (), State<'a>>>,
+        counter_view: Option<ViewDispatcherView<'a, CounterCallback, State<'a>>>,
     }
 
     impl ViewDispatcherCallbacks for State<'_> {
+        type BindCustom = DontBind;
+        type BindNavigation = DontBind;
+        type BindTick = DontBind;
     }
 
     let mut state = State {
@@ -78,16 +83,37 @@ fn main(_args: Option<&CStr>) -> i32 {
     let mut view_dispatcher = ViewDispatcher::new(state, &gui, ViewDispatcherType::Fullscreen);
 
     let text_input = TextInput::new();
-    let Ok(text_input_view) = view_dispatcher.add_view(0, text_input.view()) else {
-        unreachable!()
+    let text_input_view = {
+        let view_dispatcher_ref = view_dispatcher.clone();
+        let mut view_dispatcher = unsafe { Arc::get_mut_unchecked(&mut view_dispatcher) };
+        let Ok(text_input_view) =
+            view_dispatcher.add_view(view_dispatcher_ref, 0, text_input.view())
+        else {
+            unreachable!()
+        };
+        text_input_view
     };
-    let _ = view_dispatcher.get_context_mut().text_input_view.insert(text_input_view);
+    let _ = view_dispatcher
+        .get_context_mut()
+        .text_input_view
+        .insert(text_input_view);
 
     let counter = Counter::new();
-    let Ok(counter_view) = view_dispatcher.add_view(1, counter.view) else {
-        unreachable!()
+    let counter_view = {
+        let view_dispatcher_ref = view_dispatcher.clone();
+        let mut view_dispatcher = unsafe { Arc::get_mut_unchecked(&mut view_dispatcher) };
+
+        let Ok(counter_view) = view_dispatcher.add_view(view_dispatcher_ref, 1, counter.view)
+        else {
+            unreachable!()
+        };
+
+        counter_view
     };
-    let _ = view_dispatcher.get_context_mut().counter_view.insert(counter_view);
+    let _ = view_dispatcher
+        .get_context_mut()
+        .counter_view
+        .insert(counter_view);
 
     view_dispatcher.run();
 
