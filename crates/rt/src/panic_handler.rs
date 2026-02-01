@@ -17,7 +17,7 @@ pub fn panic(panic_info: &PanicInfo<'_>) -> ! {
             c"unknown".as_ptr()
         };
 
-        sys::__wrap_printf(c"\x1b[0;31mthread: '%s' paniced".as_ptr(), thread_name);
+        sys::__wrap_printf(c"\x1b[0;31mthread: '%s' panicked".as_ptr(), thread_name);
 
         if let Some(s) = panic_info.message().as_str() {
             sys::__wrap_printf(c" at '%.*s'".as_ptr(), s.len(), s.as_ptr());
