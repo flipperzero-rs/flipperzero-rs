@@ -38,8 +38,10 @@ pub unsafe fn text_input_reset(text_input: *mut TextInput) {
 }
 #[doc = "Get text input view\n\n # Arguments\n\n* `text_input` - TextInput instance\n\n # Returns\n\nView instance that can be used for embedding"]
 pub unsafe fn text_input_get_view(text_input: *mut TextInput) -> *mut super::View {
-    todo!()
+    let text_input = unsafe { Box::from_raw(text_input) };
+    Box::into_raw(text_input.view)
 }
+
 #[doc = "Set text input result callback\n\n # Arguments\n\n* `text_input` - TextInput instance\n * `callback` - callback fn\n * `callback_context` - callback context\n * `text_buffer` - pointer to YOUR text buffer, that we going\n to modify\n * `text_buffer_size` - YOUR text buffer size in bytes. Max string\n length will be text_buffer_size-1.\n * `clear_default_text` - clear text from text_buffer on first OK\n event"]
 pub unsafe fn text_input_set_result_callback(
     text_input: *mut TextInput,

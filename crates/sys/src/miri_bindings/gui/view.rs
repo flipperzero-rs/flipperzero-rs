@@ -1,3 +1,8 @@
+extern crate alloc;
+
+use alloc::boxed::Box;
+use crate::Canvas;
+
 pub const ViewOrientationHorizontal: ViewOrientation = ViewOrientation(0);
 pub const ViewOrientationHorizontalFlip: ViewOrientation = ViewOrientation(1);
 pub const ViewOrientationVertical: ViewOrientation = ViewOrientation(2);
@@ -8,8 +13,12 @@ pub struct ViewOrientation(pub core::ffi::c_uchar);
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct View {
-    _unused: [u8; 0],
+pub struct View {}
+
+impl View {
+    pub(super) fn draw(&mut self, canvas: *mut Canvas) -> () {
+        todo!()
+    }
 }
 
 #[doc = "View Draw callback\n # Arguments\n\n* `canvas` - pointer to canvas\n * `model` - pointer to model\n called from GUI thread"]
@@ -48,7 +57,7 @@ pub struct ViewModelType(pub core::ffi::c_uchar);
 
 #[doc = "Allocate and init View\n # Returns\n\nView instance"]
 pub unsafe fn view_alloc() -> *mut crate::View {
-    todo!()
+    Box::into_raw(Box::new(View {} ))
 }
 #[doc = "Free View\n\n # Arguments\n\n* `view` - instance"]
 pub unsafe fn view_free(view: *mut crate::View) {
@@ -83,7 +92,10 @@ pub unsafe fn view_set_update_callback(view: *mut crate::View, callback: ViewUpd
     todo!()
 }
 #[doc = "Set View Draw callback\n\n # Arguments\n\n* `view` - View instance\n * `context` - context for callbacks"]
-pub unsafe fn view_set_update_callback_context(view: *mut crate::View, context: *mut core::ffi::c_void) {
+pub unsafe fn view_set_update_callback_context(
+    view: *mut crate::View,
+    context: *mut core::ffi::c_void,
+) {
     todo!()
 }
 #[doc = "Set View Draw callback\n\n # Arguments\n\n* `view` - View instance\n * `context` - context for callbacks"]
