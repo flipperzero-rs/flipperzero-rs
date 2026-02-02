@@ -9,7 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `flipperzero_sys::furi::Status` is now marked `must_use`
+
 ### Changed
+
+- Fixed `flipperzero_sys::furi::alloc::FuriBox` not calling `Drop` on `T`
 
 ### Removed
 
