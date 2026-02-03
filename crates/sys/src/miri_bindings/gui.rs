@@ -121,10 +121,9 @@ pub(crate) mod gui_inner {
                     // OPTIMISATION: intentional deref here to prevent the calls below from having
                     // to do it. this is only done to make the miri trace easier to parse
                     let gui = &mut *gui_guard;
-                    miri_write_to_stdout(b"Loop!\n");
+                    miri_write_to_stdout(b"GUI loop!\n");
 
                     if gui.input_channel.is_some() {
-                        miri_write_to_stdout(b"Processing input\n");
                         gui.process_input();
                     }
 
@@ -170,9 +169,12 @@ pub(crate) mod gui_inner {
             let view_port = unsafe { view_port.as_ref() };
 
             if !unsafe { view_port::view_port_is_enabled(view_port) } {
+                miri_write_to_stdout(b"GUI attempted to process input event, but no view port was enabled\n");
                 let _ = self.input_channel.take();
                 return;
             }
+
+            miri_write_to_stdout(b"GUI process input event\n");
 
             let mut view_port_inner = view_port.inner.lock();
 
@@ -191,7 +193,7 @@ pub(crate) mod gui_inner {
         }
 
         fn redraw(&mut self) -> () {
-            miri_write_to_stdout(b"Redraw!\n");
+            miri_write_to_stdout(b"GUI Redraw!\n");
             // NOTE: in the C codebase, this is almost always triggered by a view method that calls
             // the helper macro with_view_model, often in response to a custom event or a tick
             // event. specifically, this is because
@@ -250,7 +252,7 @@ pub(crate) mod gui_inner {
         }
 
         pub fn request_redraw(&mut self) -> () {
-            miri_write_to_stdout(b"Requesting redraw\n");
+            miri_write_to_stdout(b"Requesting redraw of GUI\n");
             self.request_redraw = true;
         }
     }

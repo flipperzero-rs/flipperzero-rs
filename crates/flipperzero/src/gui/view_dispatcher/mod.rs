@@ -23,8 +23,6 @@ use crate::gui::{
     Gui,
     view::{View, ViewCallbacks},
 };
-#[cfg(feature = "alloc")]
-use crate::internals::alloc::NonUniqueBox;
 
 type ViewSet = BTreeMap<u32, AtomicBool>;
 
@@ -41,9 +39,8 @@ pub mod view_id {
 ///
 /// A holder for a collection of views, which can be switched between. The current view will be
 /// drawn to the canvas, and will receive all input events.
-#[cfg(feature = "alloc")]
-pub struct ViewDispatcher<'a, C: ViewDispatcherCallbacks> {
-    inner: ViewDispatcherInner,
+pub struct ViewDispatcherInner<'a, C: ViewDispatcherCallbacks> {
+    inner: NonNull<SysViewDispatcher>,
     callbacks: C,
     // TODO: propose API to Flipper for checked view addition/removal, which would allow for this
     // local field to be removed
@@ -51,22 +48,45 @@ pub struct ViewDispatcher<'a, C: ViewDispatcherCallbacks> {
     _phantom: PhantomData<&'a mut Gui>,
 }
 
-/// System ViewDispatcher.
-///
-/// A holder for a collection of views, which can be switched between. The current view will be
-/// drawn to the canvas, and will receive all input events.
-#[cfg(not(feature = "alloc"))]
-pub struct ViewDispatcher<'a, C: ViewDispatcherCallbacks> {
-    inner: ViewDispatcherInner,
-    callbacks: C,
-    // TODO: propose API to Flipper for checked view addition/removal, which would allow for this
-    // local field to be removed
-    views: Arc<ViewSet>,
-    _phantom: PhantomData<&'a mut Gui>,
+pub struct ViewDispatcher<'a, C: ViewDispatcherCallbacks>(Arc<ViewDispatcherInner<'a, C>>);
+
+impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
+    pub fn new(callbacks: C, gui: &'a Gui, kind: ViewDispatcherType) -> Self {
+        Self(ViewDispatcherInner::new(callbacks, gui, kind))
+    }
+
+    pub fn get_context_mut(&mut self) -> &mut C {
+        let inner = unsafe { Arc::get_mut_unchecked(&mut self.0) };
+        &mut inner.callbacks
+    }
+
+    pub fn add_view<VC: ViewCallbacks>(
+        &mut self,
+        id: u32,
+        view: View<VC>,
+    ) -> Result<ViewDispatcherView<'a, VC, C>, View<VC>> {
+        miri_write_to_stdout(b"Adding view port to GUI\n");
+        let view_dispatcher = self.0.clone();
+        // SAFETY: the only references to the ViewDispatcherInner are ourselves, and any potential
+        // reference stored in the sys::ViewDispatcher's context, which are not mutable. As such,
+        // it's okay to get a mutable reference here
+        let inner = unsafe { Arc::get_mut_unchecked(&mut self.0) };
+        inner.add_view(view_dispatcher, id, view)
+    }
+
+    /// Runs this view dispatcher.
+    ///
+    /// This will block until the view dispatcher gets stopped.
+    pub fn run(self) -> Self {
+        let raw = self.0.as_raw();
+        // SAFETY: `raw` is valid
+        // and this is a `ViewDispatcher` with a queue
+        unsafe { sys::view_dispatcher_run(raw) };
+        self
+    }
 }
 
-#[cfg(feature = "alloc")]
-impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
+impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
     ///
     /// # Examples
     ///
@@ -101,8 +121,8 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     /// // should print `10 + 20 = 30`
     /// ```
     pub fn new(callbacks: C, gui: &'a Gui, kind: ViewDispatcherType) -> Arc<Self> {
-        let inner = ViewDispatcherInner::new();
-        let raw = inner.0.as_ptr();
+        let inner = unsafe { NonNull::new_unchecked(sys::view_dispatcher_alloc()) };
+        let raw = inner.as_ptr();
 
         let register_custom_event_callback = C::BindCustom::bind(&callbacks, raw);
         let register_navigation_event_callback = C::BindNavigation::bind(&callbacks, raw);
@@ -142,11 +162,11 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     }
 }
 
-impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
+impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
     #[inline]
     #[must_use]
     pub const fn as_raw(&self) -> *mut SysViewDispatcher {
-        self.inner.0.as_ptr()
+        self.inner.as_ptr()
     }
 }
 
@@ -158,18 +178,7 @@ pub struct ViewDispatcherRef<'a> {
     _phantom: PhantomData<&'a mut SysViewDispatcher>,
 }
 
-impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
-    /// Runs this view dispatcher.
-    ///
-    /// This will block until the view dispatcher gets stopped.
-    pub fn run(self) -> Self {
-        let raw = self.as_raw();
-        // SAFETY: `raw` is valid
-        // and this is a `ViewDispatcher` with a queue
-        unsafe { sys::view_dispatcher_run(raw) };
-        self
-    }
-
+impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
     /// Stops this view dispatcher.
     ///
     /// This will make the [`ViewDispatcher::run`] caller unfreeze.
@@ -185,7 +194,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
         unsafe { sys::view_dispatcher_send_custom_event(raw, event) };
     }
 
-    pub fn add_view<VC: ViewCallbacks>(
+    fn add_view<VC: ViewCallbacks>(
         &mut self,
         view_dispatcher: Arc<Self>,
         id: u32,
@@ -234,7 +243,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
 }
 
 pub struct ViewDispatcherView<'a, VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> {
-    view_dispatcher: Arc<ViewDispatcher<'a, VDC>>,
+    view_dispatcher: Arc<ViewDispatcherInner<'a, VDC>>,
     view: View<VC>,
     id: u32,
 }
@@ -243,13 +252,14 @@ impl<VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> Drop for ViewDispatcherVie
     fn drop(&mut self) {
         unsafe { sys::view_dispatcher_remove_view(self.view_dispatcher.as_raw(), self.id) };
         let views = self.view_dispatcher.views();
-        let entry = views.get(&self.id).expect("Id must have been inserted for this struct to exist");
+        let entry = views
+            .get(&self.id)
+            .expect("Id must have been inserted for this struct to exist");
         entry.store(false, Ordering::SeqCst);
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
+impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
     pub fn switch_to_view(&mut self, id: u32) {
         if self.views().contains_key(&id) {
             let raw = self.as_raw();
@@ -265,27 +275,6 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
     #[inline(always)]
     fn views_mut(&mut self) -> &mut ViewSet {
         &mut self.views
-    }
-}
-
-/// Internal representation of view dispatcher.
-/// This is a thin non-null pointer to [`SysViewDispatcher`]
-/// which performs its automatic [allocation][Self::new] and [deallocation](Self::drop).
-struct ViewDispatcherInner(NonNull<SysViewDispatcher>);
-
-impl ViewDispatcherInner {
-    fn new() -> Self {
-        // SAFETY: allocation either succeeds producing the valid pointer
-        // or stops the system on OOM,
-        Self(unsafe { NonNull::new_unchecked(sys::view_dispatcher_alloc()) })
-    }
-}
-
-impl Drop for ViewDispatcherInner {
-    fn drop(&mut self) {
-        let raw = self.0.as_ptr();
-        // SAFETY: `raw` is valid
-        unsafe { sys::view_dispatcher_free(raw) };
     }
 }
 
@@ -336,7 +325,7 @@ impl CallbackOption for Custom {
             context: *mut c_void,
             event: u32,
         ) -> bool {
-            let context: Arc<ViewDispatcher<C>> = unsafe { Arc::from_raw(context as *mut _) };
+            let context: Arc<ViewDispatcherInner<C>> = unsafe { Arc::from_raw(context as *mut _) };
             // SAFETY: `context` is stored in a `Box` which is a member of `ViewDispatcher`
             // and the callback is accessed exclusively by this function
             // NOTE: there is no requirement that `Context<C>` be `Send`, as
@@ -362,7 +351,7 @@ impl CallbackOption for Navigation {
         pub unsafe extern "C" fn dispatch_navigation<C: ViewDispatcherCallbacks>(
             context: *mut c_void,
         ) -> bool {
-            let context: Arc<ViewDispatcher<C>> = unsafe { Arc::from_raw(context as *mut _) };
+            let context: Arc<ViewDispatcherInner<C>> = unsafe { Arc::from_raw(context as *mut _) };
             // SAFETY: `context` is stored in a `Box` which is a member of `ViewDispatcher`
             // and the callback is accessed exclusively by this function
             // NOTE: there is no requirement that `Context<C>` be `Send`, as
@@ -387,7 +376,7 @@ impl CallbackOption for Tick {
     fn bind<C: ViewDispatcherCallbacks>(context: &C, raw: *mut SysViewDispatcher) -> bool {
         miri_write_to_stdout(b"registering tick event handler\n");
         pub unsafe extern "C" fn dispatch_tick<C: ViewDispatcherCallbacks>(context: *mut c_void) {
-            let context: Arc<ViewDispatcher<C>> = unsafe { Arc::from_raw(context as *mut _) };
+            let context: Arc<ViewDispatcherInner<C>> = unsafe { Arc::from_raw(context as *mut _) };
             // SAFETY: `context` is stored in a `Box` which is a member of `ViewDispatcher`
             // and the callback is accessed exclusively by this function
             context.callbacks.on_tick(&context);
@@ -420,7 +409,7 @@ pub trait ViewDispatcherCallbacks {
     ///
     /// The majority of usages of this method in the flipper's codebase is to dispatch to
     /// [`sys::scene_manager_handle_custom_event`].
-    fn on_custom<T>(&self, view_dispatcher: &ViewDispatcher<T>, event: u32) -> bool
+    fn on_custom<T>(&self, view_dispatcher: &ViewDispatcherInner<T>, event: u32) -> bool
     where
         T: ViewDispatcherCallbacks,
     {
@@ -432,7 +421,7 @@ pub trait ViewDispatcherCallbacks {
     /// Only called if:
     ///  * the view_dispatcher's current view does not consume the input.
     ///  * the view_dispatcher's current view does not define a previous view.
-    fn on_navigation<T>(&self, view_dispatcher: &ViewDispatcher<T>) -> StopDispatcher
+    fn on_navigation<T>(&self, view_dispatcher: &ViewDispatcherInner<T>) -> StopDispatcher
     where
         T: ViewDispatcherCallbacks,
     {
@@ -442,7 +431,7 @@ pub trait ViewDispatcherCallbacks {
     // SAFETY: only ViewDispatcherInners may be created which exclusively own their EventLoops, and
     // so changing the tick_period (which is done alongside setting the tick callback) is
     // permitted.
-    fn on_tick<T>(&self, view_dispatcher: &ViewDispatcher<T>)
+    fn on_tick<T>(&self, view_dispatcher: &ViewDispatcherInner<T>)
     where
         T: ViewDispatcherCallbacks,
     {

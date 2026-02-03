@@ -7,6 +7,7 @@ extern crate alloc;
 extern crate flipperzero_alloc;
 extern crate flipperzero_rt;
 
+#[cfg(miri)]
 use alloc::sync::Arc;
 use core::ffi::{CStr, c_char, c_void};
 use core::ptr::NonNull;
@@ -19,11 +20,20 @@ use flipperzero::gui::{
         ViewDispatcherType, ViewDispatcherView,
     },
 };
+#[cfg(miri)]
+use flipperzero::input::{InputEvent, InputKey, InputType};
 use flipperzero_rt::{entry, manifest};
 use flipperzero_sys as sys;
 
 manifest!(name = "Rust ViewDispatcher example");
 entry!(main);
+
+#[cfg(miri)]
+unsafe extern "Rust" {
+    pub fn miri_thread_spawn(t: extern "Rust" fn(*mut ()), data: *mut ()) -> usize;
+    pub fn miri_thread_join(thread_id: usize) -> bool;
+    pub fn miri_set_thread_name(thread_id: usize, name: *const u8) -> bool;
+}
 
 struct TextInput {
     raw: NonNull<sys::TextInput>,
@@ -83,41 +93,70 @@ fn main(_args: Option<&CStr>) -> i32 {
     let mut view_dispatcher = ViewDispatcher::new(state, &gui, ViewDispatcherType::Fullscreen);
 
     let text_input = TextInput::new();
-    let text_input_view = {
-        let view_dispatcher_ref = view_dispatcher.clone();
-        let mut view_dispatcher = unsafe { Arc::get_mut_unchecked(&mut view_dispatcher) };
-        let Ok(text_input_view) =
-            view_dispatcher.add_view(view_dispatcher_ref, 0, text_input.view())
-        else {
-            unreachable!()
-        };
-        text_input_view
+    let Ok(text_input_view) = view_dispatcher.add_view(0, text_input.view()) else {
+        unreachable!()
     };
+    let text_input_view = text_input_view;
     let _ = view_dispatcher
         .get_context_mut()
         .text_input_view
         .insert(text_input_view);
 
     let counter = Counter::new();
-    let counter_view = {
-        let view_dispatcher_ref = view_dispatcher.clone();
-        let mut view_dispatcher = unsafe { Arc::get_mut_unchecked(&mut view_dispatcher) };
-
-        let Ok(counter_view) = view_dispatcher.add_view(view_dispatcher_ref, 1, counter.view)
-        else {
-            unreachable!()
-        };
-
-        counter_view
+    let Ok(counter_view) = view_dispatcher.add_view(1, counter.view) else {
+        unreachable!()
     };
+    let counter_view = counter_view;
     let _ = view_dispatcher
         .get_context_mut()
         .counter_view
         .insert(counter_view);
 
+    #[cfg(not(miri))]
+    let status = run_until_exit(view_dispatcher);
+    #[cfg(miri)]
+    let status = run_until_exit_miri(view_dispatcher, gui);
+
+    0
+}
+
+#[cfg(not(miri))]
+fn run_until_exit(view_dispatcher: ViewDispatcher<'_, State<'_>>) -> i32 {
     view_dispatcher.run();
 
     0
+}
+
+#[cfg(miri)]
+fn run_until_exit_miri(view_dispatcher: &ViewDispatcher<'_, State<'_>>, gui: Arc<sys::Gui>) -> i32 {
+    let thread_id = {
+        let gui_ptr = Arc::into_raw(gui.clone());
+        // SAFETY: Arc was generated above
+        unsafe { miri_thread_spawn(send_events_for_miri, gui_ptr as *mut _) }
+    };
+
+    unsafe { miri_set_thread_name(thread_id, c"miri event sender".as_ptr()) };
+
+    view_dispatcher.run();
+
+    unsafe { miri_thread_join(thread_id) };
+
+    0
+}
+
+#[cfg(miri)]
+extern "Rust" fn send_events_for_miri(data: *mut ()) {
+    let gui: Arc<sys::Gui> = unsafe { Arc::from_raw(data as *const _) };
+
+    {
+        let mut gui = gui.lock();
+        let input_event = InputEvent {
+            sequence: 0.into(),
+            key: InputKey::Up,
+            r#type: InputType::Press,
+        };
+        sys::GuiInner::send_input_event(&mut gui, input_event.into());
+    }
 }
 
 #[cfg(miri)]

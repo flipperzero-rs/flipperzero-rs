@@ -1,7 +1,7 @@
 extern crate alloc;
 
-use alloc::boxed::Box;
 use crate::Canvas;
+use alloc::boxed::Box;
 
 pub const ViewOrientationHorizontal: ViewOrientation = ViewOrientation(0);
 pub const ViewOrientationHorizontalFlip: ViewOrientation = ViewOrientation(1);
@@ -13,7 +13,11 @@ pub struct ViewOrientation(pub core::ffi::c_uchar);
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct View {}
+pub struct View {
+    draw_callback: Option<ViewDrawCallback>,
+    input_callback: Option<ViewInputCallback>,
+    previous_callback: Option<ViewNavigationCallback>,
+}
 
 impl View {
     pub(super) fn draw(&mut self, canvas: *mut Canvas) -> () {
@@ -57,7 +61,13 @@ pub struct ViewModelType(pub core::ffi::c_uchar);
 
 #[doc = "Allocate and init View\n # Returns\n\nView instance"]
 pub unsafe fn view_alloc() -> *mut crate::View {
-    Box::into_raw(Box::new(View {} ))
+    let view = View {
+        draw_callback: None,
+        input_callback: None,
+        previous_callback: None,
+    };
+
+    Box::into_raw(Box::new(view))
 }
 #[doc = "Free View\n\n # Arguments\n\n* `view` - instance"]
 pub unsafe fn view_free(view: *mut crate::View) {
@@ -65,11 +75,13 @@ pub unsafe fn view_free(view: *mut crate::View) {
 }
 #[doc = "Set View Draw callback\n\n # Arguments\n\n* `view` - View instance\n * `callback` - draw callback"]
 pub unsafe fn view_set_draw_callback(view: *mut crate::View, callback: ViewDrawCallback) {
-    todo!()
+    let view = unsafe { &mut *view };
+    view.draw_callback = Some(callback);
 }
 #[doc = "Set View Input callback\n\n # Arguments\n\n* `view` - View instance\n * `callback` - input callback"]
 pub unsafe fn view_set_input_callback(view: *mut crate::View, callback: ViewInputCallback) {
-    todo!()
+    let view = unsafe { &mut *view };
+    view.input_callback = Some(callback);
 }
 #[doc = "Set View Custom callback\n\n # Arguments\n\n* `view` - View instance\n * `callback` - input callback"]
 pub unsafe fn view_set_custom_callback(view: *mut crate::View, callback: ViewCustomCallback) {
@@ -77,7 +89,8 @@ pub unsafe fn view_set_custom_callback(view: *mut crate::View, callback: ViewCus
 }
 #[doc = "Set Navigation Previous callback\n\n # Arguments\n\n* `view` - View instance\n * `callback` - input callback"]
 pub unsafe fn view_set_previous_callback(view: *mut crate::View, callback: ViewNavigationCallback) {
-    todo!()
+    let view = unsafe { &mut *view };
+    view.previous_callback = Some(callback);
 }
 #[doc = "Set Enter callback\n\n # Arguments\n\n* `view` - View instance\n * `callback` - callback"]
 pub unsafe fn view_set_enter_callback(view: *mut crate::View, callback: ViewCallback) {
