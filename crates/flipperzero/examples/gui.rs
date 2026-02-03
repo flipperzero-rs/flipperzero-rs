@@ -20,8 +20,8 @@ use core::time::Duration;
 
 use flipperzero::furi::thread::sleep;
 use flipperzero_rt::{entry, manifest};
-use flipperzero_sys as sys;
 use flipperzero_sys::furi::UnsafeRecord;
+use flipperzero_sys::{self as sys, Gui};
 
 const FULLSCREEN: sys::GuiLayer = sys::GuiLayerFullscreen;
 
@@ -43,16 +43,74 @@ fn main(_args: Option<&CStr>) -> i32 {
         sys::view_port_draw_callback_set(view_port, Some(draw_callback), ptr::null_mut());
 
         {
-            let gui = UnsafeRecord::open(c"gui");
+            let gui: UnsafeRecord<Gui> = UnsafeRecord::open(c"gui");
+            #[cfg(miri)]
+            debug_assert_eq!(
+                {
+                    extern crate alloc;
+                    use alloc::sync::Arc;
+
+                    let gui: Arc<Gui> = Arc::from_raw(gui.as_ptr());
+                    let count = Arc::strong_count(&gui);
+                    // Intentionally leak again?
+                    let _gui = Arc::into_raw(gui);
+
+                    count
+                },
+                3,
+                "[unsafe record, static cell, gui service thread]"
+            );
+
             sys::gui_add_view_port(gui.as_ptr(), view_port, FULLSCREEN);
 
+            #[cfg(miri)]
+            debug_assert_eq!(
+                {
+                    extern crate alloc;
+                    use alloc::sync::Arc;
+
+                    let gui: Arc<Gui> = Arc::from_raw(gui.as_ptr());
+                    let count = Arc::strong_count(&gui);
+                    // Intentionally leak again?
+                    let _gui = Arc::into_raw(gui);
+
+                    count
+                },
+                4,
+                "[unsafe record, static cell, gui service thread, view_port reference]"
+            );
             sleep(Duration::from_secs(1));
 
-            sys::view_port_enabled_set(view_port, false);
             sys::gui_remove_view_port(gui.as_ptr(), view_port);
+            sys::view_port_enabled_set(view_port, false);
+
+            #[cfg(miri)]
+            debug_assert_eq!(
+                {
+                    extern crate alloc;
+                    use alloc::sync::Arc;
+
+                    let gui: Arc<Gui> = Arc::from_raw(gui.as_ptr());
+                    let count = Arc::strong_count(&gui);
+                    // Intentionally leak again?
+                    let _gui = Arc::into_raw(gui);
+
+                    count
+                },
+                3,
+                "[unsafe record, static cell, gui service thread]"
+            );
         }
         sys::view_port_free(view_port);
     }
 
     0
+}
+
+#[cfg(miri)]
+#[unsafe(no_mangle)]
+fn miri_start(_argc: isize, _argv: *const *const u8) -> isize {
+    // TODO: Is there any benefit to Miri in hooking up the binary arguments to
+    // the test runner?
+    main(None).try_into().unwrap_or(isize::MAX)
 }

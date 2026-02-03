@@ -5,30 +5,41 @@
 //!
 
 #![no_std]
-#![cfg_attr(all(test, not(miri)), no_main)]
-#![cfg_attr(all(test, miri), feature(start))]
+#![cfg_attr(test, no_main)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(rustdoc::broken_intra_doc_links)]
+#![warn(clippy::undocumented_unsafe_blocks)]
+#![warn(clippy::multiple_unsafe_ops_per_block)]
 
 #[cfg(any(feature = "alloc", docsrs))]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 extern crate alloc;
 
+#[cfg(not(miri))]
 pub mod bluetooth;
+#[cfg(not(miri))]
 pub mod datetime;
+#[cfg(not(miri))]
 pub mod dialogs;
+#[cfg(not(miri))]
 pub mod dolphin;
 pub mod furi;
 pub mod gpio;
 pub mod gui;
+#[cfg(not(miri))]
 pub mod io;
+#[cfg(not(miri))]
 pub mod locale;
 pub mod macros;
+#[cfg(not(miri))]
 pub mod notification;
 pub mod path;
 pub mod prelude;
+#[cfg(not(miri))]
 pub mod serial;
+#[cfg(not(miri))]
 pub mod storage;
+#[cfg(not(miri))]
 pub mod toolbox;
 pub mod version;
 
@@ -60,6 +71,7 @@ pub mod __macro_support {
     }
 }
 
+#[cfg(not(miri))]
 flipperzero_test::tests_runner!(
     name = "flipperzero-rs Unit Tests",
     stack_size = 4096,

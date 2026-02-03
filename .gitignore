@@ -2,3 +2,4 @@
 /firmware/
 .DS_Store
 .direnv/
+/target/

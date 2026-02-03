@@ -11,11 +11,6 @@ autobins = false
 autotests = false
 autobenches = false
 
-[package.metadata.docs.rs]
-default-target = "thumbv7em-none-eabihf"
-targets = []
-all-features = true
-
 [lib]
 bench = false
 harness = false
@@ -64,7 +59,8 @@ crc32fast = { version = "1", default-features = false }
 
 [features]
 
-default = ["embedded-graphics"]
+default = ["embedded-graphics", "alloc", "not-miri"]
+miri = ["embedded-graphics", "alloc"]
 
 #! ## Core features
 
@@ -78,6 +74,7 @@ default = ["embedded-graphics"]
 ## extern crate flipperzero_alloc;
 ## ```
 alloc = []
+not-miri = []
 
 ## Enable embedded-graphics driver
 embedded-graphics = ["dep:embedded-graphics-core"]
@@ -89,23 +86,63 @@ edition_2024_expr_fragment_specifier = "allow"
 [[test]]
 name = "dolphin"
 harness = false
+required-features = ["not-miri"]
 
 [[test]]
 name = "string"
 harness = false
+required-features = ["not-miri"]
+
+[[example]]
+name = "bluetooth"
+required-features = ["not-miri"]
 
 [[example]]
 name = "dialog"
-required-features = ["alloc"]
-
-[[example]]
-name = "stream_buffer"
-required-features = ["alloc"]
-
-[[example]]
-name = "threads"
-required-features = ["alloc"]
+required-features = ["alloc", "not-miri"]
 
 [[example]]
 name = "embedded-graphics"
-required-features = ["embedded-graphics"]
+required-features = ["embedded-graphics", "not-miri"]
+
+[[example]]
+name = "example_images"
+required-features = ["not-miri"]
+
+[[example]]
+name = "gpio"
+required-features = ["not-miri"]
+
+[[example]]
+name = "gui"
+
+[[example]]
+name = "hello-rust"
+required-features = ["not-miri"]
+
+[[example]]
+name = "i2c-ds3231"
+required-features = ["not-miri"]
+
+[[example]]
+name = "notification"
+required-features = ["not-miri"]
+
+[[example]]
+name = "serial-echo"
+required-features = ["not-miri"]
+
+[[example]]
+name = "storage"
+required-features = ["not-miri"]
+
+[[example]]
+name = "stream_buffer"
+required-features = ["alloc", "not-miri"]
+
+[[example]]
+name = "threads"
+required-features = ["alloc", "not-miri"]
+
+[[example]]
+name = "view_dispatcher"

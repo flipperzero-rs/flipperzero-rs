@@ -11,6 +11,11 @@ repository = "https://github.com/dcoles/flipperzero-rs"
 readme = "../README.md"
 license = "MIT"
 
+[workspace.metadata.docs.rs]
+default-target = "thumbv7em-none-eabihf"
+targets = []
+all-features = true
+
 [workspace.dependencies]
 flipperzero-sys = { path = "sys", version = "0.16.0" }
 flipperzero-rt = { path = "rt", version = "0.16.0" }

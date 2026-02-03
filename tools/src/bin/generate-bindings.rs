@@ -5,8 +5,8 @@
 use std::borrow::Cow;
 use std::{env, fs};
 
-use bindgen::EnumVariation;
-use bindgen::callbacks::ParseCallbacks;
+use bindgen::{EnumVariation, RustTarget};
+use bindgen::callbacks::{ItemInfo, ItemKind, ParseCallbacks};
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::{crate_authors, crate_description, crate_version, value_parser};
 use once_cell::sync::Lazy;
@@ -237,6 +237,18 @@ impl ParseCallbacks for Cb {
         Some(doxygen_rs::transform(&Self::preprocess_doxygen_comments(
             comment,
         )))
+    }
+
+    fn declare_safe(&self, item_info: ItemInfo<'_>) -> Option<String> {
+        if item_info.kind != ItemKind::Function {
+            return None;
+        }
+
+        if item_info.name.ends_with("_alloc") {
+            Some("Returned pointer is always valid and non-null.".into())
+        } else {
+            None
+        }
     }
 }
 
