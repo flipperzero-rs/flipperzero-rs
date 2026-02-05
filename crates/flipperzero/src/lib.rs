@@ -5,6 +5,7 @@
 //!
 
 #![feature(get_mut_unchecked)]
+#![feature(associated_type_defaults)]
 
 #![no_std]
 #![cfg_attr(all(test, not(miri)), no_main)]

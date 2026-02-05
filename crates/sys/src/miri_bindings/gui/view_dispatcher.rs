@@ -1,15 +1,16 @@
 extern crate alloc;
 
 use crate::lock::SpinLock;
-use crate::miri_bindings::gui::view_dispatcher;
+use crate::miri_bindings::gui::canvas::Canvas;
+use crate::miri_bindings::gui::view_port::{ViewPort, view_port_alloc};
+use crate::miri_bindings::gui::{GuiLayerDesktop, gui_add_view_port};
+use crate::miri_bindings::input::{InputEvent, InputKeyBack, InputTypeLong, InputTypeShort};
 use crate::miri_bindings::utils::*;
-use crate::{Canvas, GuiLayerDesktop, InputEvent, ViewPort, gui_add_view_port, view_port_alloc};
 use alloc::boxed::Box;
 use alloc::collections::{BTreeMap, btree_map::Entry};
 use alloc::sync::Arc;
 use core::ffi::c_void;
-use core::ptr::{NonNull, null_mut};
-use core::sync::atomic::{AtomicPtr, Ordering};
+use core::ptr::NonNull;
 
 #[doc = "< Desktop layer: fullscreen with status bar on top of it. For internal usage."]
 pub const ViewDispatcherTypeDesktop: ViewDispatcherType = ViewDispatcherType(0);
@@ -31,11 +32,97 @@ pub struct ViewDispatcherInner {
     pub context: *mut c_void,
 
     views: BTreeMap<u32, NonNull<super::View>>,
-    current_view: *mut super::View,
+    current_view: Option<u32>,
 
-    input_channel: Option<NonNull<InputEvent>>,
+    input_channel: Option<Arc<InputEvent>>,
     event_channel: Option<u32>,
     stop: bool,
+}
+
+impl ViewDispatcherInner {
+    fn process_input(&mut self) -> () {
+        let Some(mut input_event) = self.input_channel.take() else {
+            unreachable!(
+                "Checked before entering this method that the input_channel was populated, and we're the only thread that can take from it"
+            )
+        };
+
+        miri_write_to_stdout(b"View dispatcher process input event\n");
+
+        let input_event = unsafe { Arc::get_mut_unchecked(&mut input_event) };
+
+        let Some(ref current_view_id) = self.current_view else {
+            miri_write_to_stdout(b"View dispatcher attempted to process input event, but there was no current view\n");
+            return;
+        };
+
+        let current_view = self
+            .views
+            .get_mut(current_view_id)
+            .expect("The existence was checked on insert");
+        let current_view = unsafe { current_view.as_mut() };
+
+        let is_consumed = current_view.process_input(input_event);
+
+        if is_consumed {
+            return;
+        }
+
+        miri_write_to_stdout(b"View dispatcher's current view did not consume the input event\n");
+
+        if input_event.key != InputKeyBack {
+            miri_write_to_stdout(b"Input event was not a back event, no further processing\n");
+            return;
+        }
+
+        miri_write_to_stdout(b"Input event was a back event...\n");
+
+        if !(input_event.type_ == InputTypeShort || input_event.type_ == InputTypeLong) {
+            miri_write_to_stdout(b"but was not the right type\n");
+            return;
+        }
+
+        miri_write_to_stdout(b"and the key was released\n");
+
+        let view_to_switch_to = current_view.process_previous();
+        match view_to_switch_to {
+            super::view::IGNORE => {
+                miri_write_to_stdout(b"The current view did not declare a view to switch to, checking dispatcher's navigation event callback\n");
+
+                let Some(navigation_event_callback) = self.navigation_event_callback else {
+                    miri_write_to_stdout(b"Dispatcher does not have a navigation event callback\n");
+                    return;
+                };
+
+                let navigation_event_callback = navigation_event_callback.expect(
+                    "ViewDispatcherNavigationEventCallback is only nullable for FFI reasons",
+                );
+                let should_stop = unsafe { navigation_event_callback(self.context) };
+
+                if should_stop {
+                    miri_write_to_stdout(b"Dispatcher wants to stop running\n");
+                    self.stop = true;
+                } else {
+                    miri_write_to_stdout(b"Dispatcher did not react to back event\n");
+                }
+            }
+            _ => {
+                miri_write_to_stdout(b"The current view wants to switch to view \"");
+                miri_write_to_stdout(&[char::from_digit(view_to_switch_to, 10).unwrap() as u8]);
+                miri_write_to_stdout(b"\"\n");
+
+                self.switch_to_view(view_to_switch_to);
+            }
+        }
+    }
+
+    fn switch_to_view(&mut self, view_id: u32) -> () {
+        if self.views.contains_key(&view_id) {
+            self.current_view = Some(view_id);
+        } else {
+            unimplemented!("Attempted to switch to a view with an id that was not found");
+        }
+    }
 }
 
 #[repr(C)]
@@ -49,10 +136,10 @@ impl ViewDispatcher {
     fn run(&self) -> () {
         loop {
             miri_write_to_stdout(b"View Dispatcher loop!\n");
-            let view_dispatcher = self.inner.lock();
+            let mut view_dispatcher = self.inner.lock();
 
             if view_dispatcher.input_channel.is_some() {
-                todo!()
+                view_dispatcher.process_input();
             }
 
             if view_dispatcher.event_channel.is_some() {
@@ -66,10 +153,6 @@ impl ViewDispatcher {
             drop(view_dispatcher);
             miri_spin_loop();
         }
-    }
-
-    fn draw(&self) -> () {
-        todo!()
     }
 }
 
@@ -87,14 +170,14 @@ pub type ViewDispatcherTickEventCallback =
 pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
     let view_port = unsafe { NonNull::new_unchecked(view_port_alloc()) };
 
-    let mut view_dispatcher = ViewDispatcher {
+    let view_dispatcher = ViewDispatcher {
         inner: Arc::new(SpinLock::new(ViewDispatcherInner {
             view_port,
             custom_event_callback: None,
             navigation_event_callback: None,
             tick_event_callback: None,
             views: BTreeMap::new(),
-            current_view: null_mut(),
+            current_view: None,
             context: core::ptr::null_mut(),
 
             input_channel: None,
@@ -109,32 +192,67 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
             canvas: *mut Canvas,
             context: *mut c_void,
         ) {
-            miri_write_to_stdout(b"View dispatcher's view port dispatching draw`\n");
+            miri_write_to_stdout(b"View dispatcher's view port dispatching draw\n");
             let view_dispatcher =
-                unsafe { Arc::from_raw(context as *const SpinLock<ViewDispatcherInner>) }.clone();
+                unsafe { Arc::from_raw(context as *const SpinLock<ViewDispatcherInner>) };
 
-            let view_dispatcher_guard = view_dispatcher.lock();
+            {
+                let mut view_dispatcher_guard = view_dispatcher.lock();
 
-            let current_view = view_dispatcher_guard.current_view;
-            if !current_view.is_null() {
-                let mut current_view = unsafe { &mut *current_view };
-                current_view.draw(canvas);
+                let Some(current_view_id) = view_dispatcher_guard.current_view else {
+                    miri_write_to_stdout(b"View dispatcher attempted to process input event, but there was no current view\n");
+                    return;
+                };
+
+                let current_view = view_dispatcher_guard
+                    .views
+                    .get_mut(&current_view_id)
+                    .expect("The existence was checked on insert");
+
+                unsafe { current_view.as_mut() }.draw(canvas);
             }
+
+            let _ = Arc::into_raw(view_dispatcher);
         }
 
         pub unsafe extern "C" fn view_port_queue_input_event(
             input_event: *mut InputEvent,
             context: *mut c_void,
         ) {
+            let input_event = unsafe { Arc::from_raw(input_event) };
+            debug_assert_eq!(Arc::strong_count(&input_event), 2, "[GUI service, here]");
+
             miri_write_to_stdout(b"View dispatcher's view port queuing input event\n");
             let view_dispatcher =
-                unsafe { Arc::from_raw(context as *const SpinLock<ViewDispatcherInner>) }.clone();
-            let input_event = unsafe { NonNull::new_unchecked(input_event) };
+                unsafe { Arc::from_raw(context as *const SpinLock<ViewDispatcherInner>) };
 
-            let mut view_dispatcher = view_dispatcher.lock();
+            {
+                let mut view_dispatcher_guard = view_dispatcher.lock();
 
-            let old_input_event = view_dispatcher.input_channel.replace(input_event);
-            debug_assert!(old_input_event.is_none());
+                let old_input_event = view_dispatcher_guard.input_channel.replace(input_event);
+                debug_assert!(old_input_event.is_none());
+            }
+
+            // OPTIMISATION: we unlock the dispatcher here to allow the service thread to `take`
+            // the input event we just inserted. there's no point doing that if we're not going to
+            // yield here to allow that other thread to run.
+            //
+            // even without this, we'll yield in the loop below anyway. additionally, miri is
+            // probably able to randomly switch threads, and so we might get lucky any not need to
+            // loop anyway
+            miri_spin_loop();
+
+            // spin until the other thread takes the input out of the channel
+            loop {
+                let mut view_dispatcher_guard = view_dispatcher.lock();
+                if view_dispatcher_guard.input_channel.is_none() {
+                    break;
+                }
+                view_dispatcher_guard.unlock();
+                miri_spin_loop();
+            }
+
+            let _ = Arc::into_raw(view_dispatcher);
         }
 
         let context = Arc::into_raw(view_dispatcher.inner.clone());
@@ -252,7 +370,19 @@ pub unsafe fn view_dispatcher_remove_view(view_dispatcher: *mut ViewDispatcher, 
 }
 #[doc = "Switch to View\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `view_id` - View id to register\n switching may be delayed till input events complementarity\n reached"]
 pub unsafe fn view_dispatcher_switch_to_view(view_dispatcher: *mut ViewDispatcher, view_id: u32) {
-    todo!()
+    let view_dispatcher: &mut ViewDispatcher = unsafe { &mut *view_dispatcher };
+
+    miri_write_to_stdout(b"Attempting to take GUI lock\n");
+    let guard = view_dispatcher.gui.as_deref().map(SpinLock::lock);
+
+    miri_write_to_stdout(b"Attempting to take view dispatcher lock\n");
+    let mut view_dispatcher = view_dispatcher.inner.lock();
+
+    if view_dispatcher.views.contains_key(&view_id) {
+        view_dispatcher.current_view = Some(view_id);
+    } else {
+        unimplemented!("Attempted to switch to a view with an id that was not found");
+    }
 }
 #[doc = "Send ViewPort of this ViewDispatcher instance to front\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance"]
 pub unsafe fn view_dispatcher_send_to_front(view_dispatcher: *mut ViewDispatcher) {

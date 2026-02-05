@@ -169,7 +169,9 @@ pub(crate) mod gui_inner {
             let view_port = unsafe { view_port.as_ref() };
 
             if !unsafe { view_port::view_port_is_enabled(view_port) } {
-                miri_write_to_stdout(b"GUI attempted to process input event, but no view port was enabled\n");
+                miri_write_to_stdout(
+                    b"GUI attempted to process input event, but no view port was enabled\n",
+                );
                 let _ = self.input_channel.take();
                 return;
             }
@@ -178,7 +180,7 @@ pub(crate) mod gui_inner {
 
             let mut view_port_inner = view_port.inner.lock();
 
-            let Some(mut input) = self.input_channel.take() else {
+            let Some(input) = self.input_channel.take() else {
                 unreachable!(
                     "Checked before entering this method that the input_channel was populated, and we're the only thread that can take from it"
                 )
@@ -189,7 +191,14 @@ pub(crate) mod gui_inner {
                 .expect("ViewPorts should only be registered with the GUI after their input callbacks have been set");
             let input_callback =
                 input_callback.expect("ViewPortInputCallback is only nullable for FFI reasons");
-            unsafe { input_callback(&raw mut input, input_callback_context) };
+
+            let input = Arc::new(input);
+            unsafe {
+                input_callback(
+                    Arc::into_raw(input.clone()).cast_mut(),
+                    input_callback_context,
+                )
+            };
         }
 
         fn redraw(&mut self) -> () {

@@ -60,7 +60,7 @@ impl Gui {
     }
 
     pub fn add_view_port<VPC: ViewPortCallbacks>(
-        &mut self,
+        &self,
         view_port: ViewPort<VPC>,
         layer: GuiLayer,
     ) -> GuiViewPort<'_, VPC> {

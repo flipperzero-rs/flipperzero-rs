@@ -9,9 +9,11 @@ extern crate flipperzero_rt;
 
 #[cfg(miri)]
 use alloc::sync::Arc;
-use core::ffi::{CStr, c_char, c_void};
-use core::ptr::NonNull;
-use flipperzero::gui::view_dispatcher::DontBind;
+use alloc::vec::Vec;
+use core::ffi::CStr;
+use flipperzero::gui::canvas::CanvasView;
+use flipperzero::gui::view::EventBubbling;
+use flipperzero::gui::view_dispatcher::{DontBind, ViewDispatcherInner};
 use flipperzero::gui::{
     Gui,
     view::{View, ViewCallbacks},
@@ -33,89 +35,207 @@ unsafe extern "Rust" {
     pub fn miri_thread_spawn(t: extern "Rust" fn(*mut ()), data: *mut ()) -> usize;
     pub fn miri_thread_join(thread_id: usize) -> bool;
     pub fn miri_set_thread_name(thread_id: usize, name: *const u8) -> bool;
+    pub safe fn miri_write_to_stdout(bytes: &[u8]);
 }
 
-struct TextInput {
-    raw: NonNull<sys::TextInput>,
+struct State<'a> {
+    counter_view: Option<ViewDispatcherView<'a, CounterCallback<'a>, State<'a>>>,
+    maze_view: Option<ViewDispatcherView<'a, MazeCallbacks<'a>, State<'a>>>,
 }
 
-impl TextInput {
-    fn new() -> Self {
-        let raw = unsafe { sys::text_input_alloc() };
-        let raw = unsafe { NonNull::new_unchecked(raw) };
-        TextInput { raw }
+impl ViewDispatcherCallbacks for State<'_> {
+    type BindCustom = DontBind;
+    type BindTick = DontBind;
+
+    fn on_navigation<T>(&self, view_dispatcher: &ViewDispatcherInner<T>) -> StopDispatcher
+    where
+        T: ViewDispatcherCallbacks,
+    {
+        StopDispatcher::Yes
     }
-
-    fn view(&self) -> View<()> {
-        let view_ptr = unsafe { sys::text_input_get_view(self.raw.as_ptr()) };
-        unsafe { View::new_from_raw(view_ptr) }
-    }
 }
 
-struct Counter {
-    view: View<CounterCallback>,
+struct Counter<'a> {
+    view: View<CounterCallback<'a>>,
 }
 
-impl Counter {
-    fn new() -> Self {
-        let callbacks = CounterCallback;
+impl<'a> Counter<'a> {
+    fn new(state: ViewDispatcherRef<'a, State<'a>>) -> Self {
+        let callbacks = CounterCallback { counter: 0, state };
         let view = View::new(callbacks);
         Counter { view }
     }
 }
 
-struct CounterCallback;
+struct CounterCallback<'a> {
+    counter: u8,
+    state: ViewDispatcherRef<'a, State<'a>>,
+}
 
-impl ViewCallbacks for CounterCallback {
-    fn on_draw(&mut self, canvas: flipperzero::gui::canvas::CanvasView) {
+impl ViewCallbacks for CounterCallback<'_> {
+    fn on_draw(&mut self, canvas: CanvasView) {}
+
+    fn on_input(&mut self, event: InputEvent) -> EventBubbling {
+        match event.key {
+            InputKey::Up => {
+                self.counter += 1;
+                if self.counter > 10 {
+                    self.counter = 0;
+                }
+
+                miri_write_to_stdout(b"Counter up\n");
+
+                EventBubbling::Consumed
+            }
+            InputKey::Down => {
+                if self.counter == 0 {
+                    self.counter = 10;
+                } else {
+                    self.counter -= 1;
+                }
+
+                miri_write_to_stdout(b"Counter down\n");
+
+                EventBubbling::Consumed
+            }
+            InputKey::Right => {
+                miri_write_to_stdout(b"Counter right\n");
+
+                self.state
+                    .get_context()
+                    .maze_view
+                    .as_ref()
+                    .unwrap()
+                    .switch_to_view();
+
+                EventBubbling::Consumed
+            }
+            InputKey::Left => todo!(),
+            InputKey::Ok => {
+                self.counter = 0;
+
+                miri_write_to_stdout(b"Counter OK\n");
+
+                EventBubbling::Consumed
+            }
+            InputKey::Back => {
+                if self.counter == 0 {
+                    miri_write_to_stdout(b"Counter back when counter was 0\n");
+                    EventBubbling::ReturnForAdditionalProcessing
+                } else {
+                    miri_write_to_stdout(b"Counter back when counter was not 0\n");
+                    EventBubbling::Consumed
+                }
+            }
+        }
+    }
+
+    fn on_back_event(&mut self) -> Option<u32> {
+        miri_write_to_stdout(b"Getting view that should be returned to from the counter view\n");
+        None
+    }
+}
+
+struct MazeGridVertex<'a> {
+    view: View<MazeCallbacks<'a>>,
+}
+
+impl<'a> MazeGridVertex<'a> {
+    fn new(state: ViewDispatcherRef<'a, State<'a>>) -> Self {
+        let callbacks = MazeCallbacks {
+            stack: Vec::new(),
+            state,
+        };
+        let view = View::new(callbacks);
+        MazeGridVertex { view }
+    }
+}
+
+struct MazeCallbacks<'a> {
+    stack: Vec<flipperzero::input::InputKey>,
+    state: ViewDispatcherRef<'a, State<'a>>,
+}
+
+impl ViewCallbacks for MazeCallbacks<'_> {
+    fn on_input(&mut self, event: InputEvent) -> EventBubbling {
+        if event.r#type == InputType::Short {
+            match event.key {
+                InputKey::Up => todo!(),
+                InputKey::Down => todo!(),
+                InputKey::Right => todo!(),
+                InputKey::Left => todo!(),
+                InputKey::Ok => todo!(),
+                InputKey::Back => {
+                    if self.stack.pop().is_some() {
+                        EventBubbling::Consumed
+                    } else {
+                        EventBubbling::ReturnForAdditionalProcessing
+                    }
+                }
+            }
+        } else if event.r#type == InputType::Long && event.key == InputKey::Back {
+            self.stack.clear();
+            EventBubbling::Consumed
+        } else {
+            EventBubbling::ReturnForAdditionalProcessing
+        }
+    }
+
+    fn on_back_event(&mut self) -> Option<u32> {
+        Some(self.state.get_context().counter_view.as_ref().unwrap().id)
+    }
+
+    fn on_draw(&mut self, canvas: CanvasView) {
         todo!()
     }
 }
 
 fn main(_args: Option<&CStr>) -> i32 {
-    struct State<'a> {
-        text_input_view: Option<ViewDispatcherView<'a, (), State<'a>>>,
-        counter_view: Option<ViewDispatcherView<'a, CounterCallback, State<'a>>>,
-    }
-
-    impl ViewDispatcherCallbacks for State<'_> {
-        type BindCustom = DontBind;
-        type BindNavigation = DontBind;
-        type BindTick = DontBind;
-    }
-
-    let mut state = State {
-        text_input_view: None,
+    let state = State {
         counter_view: None,
+        maze_view: None,
     };
+
     let gui = Gui::open();
+
+    #[cfg(miri)]
+    let miri_gui = {
+        let view_port_gui: Arc<sys::Gui> = unsafe { Arc::from_raw(gui.as_ptr()) };
+        let miri_gui = view_port_gui.clone();
+        let _ = Arc::into_raw(view_port_gui);
+        miri_gui
+    };
 
     let mut view_dispatcher = ViewDispatcher::new(state, &gui, ViewDispatcherType::Fullscreen);
 
-    let text_input = TextInput::new();
-    let Ok(text_input_view) = view_dispatcher.add_view(0, text_input.view()) else {
-        unreachable!()
-    };
-    let text_input_view = text_input_view;
-    let _ = view_dispatcher
-        .get_context_mut()
-        .text_input_view
-        .insert(text_input_view);
+    {
+        let counter = Counter::new(view_dispatcher.get_ref());
+        let Ok(counter_view) = view_dispatcher.add_view(0, counter.view) else {
+            unreachable!()
+        };
 
-    let counter = Counter::new();
-    let Ok(counter_view) = view_dispatcher.add_view(1, counter.view) else {
-        unreachable!()
-    };
-    let counter_view = counter_view;
-    let _ = view_dispatcher
-        .get_context_mut()
-        .counter_view
-        .insert(counter_view);
+        counter_view.switch_to_view();
+        let _ = view_dispatcher
+            .get_context_mut()
+            .counter_view
+            .insert(counter_view);
+    }
+
+    {
+        let maze = MazeGridVertex::new(view_dispatcher.get_ref());
+        let Ok(maze_view) = view_dispatcher.add_view(1, maze.view) else {
+            unreachable!()
+        };
+        let _ = view_dispatcher
+            .get_context_mut()
+            .maze_view
+            .insert(maze_view);
+    }
 
     #[cfg(not(miri))]
     let status = run_until_exit(view_dispatcher);
     #[cfg(miri)]
-    let status = run_until_exit_miri(view_dispatcher, gui);
+    let status = run_until_exit_miri(view_dispatcher, miri_gui);
 
     0
 }
@@ -128,18 +248,30 @@ fn run_until_exit(view_dispatcher: ViewDispatcher<'_, State<'_>>) -> i32 {
 }
 
 #[cfg(miri)]
-fn run_until_exit_miri(view_dispatcher: &ViewDispatcher<'_, State<'_>>, gui: Arc<sys::Gui>) -> i32 {
+fn run_until_exit_miri(view_dispatcher: ViewDispatcher<'_, State<'_>>, gui: Arc<sys::Gui>) -> i32 {
+    assert_eq!(
+        Arc::strong_count(&view_dispatcher.0),
+        3,
+        "(before run) [ViewDispatcher, state (via CounterViewRef), state (via MazeViewRef)]]"
+    );
+
     let thread_id = {
-        let gui_ptr = Arc::into_raw(gui.clone());
         // SAFETY: Arc was generated above
-        unsafe { miri_thread_spawn(send_events_for_miri, gui_ptr as *mut _) }
+        unsafe { miri_thread_spawn(send_events_for_miri, Arc::into_raw(gui) as *mut _) }
     };
 
     unsafe { miri_set_thread_name(thread_id, c"miri event sender".as_ptr()) };
 
-    view_dispatcher.run();
+    let view_dispatcher = view_dispatcher.run();
 
     unsafe { miri_thread_join(thread_id) };
+    assert_eq!(
+        Arc::strong_count(&view_dispatcher.0),
+        3,
+        "(after run) [ViewDispatcher, state (via CounterViewRef), state (via MazeViewRef)]]"
+    );
+
+    drop(view_dispatcher);
 
     0
 }
@@ -153,8 +285,42 @@ extern "Rust" fn send_events_for_miri(data: *mut ()) {
         let input_event = InputEvent {
             sequence: 0.into(),
             key: InputKey::Up,
-            r#type: InputType::Press,
+            r#type: InputType::Short,
         };
+        miri_write_to_stdout(b"Up event 0\n");
+        sys::GuiInner::send_input_event(&mut gui, input_event.into());
+    }
+
+    {
+        let mut gui = gui.lock();
+        let input_event = InputEvent {
+            sequence: 1.into(),
+            key: InputKey::Back,
+            r#type: InputType::Short,
+        };
+        miri_write_to_stdout(b"Back event 1\n");
+        sys::GuiInner::send_input_event(&mut gui, input_event.into());
+    }
+
+    {
+        let mut gui = gui.lock();
+        let input_event = InputEvent {
+            sequence: 2.into(),
+            key: InputKey::Down,
+            r#type: InputType::Short,
+        };
+        miri_write_to_stdout(b"Down event 2\n");
+        sys::GuiInner::send_input_event(&mut gui, input_event.into());
+    }
+
+    {
+        let mut gui = gui.lock();
+        let input_event = InputEvent {
+            sequence: 3.into(),
+            key: InputKey::Back,
+            r#type: InputType::Short,
+        };
+        miri_write_to_stdout(b"Back event 3\n");
         sys::GuiInner::send_input_event(&mut gui, input_event.into());
     }
 }

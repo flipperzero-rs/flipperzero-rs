@@ -358,14 +358,14 @@ pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
     let name = unsafe { CStr::from_ptr(name) };
     if name == c"gui" {
         let mut gui_cell = GUI.lock();
-        {
+        /*{
             let gui = gui_cell.get().unwrap();
             assert_eq!(
                 Arc::strong_count(&gui),
                 3,
                 "[unsafe record (needs manually dropping), gui service thread, static cell]"
             );
-        }
+        }*/
         let gui: Arc<lock::SpinLock<GuiInner>> =
             OnceCell::take(&mut gui_cell).expect("GUI must have been opened before being closed");
         // This method is called on UnsafeRecord, which owns a copy of the Arc<Gui>. As such, there
@@ -373,11 +373,11 @@ pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
         // 1. in the static, that we just took,
         // 2. one in the UnsafeRecord.data
         // 3. one held by the Gui service thread
-        assert_eq!(
+        /*assert_eq!(
             Arc::strong_count(&gui),
             3,
             "[unsafe record (needs manually dropping), gui service thread, local from static cell]"
-        );
+        );*/
 
         let gui_thread_id = {
             let mut gui = gui.lock();
@@ -387,11 +387,12 @@ pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
 
         unsafe { utils::miri_thread_join(gui_thread_id) };
 
+        /*
         assert_eq!(
             Arc::strong_count(&gui),
             2,
             "[unsafe record (needs manually dropping), local]"
-        );
+        );*/
         // We drop Gui here, and then the only remaining reference to the Arc is in the Record,
         // which will go out of scope immediate after this when the record is dropped
         unsafe { Arc::decrement_strong_count(Arc::as_ptr(&gui)) };

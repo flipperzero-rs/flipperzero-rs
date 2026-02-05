@@ -1,10 +1,10 @@
 //! View related APIs.
 
-use core::ptr::NonNull;
-
 use core::ffi::c_void;
+use core::ptr::{self, NonNull};
 use flipperzero_sys::{
     self as sys, Canvas as SysCanvas, InputEvent as SysInputEvent, View as SysView,
+    ViewModelTypeLockFree,
 };
 
 #[cfg(feature = "alloc")]
@@ -15,7 +15,7 @@ use crate::{gui::canvas::CanvasView, input::InputEvent};
 #[cfg(feature = "alloc")]
 pub struct View<C: ViewCallbacks> {
     inner: ViewInner,
-    _callbacks: NonUniqueBox<C>,
+    callbacks: NonUniqueBox<C>,
 }
 
 /// UI view.
@@ -31,21 +31,18 @@ impl<C: ViewCallbacks> View<C> {
         let inner = ViewInner::new();
         let callbacks = NonUniqueBox::new(callbacks);
 
-        let view = Self {
-            inner,
-            _callbacks: callbacks,
-        };
+        let view = Self { inner, callbacks };
         let raw = view.inner.0.as_ptr();
 
         {
             pub unsafe extern "C" fn dispatch_draw<C: ViewCallbacks>(
                 canvas: *mut SysCanvas,
-                context: *mut c_void,
+                model: *mut c_void,
             ) {
                 // SAFETY: `canvas` is guaranteed to be a valid pointer
                 let canvas = unsafe { CanvasView::from_raw(canvas) };
 
-                let context: *mut C = context.cast();
+                let context: *mut C = model.cast();
                 // SAFETY: `context` is stored in a `Box` which is a member of `View`
                 // and the callback is accessed exclusively by this function
                 unsafe { &mut *context }.on_draw(canvas);
@@ -99,7 +96,19 @@ impl<C: ViewCallbacks> View<C> {
             unsafe { sys::view_set_input_callback(raw, callback) };
         }
 
+        let callbacks_ptr = view.callbacks.as_ptr();
+        unsafe { sys::view_set_context(raw, callbacks_ptr.cast::<c_void>()) };
+        {
+            unsafe { sys::view_allocate_model(raw, ViewModelTypeLockFree, size_of::<*mut C>()) };
+            let model = unsafe { sys::view_get_model(raw) }.cast::<*mut C>();
+            unsafe { ptr::write(model, callbacks_ptr) };
+        }
+
         view
+    }
+
+    pub fn request_redraw(&self) -> () {
+        unsafe { sys::view_commit_model(self.inner.0.as_ptr(), true) };
     }
 }
 
@@ -108,7 +117,7 @@ impl View<()> {
         let inner = ViewInner(unsafe { NonNull::new_unchecked(raw) });
         Self {
             inner,
-            _callbacks: NonUniqueBox::new(()),
+            callbacks: NonUniqueBox::new(()),
         }
     }
 }
@@ -138,6 +147,7 @@ impl ViewInner {
 impl Drop for ViewInner {
     fn drop(&mut self) {
         let raw = self.0.as_ptr();
+        unsafe { sys::view_free(raw) };
         // SAFETY: `raw` is valid
         unsafe { sys::view_free(raw) }
     }

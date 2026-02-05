@@ -5,7 +5,6 @@ use crate::miri_bindings::utils::*;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use core::ffi::c_void;
-use core::ptr::NonNull;
 
 pub struct ViewPortInnerCallback<T> {
     pub callback: T,
