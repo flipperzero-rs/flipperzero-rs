@@ -221,6 +221,16 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherRef<'a, C> {
             phantom: PhantomData,
         }
     }
+
+    pub fn switch_to_view(&self, id: u32) -> () {
+        let view_dispatcher = self.inner.upgrade().unwrap();
+        let raw = (&*view_dispatcher).as_raw();
+
+        miri_write_to_stdout(b"View dispatcher switch to view\n");
+        unsafe { sys::view_dispatcher_switch_to_view(raw, id) };
+
+        let _ = Arc::into_raw(view_dispatcher);
+    }
 }
 
 impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
@@ -308,7 +318,8 @@ impl<VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> Drop for ViewDispatcherVie
     fn drop(&mut self) {
         unsafe { sys::view_dispatcher_remove_view(self.view_dispatcher.as_raw(), self.id) };
 
-        let entry = self.view_dispatcher
+        let entry = self
+            .view_dispatcher
             .views()
             .get(&self.id)
             .expect("Id must have been inserted for this struct to exist");

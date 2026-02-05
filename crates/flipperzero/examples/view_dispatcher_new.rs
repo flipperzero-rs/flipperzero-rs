@@ -19,7 +19,7 @@ use flipperzero::gui::{
     view::{View, ViewCallbacks},
     view_dispatcher::{
         StopDispatcher, ViewDispatcher, ViewDispatcherCallbacks, ViewDispatcherRef,
-        ViewDispatcherType, ViewDispatcherView,
+        ViewDispatcherType,
     },
 };
 #[cfg(miri)]
@@ -38,12 +38,9 @@ unsafe extern "Rust" {
     pub safe fn miri_write_to_stdout(bytes: &[u8]);
 }
 
-struct State<'a> {
-    counter_view: Option<ViewDispatcherView<'a, CounterCallback<'a>, State<'a>>>,
-    maze_view: Option<ViewDispatcherView<'a, MazeCallbacks<'a>, State<'a>>>,
-}
+struct State {}
 
-impl ViewDispatcherCallbacks for State<'_> {
+impl ViewDispatcherCallbacks for State {
     type BindCustom = DontBind;
     type BindTick = DontBind;
 
@@ -60,7 +57,7 @@ struct Counter<'a> {
 }
 
 impl<'a> Counter<'a> {
-    fn new(state: ViewDispatcherRef<'a, State<'a>>) -> Self {
+    fn new(state: ViewDispatcherRef<'a, State>) -> Self {
         let callbacks = CounterCallback { counter: 0, state };
         let view = View::new(callbacks);
         Counter { view }
@@ -69,7 +66,7 @@ impl<'a> Counter<'a> {
 
 struct CounterCallback<'a> {
     counter: u8,
-    state: ViewDispatcherRef<'a, State<'a>>,
+    state: ViewDispatcherRef<'a, State>,
 }
 
 impl ViewCallbacks for CounterCallback<'_> {
@@ -101,12 +98,7 @@ impl ViewCallbacks for CounterCallback<'_> {
             InputKey::Right => {
                 miri_write_to_stdout(b"Counter right\n");
 
-                self.state
-                    .get_context()
-                    .maze_view
-                    .as_ref()
-                    .unwrap()
-                    .switch_to_view();
+                self.state.switch_to_view(1);
 
                 EventBubbling::Consumed
             }
@@ -141,7 +133,7 @@ struct MazeGridVertex<'a> {
 }
 
 impl<'a> MazeGridVertex<'a> {
-    fn new(state: ViewDispatcherRef<'a, State<'a>>) -> Self {
+    fn new(state: ViewDispatcherRef<'a, State>) -> Self {
         let callbacks = MazeCallbacks {
             stack: Vec::new(),
             state,
@@ -153,7 +145,7 @@ impl<'a> MazeGridVertex<'a> {
 
 struct MazeCallbacks<'a> {
     stack: Vec<flipperzero::input::InputKey>,
-    state: ViewDispatcherRef<'a, State<'a>>,
+    state: ViewDispatcherRef<'a, State>,
 }
 
 impl ViewCallbacks for MazeCallbacks<'_> {
@@ -182,7 +174,7 @@ impl ViewCallbacks for MazeCallbacks<'_> {
     }
 
     fn on_back_event(&mut self) -> Option<u32> {
-        Some(self.state.get_context().counter_view.as_ref().unwrap().id)
+        Some(0)
     }
 
     fn on_draw(&mut self, canvas: CanvasView) {
@@ -191,11 +183,6 @@ impl ViewCallbacks for MazeCallbacks<'_> {
 }
 
 fn main(_args: Option<&CStr>) -> i32 {
-    let state = State {
-        counter_view: None,
-        maze_view: None,
-    };
-
     let gui = Gui::open();
 
     #[cfg(miri)]
@@ -206,31 +193,19 @@ fn main(_args: Option<&CStr>) -> i32 {
         miri_gui
     };
 
-    let mut view_dispatcher = ViewDispatcher::new(state, &gui, ViewDispatcherType::Fullscreen);
+    let mut view_dispatcher = ViewDispatcher::new(State {}, &gui, ViewDispatcherType::Fullscreen);
 
-    {
-        let counter = Counter::new(view_dispatcher.get_ref());
-        let Ok(counter_view) = view_dispatcher.add_view(0, counter.view) else {
-            unreachable!()
-        };
+    let counter = Counter::new(view_dispatcher.get_ref());
+    let Ok(counter_view) = view_dispatcher.add_view(0, counter.view) else {
+        unreachable!()
+    };
 
-        counter_view.switch_to_view();
-        let _ = view_dispatcher
-            .get_context_mut()
-            .counter_view
-            .insert(counter_view);
-    }
+    counter_view.switch_to_view();
 
-    {
-        let maze = MazeGridVertex::new(view_dispatcher.get_ref());
-        let Ok(maze_view) = view_dispatcher.add_view(1, maze.view) else {
-            unreachable!()
-        };
-        let _ = view_dispatcher
-            .get_context_mut()
-            .maze_view
-            .insert(maze_view);
-    }
+    let maze = MazeGridVertex::new(view_dispatcher.get_ref());
+    let Ok(_maze_view) = view_dispatcher.add_view(1, maze.view) else {
+        unreachable!()
+    };
 
     #[cfg(not(miri))]
     let status = run_until_exit(view_dispatcher);
@@ -241,14 +216,14 @@ fn main(_args: Option<&CStr>) -> i32 {
 }
 
 #[cfg(not(miri))]
-fn run_until_exit(view_dispatcher: ViewDispatcher<'_, State<'_>>) -> i32 {
+fn run_until_exit(view_dispatcher: ViewDispatcher<'_, State>) -> i32 {
     view_dispatcher.run();
 
     0
 }
 
 #[cfg(miri)]
-fn run_until_exit_miri(view_dispatcher: ViewDispatcher<'_, State<'_>>, gui: Arc<sys::Gui>) -> i32 {
+fn run_until_exit_miri(view_dispatcher: ViewDispatcher<'_, State>, gui: Arc<sys::Gui>) -> i32 {
     assert_eq!(
         Arc::strong_count(&view_dispatcher.0),
         3,
