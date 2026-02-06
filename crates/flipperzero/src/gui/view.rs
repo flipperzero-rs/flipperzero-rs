@@ -18,13 +18,6 @@ pub struct View<C: ViewCallbacks> {
     callbacks: NonUniqueBox<C>,
 }
 
-/// UI view.
-#[cfg(not(feature = "alloc"))]
-pub struct View<C: ViewCallbacks> {
-    inner: ViewInner,
-    callbacks: core::marker::PhantomData<C>,
-}
-
 #[cfg(feature = "alloc")]
 impl<C: ViewCallbacks> View<C> {
     pub fn new(callbacks: C) -> Self {
@@ -112,6 +105,7 @@ impl<C: ViewCallbacks> View<C> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl View<()> {
     pub unsafe fn new_from_raw(raw: *mut sys::View) -> Self {
         let inner = ViewInner(unsafe { NonNull::new_unchecked(raw) });
@@ -122,6 +116,7 @@ impl View<()> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<C: ViewCallbacks> View<C> {
     /// Creates a copy of raw pointer to the [`sys::View`].
     #[inline]

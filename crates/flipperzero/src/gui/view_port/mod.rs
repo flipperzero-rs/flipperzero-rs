@@ -31,19 +31,6 @@ pub struct ViewPort<C: ViewPortCallbacks> {
     callbacks: NonUniqueBox<C>,
 }
 
-/// System ViewPort.
-///
-/// The lowest level GUI structure. A collection of these structures is owned by the GUI.
-///
-/// If you are creating an application that only needs to interact with simple views, you probably
-/// need to use this, unless you are doing something non-standard. Instead, prefer to use
-/// [crate::gui::view_dispatcher::ViewDispatcher].
-#[cfg(not(feature = "alloc"))]
-pub struct ViewPort<C> {
-    inner: ViewPortInner,
-    callbacks: core::marker::PhantomData<C>,
-}
-
 #[cfg(feature = "alloc")]
 impl<C: ViewPortCallbacks> ViewPort<C> {
     /// Creates a new `ViewPort`.
@@ -121,6 +108,7 @@ impl<C: ViewPortCallbacks> ViewPort<C> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<C: ViewPortCallbacks> ViewPort<C> {
     /// Creates a copy of the raw pointer to the [`sys::ViewPort`].
     #[inline]
@@ -365,6 +353,7 @@ impl<C: ViewPortCallbacks> ViewPort<C> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<C: ViewPortCallbacks> Drop for ViewPort<C> {
     fn drop(&mut self) {
         // FIXME: unregister from system (whatever this means)

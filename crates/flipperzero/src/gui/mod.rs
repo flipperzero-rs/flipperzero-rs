@@ -18,6 +18,7 @@ use core::ops::{Deref, DerefMut};
 use canvas::CanvasView;
 use flipperzero_sys as sys;
 use flipperzero_sys::furi::UnsafeRecord;
+#[cfg(feature = "alloc")]
 use crate::gui::view_port::{ViewPort, ViewPortCallbacks};
 
 pub use gui_layer::*;
@@ -59,6 +60,7 @@ impl Gui {
         self.record.as_ptr()
     }
 
+    #[cfg(feature = "alloc")]
     pub fn add_view_port<VPC: ViewPortCallbacks>(
         &self,
         view_port: ViewPort<VPC>,
@@ -103,12 +105,14 @@ impl Gui {
     }
 }
 
+#[cfg(feature = "alloc")]
 /// `ViewPort` bound to a `Gui`.
 pub struct GuiViewPort<'a, VPC: ViewPortCallbacks> {
     parent: &'a Gui,
     view_port: ViewPort<VPC>,
 }
 
+#[cfg(feature = "alloc")]
 impl<'a, VPC: ViewPortCallbacks> GuiViewPort<'a, VPC> {
     /// Get the underlying `ViewPort`
     pub fn view_port(&self) -> &ViewPort<VPC> {
@@ -148,6 +152,7 @@ impl<'a, VPC: ViewPortCallbacks> GuiViewPort<'a, VPC> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<VPC: ViewPortCallbacks> Drop for GuiViewPort<'_, VPC> {
     fn drop(&mut self) {
         let gui = self.parent.as_ptr();

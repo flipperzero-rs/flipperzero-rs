@@ -20,8 +20,10 @@ use core::{
 use flipperzero_sys::{self as sys, ViewDispatcher as SysViewDispatcher};
 pub use r#type::*;
 
+use crate::gui::Gui;
+
+#[cfg(feature = "alloc")]
 use crate::gui::{
-    Gui,
     view::{View, ViewCallbacks},
 };
 
@@ -74,6 +76,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcher<'a, C> {
         }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn add_view<VC: ViewCallbacks>(
         &mut self,
         id: u32,
@@ -249,6 +252,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
         unsafe { sys::view_dispatcher_send_custom_event(raw, event) };
     }
 
+    #[cfg(feature = "alloc")]
     fn add_view<VC: ViewCallbacks>(
         &mut self,
         view_dispatcher: Arc<Self>,
@@ -275,6 +279,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
         }
     }
 
+    #[cfg(feature = "alloc")]
     fn add_view_on_success<VC: ViewCallbacks>(
         &self,
         view_dispatcher: Arc<Self>,
@@ -298,6 +303,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
     }
 }
 
+#[cfg(feature = "alloc")]
 pub struct ViewDispatcherView<'a, VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> {
     view_dispatcher: Arc<ViewDispatcherInner<'a, VDC>>,
     view: View<VC>,
@@ -305,6 +311,7 @@ pub struct ViewDispatcherView<'a, VC: ViewCallbacks, VDC: ViewDispatcherCallback
     phantom: PhantomData<&'a ViewDispatcher<'a, VDC>>,
 }
 
+#[cfg(feature = "alloc")]
 impl<'a, VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> ViewDispatcherView<'a, VC, VDC> {
     pub fn switch_to_view(&self) {
         let raw = (&*self.view_dispatcher).as_raw();
@@ -314,6 +321,7 @@ impl<'a, VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> ViewDispatcherView<'a,
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> Drop for ViewDispatcherView<'_, VC, VDC> {
     fn drop(&mut self) {
         unsafe { sys::view_dispatcher_remove_view(self.view_dispatcher.as_raw(), self.id) };
