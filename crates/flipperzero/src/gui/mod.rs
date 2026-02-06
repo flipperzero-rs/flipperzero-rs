@@ -7,12 +7,12 @@ pub mod icon;
 #[cfg(not(miri))]
 pub mod icon_animation;
 pub mod submenu;
+pub mod variable_item_list;
 pub mod view;
 pub mod view_dispatcher;
 pub mod view_port;
 #[cfg(feature = "xbm")]
 pub mod xbm;
-pub mod variable_item_list;
 
 use core::ffi::CStr;
 use core::ops::{Deref, DerefMut};
