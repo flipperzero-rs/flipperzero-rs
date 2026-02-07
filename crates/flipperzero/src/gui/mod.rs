@@ -15,11 +15,11 @@ pub mod xbm;
 use core::ffi::CStr;
 use core::ops::{Deref, DerefMut};
 
+#[cfg(feature = "alloc")]
+use crate::gui::view_port::{ViewPort, ViewPortCallbacks};
 use canvas::CanvasView;
 use flipperzero_sys as sys;
 use flipperzero_sys::furi::UnsafeRecord;
-#[cfg(feature = "alloc")]
-use crate::gui::view_port::{ViewPort, ViewPortCallbacks};
 
 pub use gui_layer::*;
 

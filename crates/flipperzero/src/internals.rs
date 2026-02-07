@@ -3,7 +3,11 @@
 #[cfg(feature = "alloc")]
 pub(crate) mod alloc {
     use alloc::boxed::Box;
-    use core::{mem, ops::{Deref, DerefMut}, ptr::NonNull};
+    use core::{
+        mem,
+        ops::{Deref, DerefMut},
+        ptr::NonNull,
+    };
 
     /// Wrapper for a [`NonNull`] created from [`Box`]
     /// which does not imply uniqueness which the box does.
@@ -100,7 +104,6 @@ pub(crate) mod alloc {
             unsafe { self.0.as_mut() }
         }
     }
-
 
     impl<T: ?Sized> NonUniqueBox<T> {
         #[inline(always)]

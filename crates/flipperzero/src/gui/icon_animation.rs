@@ -6,7 +6,7 @@ use core::{
 
 use flipperzero_sys::{self as sys, Icon as SysIcon, IconAnimation as SysIconAnimation};
 
-use crate::{gui::icon::Icon, };
+use crate::gui::icon::Icon;
 #[cfg(feature = "alloc")]
 use crate::internals::alloc::NonUniqueBox;
 
@@ -75,7 +75,6 @@ impl<'a, C: IconAnimationCallbacks> IconAnimation<'a, C> {
         icon_animation
     }
 }
-
 
 impl<'a, C: IconAnimationCallbacks> IconAnimation<'a, C> {
     #[inline]

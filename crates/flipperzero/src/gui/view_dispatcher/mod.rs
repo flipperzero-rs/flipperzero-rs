@@ -23,9 +23,7 @@ pub use r#type::*;
 use crate::gui::Gui;
 
 #[cfg(feature = "alloc")]
-use crate::gui::{
-    view::{View, ViewCallbacks},
-};
+use crate::gui::view::{View, ViewCallbacks};
 
 type ViewSet = BTreeMap<u32, AtomicBool>;
 
