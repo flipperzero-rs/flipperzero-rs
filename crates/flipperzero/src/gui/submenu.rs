@@ -41,7 +41,49 @@ impl Submenu {
         // matches. _whyyy_
         unsafe { sys::submenu_add_item(raw, label.as_ptr(), index, None, ptr::null_mut()) };
 
-        SubmenuItemRef { inner: self.inner.clone(), label, index }
+        SubmenuItemRef {
+            inner: self.inner.clone(),
+            label,
+            index,
+        }
+    }
+
+    /// Adds a new item to the submenu that, when receiving an [`Ok`](crate::input::InputKey::Ok)
+    /// event, will invoke a custom callback for the input event.
+    pub fn add_custom_item<'item, C: SubemnuCustomItem>(
+        &mut self,
+        label: &'item CStr,
+        context: &'item mut C,
+    ) -> SubmenuItemRef<'item> {
+        let raw = self.as_raw();
+        let index = self.count;
+        self.count += 1;
+
+        unsafe extern "C" fn dispatch_input_event<C: SubemnuCustomItem>(
+            context: *mut c_void,
+            input_type: sys::InputType,
+            _index: u32,
+        ) -> () {
+            let context = unsafe { &mut *context.cast::<C>() };
+
+            context.handle_input_event(input_type)
+        }
+
+        unsafe {
+            sys::submenu_add_item_ex(
+                raw,
+                label.as_ptr(),
+                index,
+                Some(dispatch_input_event::<C>),
+                ptr::from_mut(context).cast(),
+            )
+        };
+
+        SubmenuItemRef {
+            inner: self.inner.clone(),
+            label,
+            index,
+        }
     }
 
     /// Returns a raw pointer to the [sys::Submenu] owned by this `Submenu`.
@@ -69,6 +111,10 @@ impl Submenu {
             Err(_view) => todo!("handle the id already being used"),
         }
     }
+}
+
+trait SubemnuCustomItem {
+    fn handle_input_event(&mut self, input_type: sys::InputType) -> ();
 }
 
 /// Submenu is usually used alongside a [Scene Manager](`sys::SceneManager`), but may also be used
@@ -116,7 +162,11 @@ impl<'gui, VDC: ViewDispatcherCallbacks> SubmenuBoundToViewDispatcher<'gui, VDC>
             )
         };
 
-        SubmenuItemRef { inner: self.inner.inner.clone(), label, index }
+        SubmenuItemRef {
+            inner: self.inner.inner.clone(),
+            label,
+            index,
+        }
     }
 }
 
