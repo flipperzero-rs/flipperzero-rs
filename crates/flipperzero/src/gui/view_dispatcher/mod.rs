@@ -302,6 +302,7 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
 }
 
 #[cfg(feature = "alloc")]
+#[must_use]
 pub struct ViewDispatcherView<'a, VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> {
     view_dispatcher: Arc<ViewDispatcherInner<'a, VDC>>,
     view: View<VC>,
@@ -316,6 +317,10 @@ impl<'a, VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> ViewDispatcherView<'a,
 
         miri_write_to_stdout(b"View dispatcher switch to view\n");
         unsafe { sys::view_dispatcher_switch_to_view(raw, self.id) };
+    }
+
+    pub fn as_inner(&self) -> &ViewDispatcherInner<'a, VDC> {
+        &self.view_dispatcher
     }
 }
 

@@ -1,6 +1,7 @@
 mod canvas;
 mod icon;
 mod text_input;
+mod submenu;
 mod variable_item_list;
 mod view;
 mod view_dispatcher;
@@ -12,6 +13,7 @@ extern crate alloc;
 pub use canvas::*;
 pub use icon::*;
 pub use text_input::*;
+pub use submenu::*;
 pub use variable_item_list::*;
 pub use view::*;
 pub use view_dispatcher::*;
