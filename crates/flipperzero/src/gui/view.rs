@@ -2,10 +2,7 @@
 
 use core::ffi::c_void;
 use core::ptr::{self, NonNull};
-use flipperzero_sys::{
-    self as sys, Canvas as SysCanvas, InputEvent as SysInputEvent, View as SysView,
-    ViewModelTypeLockFree,
-};
+use flipperzero_sys as sys;
 
 #[cfg(feature = "alloc")]
 use crate::internals::alloc::NonUniqueBox;
@@ -29,7 +26,7 @@ impl<C: ViewCallbacks> View<C> {
 
         {
             pub unsafe extern "C" fn dispatch_draw<C: ViewCallbacks>(
-                canvas: *mut SysCanvas,
+                canvas: *mut sys::Canvas,
                 model: *mut c_void,
             ) {
                 // SAFETY: `canvas` is guaranteed to be a valid pointer
@@ -68,7 +65,7 @@ impl<C: ViewCallbacks> View<C> {
 
         {
             pub unsafe extern "C" fn dispatch_input<C: ViewCallbacks>(
-                input_event: *mut SysInputEvent,
+                input_event: *mut sys::InputEvent,
                 context: *mut c_void,
             ) -> bool {
                 // SAFETY: `input_event` guaranteed to be a valid pointer, and is not aliased, as
@@ -92,7 +89,9 @@ impl<C: ViewCallbacks> View<C> {
         let callbacks_ptr = view.callbacks.as_ptr();
         unsafe { sys::view_set_context(raw, callbacks_ptr.cast::<c_void>()) };
         {
-            unsafe { sys::view_allocate_model(raw, ViewModelTypeLockFree, size_of::<*mut C>()) };
+            unsafe {
+                sys::view_allocate_model(raw, sys::ViewModelTypeLockFree, size_of::<*mut C>())
+            };
             let model = unsafe { sys::view_get_model(raw) }.cast::<*mut C>();
             unsafe { ptr::write(model, callbacks_ptr) };
         }
@@ -121,13 +120,13 @@ impl<C: ViewCallbacks> View<C> {
     /// Creates a copy of raw pointer to the [`sys::View`].
     #[inline]
     #[must_use]
-    pub fn as_raw(&self) -> *mut SysView {
+    pub fn as_raw(&self) -> *mut sys::View {
         self.inner.0.as_ptr()
     }
 }
 
-/// Plain alloc-free wrapper over a [`SysView`].
-struct ViewInner(NonNull<SysView>);
+/// Plain alloc-free wrapper over a [`sys::View`].
+struct ViewInner(NonNull<sys::View>);
 
 impl ViewInner {
     fn new() -> Self {
