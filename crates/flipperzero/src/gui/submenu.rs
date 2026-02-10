@@ -2,6 +2,8 @@
 
 use crate::gui::view::{View, ViewCallbacks};
 use crate::gui::view_dispatcher::{ViewDispatcher, ViewDispatcherCallbacks, ViewDispatcherView};
+use crate::input::InputType;
+use core::ops::{Deref, DerefMut};
 use core::{
     ffi::{CStr, c_void},
     ptr::{self, NonNull},
@@ -9,13 +11,13 @@ use core::{
 use flipperzero_sys as sys;
 
 /// Submenu.
-struct Submenu {
+pub struct Submenu {
     inner: SubmenuInner,
     count: u32,
 }
 
 impl Submenu {
-    /// Con
+    /// Constructs a new submenu view.
     pub fn new() -> Self {
         let inner = unsafe { sys::submenu_alloc() };
         let inner = unsafe { NonNull::new_unchecked(inner) };
@@ -50,23 +52,66 @@ impl Submenu {
 
     /// Adds a new item to the submenu that, when receiving an [`Ok`](crate::input::InputKey::Ok)
     /// event, will invoke a custom callback for the input event.
-    pub fn add_custom_item<'item, C: SubemnuCustomItem>(
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use flipperzero::furi::log::Level;
+    /// # use flipperzero::furi::time::FuriInstant;
+    /// # use flipperzero::gui::submenu::{SubmenuCustomItem, Submenu};
+    /// # use flipperzero::input::InputKey;
+    /// # use flipperzero::log;
+    ///
+    /// struct MyCallbacks {
+    ///     event_start_time: Option<FuriInstant>,
+    /// }
+    ///
+    /// impl SubmenuCustomItem for MyCallbacks {
+    ///    fn handle_input_event(&mut self, input_type: InputType) -> () {
+    ///        match input_type {
+    ///            InputType::Press => self.event_start_time = Some(FuriInstant::now()),
+    ///            InputType::Release => {
+    ///                let start_time = self
+    ///                    .event_start_time
+    ///                    .take()
+    ///                    .expect("Release must have been proceeded by a press");
+    ///
+    ///                 let elapsed_time = start_time.elapsed();
+    ///                 log!(
+    ///                     Level::INFO,
+    ///                     "OK press lasted for {}.{}",
+    ///                     elapsed_time.as_secs(),
+    ///                     elapsed_time.as_millis()
+    ///                 );
+    ///             }
+    ///             _ => {}
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// let mut submenu = Submenu::new();
+    ///
+    /// let item = submenu.add_custom_item(c"Duration Item", &mut MyCallbacks {});
+    /// ```
+    pub fn add_custom_item<'item, C: SubmenuCustomItem>(
         &mut self,
         label: &'item CStr,
-        context: &'item mut C,
+        callback: &'item mut C,
     ) -> SubmenuItemRef<'item> {
         let raw = self.as_raw();
         let index = self.count;
         self.count += 1;
 
-        unsafe extern "C" fn dispatch_input_event<C: SubemnuCustomItem>(
+        unsafe extern "C" fn dispatch_input_event<C: SubmenuCustomItem>(
             context: *mut c_void,
             input_type: sys::InputType,
             _index: u32,
         ) -> () {
-            let context = unsafe { &mut *context.cast::<C>() };
+            let callback = unsafe { &mut *context.cast::<C>() };
 
-            context.handle_input_event(input_type)
+            callback.handle_input_event(
+                input_type.try_into()
+                .expect("Input event is generated in the flipper codebase and shouldn't have any invalid values"))
         }
 
         unsafe {
@@ -75,7 +120,7 @@ impl Submenu {
                 label.as_ptr(),
                 index,
                 Some(dispatch_input_event::<C>),
-                ptr::from_mut(context).cast(),
+                ptr::from_mut(callback).cast(),
             )
         };
 
@@ -97,6 +142,10 @@ impl Submenu {
     /// In the Flipper's codebase, the `Submenu` is almost always used alongside a
     /// [`sys::SceneManager`]. However, it is possible to just treat it as any other view, and use
     /// it directly with the `ViewDispatcher`.
+    ///
+    /// Note that the submenu does not define a [previous view](`ViewCallbacks::on_back_event`),
+    /// and so any back events that occur while this view is current will not be consumed, and will
+    /// control to [`ViewDispatcherCallbacks::on_navigation`].
     #[cfg(feature = "alloc")]
     pub fn bind_to_view_dispatcher<'a, 'gui, C: ViewDispatcherCallbacks>(
         self,
@@ -113,26 +162,22 @@ impl Submenu {
     }
 }
 
-trait SubemnuCustomItem {
-    fn handle_input_event(&mut self, input_type: sys::InputType) -> ();
+/// A trait that allows for custom handling of [`Ok`](crate::input::InputKey::Ok) events.
+pub trait SubmenuCustomItem {
+    fn handle_input_event(&mut self, input_type: InputType) -> ();
 }
 
 /// Submenu is usually used alongside a [Scene Manager](`sys::SceneManager`), but may also be used
 /// directly.
-struct SubmenuBoundToViewDispatcher<'gui, C: ViewDispatcherCallbacks> {
+pub struct SubmenuBoundToViewDispatcher<'gui, C: ViewDispatcherCallbacks> {
     inner: Submenu,
     view: ViewDispatcherView<'gui, (), C>,
 }
 
 impl<'gui, VDC: ViewDispatcherCallbacks> SubmenuBoundToViewDispatcher<'gui, VDC> {
-    /// Returns a raw pointer to the [sys::Submenu] owned by this `SubmenuBoundToViewDispatcher`.
-    pub fn as_raw(&self) -> *mut sys::Submenu {
-        self.inner.as_raw()
-    }
-
     /// Adds a new item to the submenu that, when interacted with, will switch the
     /// `ViewDispatcher`'s current `View` to the one provided to this method.
-    fn add_nav_item<'label, VC: ViewCallbacks>(
+    pub fn add_nav_item<'label, VC: ViewCallbacks>(
         &mut self,
         label: &'label CStr,
         // TODO: allow this to take a view id?
@@ -170,12 +215,27 @@ impl<'gui, VDC: ViewDispatcherCallbacks> SubmenuBoundToViewDispatcher<'gui, VDC>
     }
 }
 
+impl<'gui, VDC: ViewDispatcherCallbacks> Deref for SubmenuBoundToViewDispatcher<'gui, VDC> {
+    type Target = Submenu;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<'gui, VDC: ViewDispatcherCallbacks> DerefMut for SubmenuBoundToViewDispatcher<'gui, VDC> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 /// System Submenu.
 #[derive(Clone)]
 struct SubmenuInner(NonNull<sys::Submenu>);
 
 /// A reference to an item contained in the [`Submenu`].
-struct SubmenuItemRef<'a> {
+#[must_use]
+pub struct SubmenuItemRef<'a> {
     inner: SubmenuInner,
     label: &'a CStr,
     index: u32,

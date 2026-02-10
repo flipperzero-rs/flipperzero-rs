@@ -516,6 +516,8 @@ pub trait ViewDispatcherCallbacks {
     where
         T: ViewDispatcherCallbacks,
     {
+        // TODO: should this default to Yes? If the user doesn't define this, and an event isn't
+        // handled by the view, and reaches this point, it should probably shut down the app?
         StopDispatcher::No
     }
 
