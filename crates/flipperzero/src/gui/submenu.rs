@@ -1,7 +1,11 @@
 //! APIs for the Submenu View.
 
-use crate::gui::view::{View, ViewCallbacks};
-use crate::gui::view_dispatcher::{ViewDispatcher, ViewDispatcherCallbacks, ViewDispatcherView};
+#[cfg(feature = "alloc")]
+use crate::gui::view::View;
+use crate::gui::view::ViewCallbacks;
+#[cfg(feature = "alloc")]
+use crate::gui::view_dispatcher::ViewDispatcherView;
+use crate::gui::view_dispatcher::{ViewDispatcher, ViewDispatcherCallbacks};
 use crate::input::InputType;
 use core::ops::{Deref, DerefMut};
 use core::{
@@ -169,11 +173,13 @@ pub trait SubmenuCustomItem {
 
 /// Submenu is usually used alongside a [Scene Manager](`sys::SceneManager`), but may also be used
 /// directly.
+#[cfg(feature = "alloc")]
 pub struct SubmenuBoundToViewDispatcher<'gui, C: ViewDispatcherCallbacks> {
     inner: Submenu,
     view: ViewDispatcherView<'gui, (), C>,
 }
 
+#[cfg(feature = "alloc")]
 impl<'gui, VDC: ViewDispatcherCallbacks> SubmenuBoundToViewDispatcher<'gui, VDC> {
     /// Adds a new item to the submenu that, when interacted with, will switch the
     /// `ViewDispatcher`'s current `View` to the one provided to this method.
@@ -215,6 +221,7 @@ impl<'gui, VDC: ViewDispatcherCallbacks> SubmenuBoundToViewDispatcher<'gui, VDC>
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'gui, VDC: ViewDispatcherCallbacks> Deref for SubmenuBoundToViewDispatcher<'gui, VDC> {
     type Target = Submenu;
 
@@ -223,6 +230,7 @@ impl<'gui, VDC: ViewDispatcherCallbacks> Deref for SubmenuBoundToViewDispatcher<
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'gui, VDC: ViewDispatcherCallbacks> DerefMut for SubmenuBoundToViewDispatcher<'gui, VDC> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
