@@ -11,20 +11,20 @@ extern crate flipperzero_rt;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::ffi::CStr;
+use flipperzero::furi::log::Level;
+use flipperzero::furi::time::FuriInstant;
+use flipperzero::gui::Gui;
 use flipperzero::gui::canvas::CanvasView;
-use flipperzero::gui::view::EventBubbling;
-use flipperzero::gui::view_dispatcher::{DontBind, ViewDispatcherInner};
-use flipperzero::gui::{
-    Gui,
-    view::{View, ViewCallbacks},
-    view_dispatcher::{
-        StopDispatcher, ViewDispatcher, ViewDispatcherCallbacks, ViewDispatcherRef,
-        ViewDispatcherType,
-    },
+use flipperzero::gui::submenu::{Submenu, SubmenuCustomItem};
+use flipperzero::gui::view::{EventBubbling, View, ViewCallbacks};
+use flipperzero::gui::view_dispatcher::{
+    DontBind, StopDispatcher, ViewDispatcher, ViewDispatcherCallbacks, ViewDispatcherInner,
+    ViewDispatcherRef, ViewDispatcherType,
 };
-
 use flipperzero::input::{InputEvent, InputKey, InputType};
+use flipperzero::log;
 use flipperzero_rt::{entry, manifest};
+#[cfg(miri)]
 use flipperzero_sys as sys;
 
 manifest!(name = "Rust ViewDispatcher example");
@@ -126,8 +126,7 @@ impl ViewCallbacks for CounterCallback<'_> {
     }
 
     fn on_back_event(&mut self) -> Option<u32> {
-        miri_write_to_stdout(b"Getting view that should be returned to from the counter view\n");
-        None
+        Some(0)
     }
 }
 
@@ -185,6 +184,33 @@ impl ViewCallbacks for MazeCallbacks<'_> {
     }
 }
 
+struct DurationCallback {
+    event_start_time: Option<FuriInstant>,
+}
+
+impl SubmenuCustomItem for DurationCallback {
+    fn handle_input_event(&mut self, input_type: InputType) -> () {
+        match input_type {
+            InputType::Press => self.event_start_time = Some(FuriInstant::now()),
+            InputType::Release => {
+                let start_time = self
+                    .event_start_time
+                    .take()
+                    .expect("Release must have been proceeded by a press");
+
+                let elapsed_time = start_time.elapsed();
+                log!(
+                    Level::INFO,
+                    "OK press lasted for {}.{}",
+                    elapsed_time.as_secs(),
+                    elapsed_time.as_millis()
+                );
+            }
+            _ => {}
+        }
+    }
+}
+
 fn main(_args: Option<&CStr>) -> i32 {
     let gui = Gui::open();
 
@@ -198,17 +224,30 @@ fn main(_args: Option<&CStr>) -> i32 {
 
     let mut view_dispatcher = ViewDispatcher::new(State {}, &gui, ViewDispatcherType::Fullscreen);
 
+    let submenu = Submenu::new();
+    let mut submenu = submenu.bind_to_view_dispatcher(0, &mut view_dispatcher);
+
     let counter = Counter::new(view_dispatcher.get_ref());
-    let Ok(counter_view) = view_dispatcher.add_view(0, counter.view) else {
+    let Ok(counter_view) = view_dispatcher.add_view(1, counter.view) else {
         unreachable!()
     };
 
     counter_view.switch_to_view();
 
     let maze = MazeGridVertex::new(view_dispatcher.get_ref());
-    let Ok(_maze_view) = view_dispatcher.add_view(1, maze.view) else {
+    let Ok(maze_view) = view_dispatcher.add_view(2, maze.view) else {
         unreachable!()
     };
+
+    let _submenu_counter_item = submenu.add_nav_item(c"Counter", &counter_view);
+    let _submenu_maze_item = submenu.add_nav_item(c"Maze", &maze_view);
+    let _submenu_plain_item = submenu.add_plaintext_item(c"Plaintext");
+    let _submenu_duration_item = submenu.add_custom_item(
+        c"Duration",
+        &mut DurationCallback {
+            event_start_time: None,
+        },
+    );
 
     #[cfg(not(miri))]
     let status = run_until_exit(view_dispatcher);
