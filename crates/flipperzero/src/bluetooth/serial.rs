@@ -55,14 +55,15 @@ impl BleSerial {
 
     /// Send data over BLE serial.
     ///
-    /// Returns `true` on success.
+    /// Returns `true` on success. The data length must fit in a `u16`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `data.len()` exceeds `u16::MAX`.
     pub fn tx(&self, data: &[u8]) -> bool {
+        let size: u16 = data.len().try_into().expect("data length exceeds u16::MAX");
         unsafe {
-            sys::ble_profile_serial_tx(
-                self.profile.as_ptr(),
-                data.as_ptr() as *mut u8,
-                data.len() as u16,
-            )
+            sys::ble_profile_serial_tx(self.profile.as_ptr(), data.as_ptr() as *mut u8, size)
         }
     }
 
