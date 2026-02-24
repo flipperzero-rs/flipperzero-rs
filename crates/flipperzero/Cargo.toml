@@ -107,5 +107,9 @@ name = "threads"
 required-features = ["alloc"]
 
 [[example]]
+name = "ble-serial-echo"
+required-features = ["alloc"]
+
+[[example]]
 name = "embedded-graphics"
 required-features = ["embedded-graphics"]

@@ -62,8 +62,11 @@ impl BleSerial {
     /// Panics if `data.len()` exceeds `u16::MAX`.
     pub fn tx(&self, data: &[u8]) -> bool {
         let size: u16 = data.len().try_into().expect("data length exceeds u16::MAX");
+        // SAFETY: `ble_profile_serial_tx` does not mutate `data` despite taking `*mut u8`.
+        // The underlying firmware passes data to `aci_gatt_update_char_value_ext`
+        // which takes `const uint8_t*`.
         unsafe {
-            sys::ble_profile_serial_tx(self.profile.as_ptr(), data.as_ptr() as *mut u8, size)
+            sys::ble_profile_serial_tx(self.profile.as_ptr(), data.as_ptr().cast_mut(), size)
         }
     }
 
@@ -131,6 +134,7 @@ struct Context<F: FnMut(&[u8])> {
     rx_stream: StreamBuffer,
     on_rx: F,
     worker_thread: AtomicPtr<sys::FuriThread>,
+    profile: NonNull<sys::FuriHalBleProfileBase>,
 }
 
 impl<'a, F> AsyncBleSerialReceiver<'a, F>
@@ -144,6 +148,7 @@ where
             rx_stream,
             on_rx,
             worker_thread: AtomicPtr::new(ptr::null_mut()),
+            profile: ble_serial.profile,
         });
 
         unsafe {
@@ -172,6 +177,8 @@ where
                 Some(ble_serial_event_callback::<F>),
                 FuriBox::as_mut_ptr(&mut context).cast(),
             );
+
+            sys::ble_profile_serial_set_rpc_active(ble_serial.profile.as_ptr(), true);
         }
 
         AsyncBleSerialReceiver {
@@ -183,6 +190,11 @@ where
 
 impl<F: FnMut(&[u8])> Drop for AsyncBleSerialReceiver<'_, F> {
     fn drop(&mut self) {
+        // Deactivate RPC before clearing the callback and tearing down the worker thread.
+        unsafe {
+            sys::ble_profile_serial_set_rpc_active(self.ble_serial.profile.as_ptr(), false);
+        }
+
         // Clear the callback so it no longer references `Context`.
         unsafe {
             sys::ble_profile_serial_set_event_callback(
@@ -222,21 +234,22 @@ unsafe extern "C" fn ble_serial_event_callback<F: FnMut(&[u8])>(
     let mut flags = 0u32;
     let mut consumed: u16 = 0;
 
-    if event.event == sys::SerialServiceEventTypeDataReceived {
-        let data =
-            unsafe { core::slice::from_raw_parts(event.data.buffer, event.data.size as usize) };
-
-        unsafe { (*context).rx_stream.send(data, FuriDuration::ZERO) };
-        flags |= WorkerEvent::FLAG_DATA;
-        consumed = event.data.size;
-    }
-
-    if event.event == sys::SerialServiceEventTypeDataSent {
-        flags |= WorkerEvent::FLAG_DATA_SENT;
-    }
-
-    if event.event == sys::SerialServiceEventTypesBleResetRequest {
-        flags |= WorkerEvent::FLAG_STOP;
+    match event.event {
+        sys::SerialServiceEventTypeDataReceived => {
+            let data = unsafe {
+                core::slice::from_raw_parts(event.data.buffer, event.data.size as usize)
+            };
+            unsafe { (*context).rx_stream.send(data, FuriDuration::ZERO) };
+            flags |= WorkerEvent::FLAG_DATA;
+            consumed = event.data.size;
+        }
+        sys::SerialServiceEventTypeDataSent => {
+            flags |= WorkerEvent::FLAG_DATA_SENT;
+        }
+        sys::SerialServiceEventTypesBleResetRequest => {
+            flags |= WorkerEvent::FLAG_STOP;
+        }
+        _ => {}
     }
 
     if flags != 0 {
@@ -278,6 +291,10 @@ unsafe extern "C" fn async_ble_serial_worker<F: FnMut(&[u8])>(context: *mut c_vo
                 }
 
                 unsafe { ((*context).on_rx)(&data[..len]) }
+            }
+
+            unsafe {
+                sys::ble_profile_serial_notify_buffer_is_empty((*context).profile.as_ptr());
             }
         }
 
