@@ -1,6 +1,7 @@
 //! Locale handling.
 
 use core::ffi::CStr;
+use core::ptr;
 
 use crate::datetime::DateTime;
 use crate::furi::string::FuriString;
@@ -61,7 +62,7 @@ pub fn format_time_ex(datetime: &DateTime, format: TimeFormat, show_seconds: boo
     unsafe {
         sys::locale_format_time(
             string.as_mut_ptr(),
-            datetime as *const _,
+            ptr::from_ref(datetime),
             format,
             show_seconds,
         )
@@ -91,7 +92,7 @@ pub fn format_date_ex(datetime: &DateTime, format: DateFormat, separator: &CStr)
     unsafe {
         sys::locale_format_date(
             string.as_mut_ptr(),
-            datetime as *const _,
+            ptr::from_ref(datetime),
             format,
             separator.as_ptr(),
         )

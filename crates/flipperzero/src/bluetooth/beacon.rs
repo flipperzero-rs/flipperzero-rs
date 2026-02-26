@@ -338,7 +338,7 @@ impl AdPacket {
             0x00,
             0x00,
             0x00,
-            ref_rssi as u8,
+            ref_rssi.cast_unsigned(),
             mfg_reserved,
         ];
         mf_data[4..24].copy_from_slice(&beacon_id);

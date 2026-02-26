@@ -82,9 +82,8 @@ alloc = []
 ## Enable embedded-graphics driver
 embedded-graphics = ["dep:embedded-graphics-core"]
 
-[lints.rust]
-rust_2024_compatibility = "warn"
-edition_2024_expr_fragment_specifier = "allow"
+[lints]
+workspace = true
 
 [[test]]
 name = "dolphin"

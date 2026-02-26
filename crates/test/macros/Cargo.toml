@@ -10,9 +10,12 @@ license.workspace = true
 
 [lib]
 proc-macro = true
-doc = false # https://github.com/rust-lang/cargo/issues/10368
+doc = false       # https://github.com/rust-lang/cargo/issues/10368
 
 [dependencies]
 proc-macro2 = "1"
 quote = "1"
 syn = { version = "1", features = ["full"] }
+
+[lints]
+workspace = true

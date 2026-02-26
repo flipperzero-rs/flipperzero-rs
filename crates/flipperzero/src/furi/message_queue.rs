@@ -1,5 +1,5 @@
 use core::ffi::c_void;
-use core::ptr::NonNull;
+use core::ptr::{self, NonNull};
 
 use flipperzero_sys as sys;
 use flipperzero_sys::furi::Status;
@@ -34,7 +34,7 @@ impl<M: Sized> MessageQueue<M> {
         let status: Status = unsafe {
             sys::furi_message_queue_put(
                 self.hnd.as_ptr(),
-                &mut msg as *mut _ as *const c_void,
+                ptr::from_mut(&mut msg).cast::<c_void>(),
                 timeout.as_ticks(),
             )
             .into()
@@ -51,7 +51,7 @@ impl<M: Sized> MessageQueue<M> {
         let status: Status = unsafe {
             sys::furi_message_queue_get(
                 self.hnd.as_ptr(),
-                out.as_mut_ptr() as *mut c_void,
+                out.as_mut_ptr().cast::<c_void>(),
                 timeout.as_ticks(),
             )
             .into()

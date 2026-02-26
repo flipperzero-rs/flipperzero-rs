@@ -1,6 +1,7 @@
 //! Furi Hal RTC
 
 use core::mem::MaybeUninit;
+use core::ptr;
 
 use flipperzero_sys as sys;
 
@@ -20,7 +21,7 @@ pub fn datetime() -> DateTime {
 pub fn set_datetime(datetime: &DateTime) {
     unsafe {
         // SAFETY: C function only reads from pointer
-        sys::furi_hal_rtc_set_datetime(datetime as *const _ as *mut _);
+        sys::furi_hal_rtc_set_datetime(ptr::from_ref(datetime).cast_mut());
     }
 }
 

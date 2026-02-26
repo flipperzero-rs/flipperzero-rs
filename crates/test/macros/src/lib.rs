@@ -277,13 +277,11 @@ fn tests_impl(args: TokenStream, input: TokenStream) -> parse::Result<TokenStrea
 }
 
 fn check_ret_block(stmts: &mut [Stmt]) -> parse::Result<()> {
-    if let Some(stmt) = stmts.last_mut() {
-        if let Stmt::Expr(expr) = stmt {
-            if let Some(new_stmt) = check_ret_expr(expr)? {
+    if let Some(stmt) = stmts.last_mut()
+        && let Stmt::Expr(expr) = stmt
+            && let Some(new_stmt) = check_ret_expr(expr)? {
                 *stmt = new_stmt;
             }
-        }
-    }
     Ok(())
 }
 
@@ -301,11 +299,10 @@ fn check_ret_expr(expr: &mut Expr) -> parse::Result<Option<Stmt>> {
         }
         Expr::Loop(e) => check_ret_block(&mut e.body.stmts).map(|()| None),
         Expr::Match(e) => {
-            if let Some(arm) = e.arms.first_mut() {
-                if let Some(stmt) = check_ret_expr(&mut arm.body)? {
+            if let Some(arm) = e.arms.first_mut()
+                && let Some(stmt) = check_ret_expr(&mut arm.body)? {
                     *arm.body = Expr::Block(syn::parse(quote!({#stmt}).into())?);
                 }
-            }
             Ok(None)
         }
         Expr::TryBlock(e) => check_ret_block(&mut e.block.stmts).map(|()| None),

@@ -37,14 +37,14 @@ impl EventFlag {
     pub fn set(&self, flags: u32) -> Result<u32, Error> {
         Status::from(unsafe { sys::furi_event_flag_set(self.as_ptr(), flags) })
             .into_result()
-            .map(|s| s as u32)
+            .map(i32::cast_unsigned)
     }
 
     /// Clear flags
     pub fn clear(&self, flags: u32) -> Result<u32, Error> {
         Status::from(unsafe { sys::furi_event_flag_clear(self.as_ptr(), flags) })
             .into_result()
-            .map(|s| s as u32)
+            .map(i32::cast_unsigned)
     }
 
     /// Get flags.
@@ -70,7 +70,7 @@ impl EventFlag {
             sys::furi_event_flag_wait(self.as_ptr(), flags, options.0, timeout.0)
         })
         .into_result()
-        .map(|s| s as u32)
+        .map(i32::cast_unsigned)
     }
 
     /// Wait for up-to `timeout` for a change to all of the specified notification `flags`.
@@ -91,7 +91,7 @@ impl EventFlag {
             sys::furi_event_flag_wait(self.as_ptr(), flags, options.0, timeout.0)
         })
         .into_result()
-        .map(|s| s as u32)
+        .map(i32::cast_unsigned)
     }
 }
 

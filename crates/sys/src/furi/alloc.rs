@@ -14,7 +14,7 @@ pub struct FuriBox<T: ?Sized>(NonNull<T>);
 impl<T> FuriBox<T> {
     /// Allocates and initializes a correctly aligned value on the system heap.
     pub fn new(value: T) -> Self {
-        let ptr = unsafe { crate::aligned_malloc(size_of::<T>(), align_of::<T>()) as *mut T };
+        let ptr = unsafe { crate::aligned_malloc(size_of::<T>(), align_of::<T>()).cast::<T>() };
         assert!(!ptr.is_null());
         assert!(ptr.is_aligned());
 

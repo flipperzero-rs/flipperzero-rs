@@ -6,7 +6,7 @@ resolver = "2"
 version = "0.16.0"
 description = "Rust for Flipper Zero"
 edition = "2024"
-rust-version = "1.85.0"
+rust-version = "1.89.0"
 repository = "https://github.com/dcoles/flipperzero-rs"
 readme = "../README.md"
 license = "MIT"
@@ -18,6 +18,33 @@ flipperzero-alloc = { path = "alloc", version = "0.16.0" }
 flipperzero-test = { path = "test", version = "0.16.0" }
 ufmt = "0.2.0"
 document-features = "0.2.0"
+
+[workspace.lints.rust]
+rust_2024_compatibility = { level = "warn", priority = -1 }
+edition_2024_expr_fragment_specifier = "allow"
+unsafe_attr_outside_unsafe = "deny"
+unsafe_op_in_unsafe_fn = "warn"
+dangling_pointers_from_temporaries = "deny"
+improper_ctypes = "deny"
+improper_ctypes_definitions = "deny"
+invalid_value = "deny"
+no_mangle_generic_items = "deny"
+arithmetic_overflow = "deny"
+
+[workspace.lints.clippy]
+cast_possible_wrap = "warn"
+cast_sign_loss = "warn"         # Issue with floats and unsigned
+fn_to_numeric_cast = "deny"
+as_ptr_cast_mut = "warn"
+from_raw_with_void_ptr = "deny"
+ptr_cast_constness = "warn"
+ref_as_ptr = "warn"
+ptr_as_ptr = "warn"             # Issue with `cast::<?Sized>`
+swap_ptr_to_ref = "deny"
+transmute_ptr_to_ptr = "deny"
+transmute_ptr_to_ref = "deny"
+zero_ptr = "deny"
+#undocumented_unsafe_blocks = "warn"  # Good but noisy!
 
 [profile.dev]
 opt-level = "z"

@@ -198,7 +198,7 @@ where
                 c"AsyncSerialReceiverWorker".as_ptr(),
                 1024,
                 Some(async_serial_receiver_worker::<F>),
-                FuriBox::as_mut_ptr(&mut context) as *mut _,
+                FuriBox::as_mut_ptr(&mut context).cast::<c_void>(),
             );
 
             // SAFETY: Since thread hasn't started yet, it's still safe to reference `Context`.
@@ -253,7 +253,7 @@ unsafe extern "C" fn async_serial_receiver_rx_callback<F: FnMut(&[u8])>(
     event: sys::FuriHalSerialRxEvent,
     context: *mut c_void,
 ) {
-    let context = context.cast_const() as *const Context<F>;
+    let context = context.cast_const().cast::<Context<F>>();
 
     let mut flags = 0u32;
 

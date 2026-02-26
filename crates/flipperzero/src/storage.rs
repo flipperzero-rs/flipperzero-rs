@@ -245,7 +245,7 @@ impl Drop for File {
 impl Read for File {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         let bytes_read = unsafe {
-            sys::storage_file_read(self.as_ptr(), buf.as_mut_ptr() as *mut c_void, buf.len())
+            sys::storage_file_read(self.as_ptr(), buf.as_mut_ptr().cast::<c_void>(), buf.len())
         };
 
         match Error::from_sys(self.get_raw_error()) {
@@ -318,7 +318,7 @@ impl Seek for File {
 impl Write for File {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         let bytes_written = unsafe {
-            sys::storage_file_write(self.as_ptr(), buf.as_ptr() as *mut c_void, buf.len())
+            sys::storage_file_write(self.as_ptr(), buf.as_ptr().cast::<c_void>(), buf.len())
         };
 
         match Error::from_sys(self.get_raw_error()) {

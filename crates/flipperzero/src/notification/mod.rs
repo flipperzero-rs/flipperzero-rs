@@ -281,7 +281,7 @@ impl NotificationSequence {
     }
 
     pub fn to_sys(&self) -> *const sys::NotificationSequence {
-        self.0.as_ptr() as *const _
+        self.0.as_ptr().cast()
     }
 }
 
@@ -290,7 +290,7 @@ macro_rules! notification_sequence {
     ($($x:expr),+ $(,)?) => {
         {
             const S: &[*const $crate::notification::NotificationMessage] = &[
-                $(&$x as *const _),*,
+                $(::core::ptr::from_ref::<$crate::notification::NotificationMessage>(&$x)),*,
                 ::core::ptr::null()
             ];
             $crate::notification::NotificationSequence::construct(S)

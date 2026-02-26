@@ -106,7 +106,10 @@ mod embedded_graphics {
             I: IntoIterator<Item = Pixel<Self::Color>>,
         {
             let (width, height) = self.get_size();
-            let (width, height) = (width as i32, height as i32);
+
+            // Canvas size should easily fit into an `i32`
+            let width = width.try_into().unwrap();
+            let height = height.try_into().unwrap();
 
             unsafe {
                 for Pixel(Point { x, y }, color) in pixels.into_iter() {

@@ -80,7 +80,7 @@ impl DialogsApp {
         // We can reuse the empty result_path if path is not provided.
         let path = path.unwrap_or(&mut result_path).as_mut_ptr();
         let options = options
-            .map(|opts| &opts.data as *const sys::DialogsFileBrowserOptions)
+            .map(|opts| ptr::from_ref(&opts.data))
             .unwrap_or(ptr::null());
         unsafe {
             sys::dialog_file_browser_show(self.as_ptr(), result_path.as_mut_ptr(), path, options)
@@ -331,7 +331,7 @@ impl<'a> DialogFileBrowserOptions<'a> {
 
     /// Set file icon.
     pub fn set_icon(mut self, icon: &'a sys::Icon) -> Self {
-        self.data.icon = icon as *const sys::Icon;
+        self.data.icon = ptr::from_ref(icon);
         self
     }
 

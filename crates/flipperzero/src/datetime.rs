@@ -1,6 +1,7 @@
 //! Time and Date library.
 
 use core::mem::MaybeUninit;
+use core::ptr;
 
 use flipperzero_sys as sys;
 
@@ -10,7 +11,7 @@ pub type DateTime = sys::DateTime;
 pub fn datetime_is_valid(datetime: &DateTime) -> bool {
     unsafe {
         // SAFETY: C function only reads from pointer
-        sys::datetime_validate_datetime(datetime as *const _ as *mut _)
+        sys::datetime_validate_datetime(ptr::from_ref(datetime).cast_mut())
     }
 }
 
@@ -20,7 +21,7 @@ pub fn datetime_is_valid(datetime: &DateTime) -> bool {
 pub fn datetime_to_timestamp(datetime: &DateTime) -> u32 {
     unsafe {
         // SAFETY: C function only reads from pointer
-        sys::datetime_datetime_to_timestamp(datetime as *const _ as *mut _)
+        sys::datetime_datetime_to_timestamp(ptr::from_ref(datetime).cast_mut())
     }
 }
 

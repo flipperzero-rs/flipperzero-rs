@@ -1,6 +1,7 @@
 //! Path manipulation.
 
 use core::ffi::CStr;
+use core::ptr;
 
 use crate::furi::string::FuriString;
 
@@ -11,10 +12,10 @@ pub struct Path(CStr);
 
 impl Path {
     pub fn new<S: AsRef<CStr> + ?Sized>(s: &S) -> &Self {
-        let s: &CStr = s.as_ref();
+        let s = s.as_ref();
 
         // SAFETY: Path is repr(transparent) to CStr.
-        unsafe { core::mem::transmute(s) }
+        unsafe { &*(ptr::from_ref(s) as *const Path) }
     }
 
     pub fn as_c_str(&self) -> &CStr {
