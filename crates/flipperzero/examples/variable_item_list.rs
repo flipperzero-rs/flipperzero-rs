@@ -7,11 +7,13 @@ extern crate alloc;
 extern crate flipperzero_alloc;
 extern crate flipperzero_rt;
 
+use alloc::boxed::Box;
 #[cfg(miri)]
 use alloc::sync::Arc;
-use alloc::vec::Vec;
 use core::ffi::CStr;
+use core::sync::atomic::{AtomicI8, Ordering};
 use flipperzero::gui::canvas::CanvasView;
+use flipperzero::gui::variable_item_list::{Callback, VariableItem, VariableItemList};
 use flipperzero::gui::view::EventBubbling;
 use flipperzero::gui::view_dispatcher::{DontBind, ViewDispatcherInner};
 use flipperzero::gui::{
@@ -22,190 +24,53 @@ use flipperzero::gui::{
         ViewDispatcherType,
     },
 };
-#[cfg(miri)]
 use flipperzero::input::{InputEvent, InputKey, InputType};
 use flipperzero_rt::{entry, manifest};
-use flipperzero_sys as sys;
 
 manifest!(name = "Rust Variable Item List example");
 entry!(main);
 
-#[cfg(miri)]
-unsafe extern "Rust" {
-    pub fn miri_thread_spawn(t: extern "Rust" fn(*mut ()), data: *mut ()) -> usize;
-    pub fn miri_thread_join(thread_id: usize) -> bool;
-    pub fn miri_set_thread_name(thread_id: usize, name: *const u8) -> bool;
-    pub safe fn miri_write_to_stdout(bytes: &[u8]);
-}
-
 struct State {}
 
-impl ViewDispatcherCallbacks for State {
-    type BindCustom = DontBind;
-    type BindTick = DontBind;
+impl ViewDispatcherCallbacks for State {}
 
-    fn on_navigation<T>(&self, view_dispatcher: &ViewDispatcherInner<T>) -> StopDispatcher
-    where
-        T: ViewDispatcherCallbacks,
-    {
-        StopDispatcher::Yes
-    }
+struct IncrementGlobalCounterCallback<'a> {
+    counter: &'a AtomicI8,
+    increment_by: i8,
 }
 
-struct Counter<'a> {
-    view: View<CounterCallback<'a>>,
-}
-
-impl<'a> Counter<'a> {
-    fn new(state: ViewDispatcherRef<'a, State>) -> Self {
-        let callbacks = CounterCallback { counter: 0, state };
-        let view = View::new(callbacks);
-        Counter { view }
-    }
-}
-
-struct CounterCallback<'a> {
-    counter: u8,
-    state: ViewDispatcherRef<'a, State>,
-}
-
-impl ViewCallbacks for CounterCallback<'_> {
-    fn on_draw(&mut self, canvas: CanvasView) {}
-
-    fn on_input(&mut self, event: InputEvent) -> EventBubbling {
-        match event.key {
-            InputKey::Up => {
-                self.counter += 1;
-                if self.counter > 10 {
-                    self.counter = 0;
-                }
-
-                miri_write_to_stdout(b"Counter up\n");
-
-                EventBubbling::Consumed
-            }
-            InputKey::Down => {
-                if self.counter == 0 {
-                    self.counter = 10;
-                } else {
-                    self.counter -= 1;
-                }
-
-                miri_write_to_stdout(b"Counter down\n");
-
-                EventBubbling::Consumed
-            }
-            InputKey::Right => {
-                miri_write_to_stdout(b"Counter right\n");
-
-                self.state.switch_to_view(1);
-
-                EventBubbling::Consumed
-            }
-            InputKey::Left => todo!(),
-            InputKey::Ok => {
-                self.counter = 0;
-
-                miri_write_to_stdout(b"Counter OK\n");
-
-                EventBubbling::Consumed
-            }
-            InputKey::Back => {
-                if self.counter == 0 {
-                    miri_write_to_stdout(b"Counter back when counter was 0\n");
-                    EventBubbling::ReturnForAdditionalProcessing
-                } else {
-                    miri_write_to_stdout(b"Counter back when counter was not 0\n");
-                    EventBubbling::Consumed
-                }
-            }
-        }
-    }
-
-    fn on_back_event(&mut self) -> Option<u32> {
-        miri_write_to_stdout(b"Getting view that should be returned to from the counter view\n");
-        None
-    }
-}
-
-struct MazeGridVertex<'a> {
-    view: View<MazeCallbacks<'a>>,
-}
-
-impl<'a> MazeGridVertex<'a> {
-    fn new(state: ViewDispatcherRef<'a, State>) -> Self {
-        let callbacks = MazeCallbacks {
-            stack: Vec::new(),
-            state,
-        };
-        let view = View::new(callbacks);
-        MazeGridVertex { view }
-    }
-}
-
-struct MazeCallbacks<'a> {
-    stack: Vec<flipperzero::input::InputKey>,
-    state: ViewDispatcherRef<'a, State>,
-}
-
-impl ViewCallbacks for MazeCallbacks<'_> {
-    fn on_input(&mut self, event: InputEvent) -> EventBubbling {
-        if event.r#type == InputType::Short {
-            match event.key {
-                InputKey::Up => todo!(),
-                InputKey::Down => todo!(),
-                InputKey::Right => todo!(),
-                InputKey::Left => todo!(),
-                InputKey::Ok => todo!(),
-                InputKey::Back => {
-                    if self.stack.pop().is_some() {
-                        EventBubbling::Consumed
-                    } else {
-                        EventBubbling::ReturnForAdditionalProcessing
-                    }
-                }
-            }
-        } else if event.r#type == InputType::Long && event.key == InputKey::Back {
-            self.stack.clear();
-            EventBubbling::Consumed
-        } else {
-            EventBubbling::ReturnForAdditionalProcessing
-        }
-    }
-
-    fn on_back_event(&mut self) -> Option<u32> {
-        Some(0)
-    }
-
-    fn on_draw(&mut self, canvas: CanvasView) {
-        todo!()
+impl Callback for IncrementGlobalCounterCallback<'_> {
+    fn on_click(&self, item: &VariableItem) -> () {
+        self.counter.fetch_add(self.increment_by, Ordering::SeqCst);
     }
 }
 
 fn main(_args: Option<&CStr>) -> i32 {
     let gui = Gui::open();
 
-    #[cfg(miri)]
-    let miri_gui = {
-        let view_port_gui: Arc<sys::Gui> = unsafe { Arc::from_raw(gui.as_ptr()) };
-        let miri_gui = view_port_gui.clone();
-        let _ = Arc::into_raw(view_port_gui);
-        miri_gui
-    };
-
     let mut view_dispatcher = ViewDispatcher::new(State {}, &gui, ViewDispatcherType::Fullscreen);
 
-    let counter = Counter::new(view_dispatcher.get_ref());
-    let Ok(counter_view) = view_dispatcher.add_view(0, counter.view) else {
-        unreachable!()
-    };
+    let counter = AtomicI8::new(0);
 
-    counter_view.switch_to_view();
+    let mut variable_item_list = VariableItemList::new();
+    variable_item_list.push_item_plaintext("First Item".into());
+    variable_item_list.push_item_with_on_click_callback(
+        "Add two".into(),
+        Box::new(IncrementGlobalCounterCallback { counter: &counter, increment_by: 2 }),
+    );
+    variable_item_list.push_item_with_on_click_callback(
+        "Add three".into(),
+        Box::new(IncrementGlobalCounterCallback { counter: &counter, increment_by: 3 }),
+    );
+    variable_item_list.push_item_with_on_click_callback(
+        "Subtract one".into(),
+        Box::new(IncrementGlobalCounterCallback { counter: &counter, increment_by: -1 }),
+    );
 
-    let maze = MazeGridVertex::new(view_dispatcher.get_ref());
-    let Ok(_maze_view) = view_dispatcher.add_view(1, maze.view) else {
-        unreachable!()
-    };
+    let variable_item_list_view =
+        variable_item_list.bind_to_view_dispatcher(0, &mut view_dispatcher);
+
+    variable_item_list_view.switch_to_view();
 
     #[cfg(not(miri))]
     let status = run_until_exit(view_dispatcher);
