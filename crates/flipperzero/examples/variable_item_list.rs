@@ -7,7 +7,6 @@ extern crate alloc;
 extern crate flipperzero_alloc;
 extern crate flipperzero_rt;
 
-use alloc::boxed::Box;
 #[cfg(miri)]
 use alloc::sync::Arc;
 use core::ffi::CStr;
@@ -56,15 +55,24 @@ fn main(_args: Option<&CStr>) -> i32 {
     variable_item_list.push_item_plaintext("First Item".into());
     variable_item_list.push_item_with_on_click_callback(
         "Add two".into(),
-        Box::new(IncrementGlobalCounterCallback { counter: &counter, increment_by: 2 }),
+        IncrementGlobalCounterCallback {
+            counter: &counter,
+            increment_by: 2,
+        },
     );
     variable_item_list.push_item_with_on_click_callback(
         "Add three".into(),
-        Box::new(IncrementGlobalCounterCallback { counter: &counter, increment_by: 3 }),
+        IncrementGlobalCounterCallback {
+            counter: &counter,
+            increment_by: 3,
+        },
     );
     variable_item_list.push_item_with_on_click_callback(
         "Subtract one".into(),
-        Box::new(IncrementGlobalCounterCallback { counter: &counter, increment_by: -1 }),
+        IncrementGlobalCounterCallback {
+            counter: &counter,
+            increment_by: -1,
+        },
     );
 
     let variable_item_list_view =

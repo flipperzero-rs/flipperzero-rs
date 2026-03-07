@@ -126,10 +126,10 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         self.strings.push(label);
     }
 
-    pub fn push_item_with_on_click_callback(
+    pub fn push_item_with_on_click_callback<C: Callback + 'callbacks>(
         &mut self,
         label: FuriString,
-        callback: Box<dyn Callback + 'callbacks>,
+        callback: C,
     ) -> () {
         let mut context = self.context.lock();
 
@@ -144,14 +144,14 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         context.items.push(VariableItemType::Plain(item));
         self.strings.push(label);
 
-        context.callback.0.push((list_index, callback));
+        context.callback.0.push((list_index, Box::new(callback)));
     }
 
-    pub fn push_item_with_options(
+    pub fn push_item_with_options<C: OnCurrentValueTextChangedCallbacks + 'callbacks>(
         &mut self,
         label: FuriString,
         number_of_options: u8,
-        callbacks: Box<dyn OnCurrentValueTextChangedCallbacks + 'callbacks>,
+        callbacks: C,
     ) -> () {
         let mut context = self.context.lock();
 
@@ -173,7 +173,7 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         let list_index = context.items.len();
 
         let mut value_callbacks_context = VariableItemValueCallbacksContext {
-            callbacks,
+            callbacks: Box::new(callbacks),
             value_label: FuriString::new(),
             item: MaybeUninit::uninit(),
         };
