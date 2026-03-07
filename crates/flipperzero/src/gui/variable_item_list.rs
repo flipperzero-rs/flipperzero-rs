@@ -19,10 +19,10 @@ use core::{
 use flipperzero_sys as sys;
 
 #[cfg(feature = "alloc")]
-pub struct VariableItemList<T> {
+pub struct VariableItemList<'a, T> {
     inner: VariableItemListInner,
     strings: Vec<FuriString>,
-    context: CallbackContext<T>,
+    context: CallbackContext<'a, T>,
 }
 
 pub struct VariableItem {
@@ -30,29 +30,29 @@ pub struct VariableItem {
     inner: NonNull<sys::VariableItem>,
 }
 
-enum VariableItemType {
-    Plain(VariableItem),
-    WithValues(VariableItemValueCallbacksContext),
+type CallbackContext<'a, T: 'a> = Mutex<CallbackContextInner<'a, T>>;
+
+struct CallbackContextInner<'a, T: 'a> {
+    callback: T,
+    items: Vec<VariableItemType<'a>>,
 }
 
-pub struct VariableItemValueCallbacksContext {
-    callbacks: Box<dyn OnCurrentValueTextChangedCallbacks>,
+enum VariableItemType<'a> {
+    Plain(VariableItem),
+    WithValues(VariableItemValueCallbacksContext<'a>),
+}
+
+pub struct UniqueCallbackForEachItem<'a>(Vec<(usize, Box<dyn Callback + 'a>)>);
+
+pub struct VariableItemValueCallbacksContext<'a> {
+    callbacks: Box<dyn OnCurrentValueTextChangedCallbacks + 'a>,
     value_label: FuriString,
     item: MaybeUninit<VariableItem>,
-}
-
-type CallbackContext<T> = Mutex<CallbackContextInner<T>>;
-
-struct CallbackContextInner<T> {
-    callback: T,
-    items: Vec<VariableItemType>,
 }
 
 pub trait Callback {
     fn on_click(&self, item: &VariableItem) -> ();
 }
-
-pub struct UniqueCallbackForEachItem(Vec<(usize, Box<dyn Callback>)>);
 
 pub trait OnCurrentValueTextChangedCallbacks {
     fn get_new_label(&self, item: &VariableItem, value: u8) -> FuriString;
@@ -61,7 +61,7 @@ pub trait OnCurrentValueTextChangedCallbacks {
 }
 
 #[cfg(feature = "alloc")]
-impl VariableItemList<UniqueCallbackForEachItem> {
+impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbacks>> {
     pub fn new() -> Self {
         let inner = {
             let variable_item_list = unsafe { sys::variable_item_list_alloc() };
@@ -129,7 +129,7 @@ impl VariableItemList<UniqueCallbackForEachItem> {
     pub fn push_item_with_on_click_callback(
         &mut self,
         label: FuriString,
-        callback: Box<dyn Callback>,
+        callback: Box<dyn Callback + 'callbacks>,
     ) -> () {
         let mut context = self.context.lock();
 
@@ -151,7 +151,7 @@ impl VariableItemList<UniqueCallbackForEachItem> {
         &mut self,
         label: FuriString,
         number_of_options: u8,
-        callbacks: Box<dyn OnCurrentValueTextChangedCallbacks>,
+        callbacks: Box<dyn OnCurrentValueTextChangedCallbacks + 'callbacks>,
     ) -> () {
         let mut context = self.context.lock();
 
@@ -219,7 +219,7 @@ impl VariableItemList<UniqueCallbackForEachItem> {
 }
 
 #[cfg(feature = "alloc")]
-impl<C: Callback> VariableItemList<C> {
+impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
     pub fn new_with_callback(mut on_click_callback: C) -> Self {
         let inner = {
             let variable_item_list = unsafe { sys::variable_item_list_alloc() };
@@ -281,7 +281,7 @@ impl<C: Callback> VariableItemList<C> {
     }
 }
 
-impl<T> VariableItemList<T> {
+impl<'callback, T> VariableItemList<'callback, T> {
     /// Get pointer to the underlying [`sys::VariableItemList`].
     pub fn as_raw(&self) -> *mut sys::VariableItemList {
         self.inner.0.as_ptr()
@@ -302,7 +302,7 @@ impl<T> VariableItemList<T> {
         self,
         id: u32,
         view_dispatcher: &'a mut ViewDispatcher<'gui, C>,
-    ) -> VariableItemListBoundToViewDispatcher<'gui, C, T> {
+    ) -> VariableItemListBoundToViewDispatcher<'callback, 'gui, C, T> {
         let raw = unsafe { sys::variable_item_list_get_view(self.as_raw()) };
         let view = unsafe { View::new_from_raw(raw) };
 
@@ -313,7 +313,7 @@ impl<T> VariableItemList<T> {
     }
 }
 
-impl<T> Drop for VariableItemList<T> {
+impl<T> Drop for VariableItemList<'_, T> {
     fn drop(&mut self) {
         let mut context = self.context.lock();
         context.items.clear();
@@ -326,23 +326,30 @@ impl<T> Drop for VariableItemList<T> {
 /// VariableItemList is usually used alongside a [Scene Manager](`sys::SceneManager`), but may also be used
 /// directly.
 #[cfg(feature = "alloc")]
-pub struct VariableItemListBoundToViewDispatcher<'gui, C: ViewDispatcherCallbacks, T> {
-    inner: VariableItemList<T>,
+pub struct VariableItemListBoundToViewDispatcher<
+    'callbacks,
+    'gui,
+    C: ViewDispatcherCallbacks,
+    OnClickCallbacks: 'callbacks,
+> {
+    inner: VariableItemList<'callbacks, OnClickCallbacks>,
     view: ViewDispatcherView<'gui, (), C>,
 }
 
 #[cfg(feature = "alloc")]
-impl<'gui, VDC: ViewDispatcherCallbacks, T> VariableItemListBoundToViewDispatcher<'gui, VDC, T> {
+impl<'callbacks, 'gui, VDC: ViewDispatcherCallbacks, OnClickCallbacks: 'callbacks>
+    VariableItemListBoundToViewDispatcher<'callbacks, 'gui, VDC, OnClickCallbacks>
+{
     pub fn switch_to_view(&self) -> () {
         self.view.switch_to_view();
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<'gui, VDC: ViewDispatcherCallbacks, T> Deref
-    for VariableItemListBoundToViewDispatcher<'gui, VDC, T>
+impl<'callbacks, 'gui, VDC: ViewDispatcherCallbacks, OnClickCallbacks: 'callbacks> Deref
+    for VariableItemListBoundToViewDispatcher<'callbacks, 'gui, VDC, OnClickCallbacks>
 {
-    type Target = VariableItemList<T>;
+    type Target = VariableItemList<'callbacks, OnClickCallbacks>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -350,8 +357,8 @@ impl<'gui, VDC: ViewDispatcherCallbacks, T> Deref
 }
 
 #[cfg(feature = "alloc")]
-impl<'gui, VDC: ViewDispatcherCallbacks, T> DerefMut
-    for VariableItemListBoundToViewDispatcher<'gui, VDC, T>
+impl<'callbacks, 'gui, VDC: ViewDispatcherCallbacks, OnClickCallbacks: 'callbacks> DerefMut
+    for VariableItemListBoundToViewDispatcher<'callbacks, 'gui, VDC, OnClickCallbacks>
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
