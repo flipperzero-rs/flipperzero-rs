@@ -30,7 +30,7 @@ pub struct VariableItem {
     inner: NonNull<sys::VariableItem>,
 }
 
-type CallbackContext<'a, T: 'a> = Mutex<CallbackContextInner<'a, T>>;
+type CallbackContext<'a, T> = Mutex<CallbackContextInner<'a, T>>;
 
 struct CallbackContextInner<'a, T: 'a> {
     callback: T,
