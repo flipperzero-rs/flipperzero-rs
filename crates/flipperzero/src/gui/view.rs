@@ -162,6 +162,11 @@ pub trait ViewCallbacks: Send {
     fn on_draw(&mut self, canvas: CanvasView);
 
     /// React to a user input.
+    ///
+    /// This will only be called if the view is registered in a [`sys::ViewHolder`] or
+    /// [`sys::ViewDispatcher`]. If used in the former, the event will be invoked on the GUI
+    /// thread, while the latter will invoke it on (the same thread as the view dispatcher was run
+    /// from)[`crate::gui::view_dispatcher::ViewDispatcher::run`].
     fn on_input(&mut self, event: InputEvent) -> EventBubbling {
         EventBubbling::ReturnForAdditionalProcessing
     }

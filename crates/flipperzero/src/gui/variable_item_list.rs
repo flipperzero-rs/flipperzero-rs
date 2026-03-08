@@ -37,12 +37,36 @@ struct CallbackContextInner<'a, T: 'a> {
     items: Vec<VariableItemType<'a>>,
 }
 
+impl<C> CallbackContextInner<'_, C> {
+    fn get_item_at_index(&self, index: u32) -> &VariableItem {
+        let item_type = self
+            .items
+            .get(index as usize)
+            .expect("No item with given index in local collection");
+
+        match item_type {
+            VariableItemType::Plain(item) => &item,
+            VariableItemType::WithValues(value_context) => unsafe {
+                &value_context.item.assume_init_ref()
+            },
+        }
+    }
+}
+
 enum VariableItemType<'a> {
     Plain(VariableItem),
     WithValues(VariableItemValueCallbacksContext<'a>),
 }
 
 pub struct UniqueCallbackForEachItem<'a>(Vec<(usize, Box<dyn Callback + 'a>)>);
+
+impl<'a> UniqueCallbackForEachItem<'a> {
+    fn get_callback_for_item_at_index(&self, index: u32) -> Option<&Box<dyn Callback + 'a>> {
+        self.0
+            .iter()
+            .find_map(|(item_id, callback)| (*item_id == index as usize).then_some(callback))
+    }
+}
 
 pub struct VariableItemValueCallbacksContext<'a> {
     callbacks: Box<dyn OnCurrentValueTextChangedCallbacks + 'a>,
@@ -51,6 +75,7 @@ pub struct VariableItemValueCallbacksContext<'a> {
 }
 
 pub trait Callback {
+    /// Called on a (short) Ok input event.
     fn on_click(&self, item: &VariableItem) -> ();
 }
 
@@ -62,28 +87,27 @@ pub trait OnCurrentValueTextChangedCallbacks {
 
 #[cfg(feature = "alloc")]
 impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbacks>> {
+    /// Creates a new variable item list, for which each item may perform a different action when
+    /// clicked.
     pub fn new() -> Self {
         let inner = {
             let variable_item_list = unsafe { sys::variable_item_list_alloc() };
             unsafe { NonNull::new_unchecked(variable_item_list) }
         };
 
-        unsafe extern "C" fn dispatch_callback(context: *mut c_void, index: u32) -> () {
+        unsafe extern "C" fn dispatch_callback<'callbacks>(context: *mut c_void, index: u32) -> () {
             let context =
                 unsafe { &mut *(context as *mut CallbackContext<UniqueCallbackForEachItem>) };
 
             let mut context = context.lock();
 
-            let Some(callback) = context
-                .callback
-                .0
-                .iter_mut()
-                .find_map(|(item_id, callback)| (*item_id == index as usize).then_some(callback))
+            let Some(callback_for_item) = context.callback.get_callback_for_item_at_index(index)
             else {
                 return;
             };
+            let item = context.get_item_at_index(index);
 
-            todo!()
+            callback_for_item.on_click(item);
         }
 
         let callback_context = CallbackContextInner {
@@ -111,6 +135,7 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
     // NOTE: Label must be owned here; the pointer must be valid for as long as the item exists.
     // Unless we want to accept a CStr and return something with a lifetime, and require the user
     // to keep track of that, this is the best we've got.
+    /// Push a plaintext item to the end of the variable item list.
     pub fn push_item_plaintext(&mut self, label: FuriString) -> () {
         let mut context = self.context.lock();
 
@@ -126,6 +151,8 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         self.strings.push(label);
     }
 
+    /// Push an item to the end of the variable item list that, when clicked on, invokes a
+    /// callback.
     pub fn push_item_with_on_click_callback<C: Callback + 'callbacks>(
         &mut self,
         label: FuriString,
@@ -147,6 +174,8 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         context.callback.0.push((list_index, Box::new(callback)));
     }
 
+    /// Push an item to the end of the variable item list. The item will have a number of options
+    /// which can be selected.
     pub fn push_item_with_options<C: OnCurrentValueTextChangedCallbacks + 'callbacks>(
         &mut self,
         label: FuriString,
@@ -205,6 +234,9 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         self.strings.push(label);
     }
 
+    /// Clear the variable item list.
+    ///
+    /// All items are cleared, and all callbacks associated with those items will be dropped.
     pub fn clear(&mut self) -> () {
         {
             let mut context = self.context.lock();
@@ -220,6 +252,8 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
 
 #[cfg(feature = "alloc")]
 impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
+    /// Creates a new variable item list with a single callback that is invoked whenever any item
+    /// is clicked.
     pub fn new_with_callback(mut on_click_callback: C) -> Self {
         let inner = {
             let variable_item_list = unsafe { sys::variable_item_list_alloc() };
@@ -233,19 +267,8 @@ impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
             let context = unsafe { &mut *(context as *mut CallbackContext<C>) };
 
             let mut context = context.lock();
-
-            let item = context
-                .items
-                .get(index as usize)
-                .expect("No item with given index in local collection");
-
-            match item {
-                VariableItemType::Plain(item) => context.callback.on_click(item),
-                VariableItemType::WithValues(value_context) => {
-                    let item = unsafe { value_context.item.assume_init_ref() };
-                    context.callback.on_click(item)
-                }
-            }
+            let item = context.get_item_at_index(index);
+            context.callback.on_click(item)
         }
 
         let callback_context = CallbackContextInner {
@@ -270,6 +293,9 @@ impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
         res
     }
 
+    /// Clear the variable item list.
+    ///
+    /// Note that this does not have any effect on the callback, which is left unchanged.
     pub fn clear(&mut self) -> () {
         {
             let mut context = self.context.lock();

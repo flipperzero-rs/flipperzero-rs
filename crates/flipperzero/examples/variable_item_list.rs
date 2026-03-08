@@ -11,19 +11,17 @@ extern crate flipperzero_rt;
 use alloc::sync::Arc;
 use core::ffi::CStr;
 use core::sync::atomic::{AtomicI8, Ordering};
-use flipperzero::gui::canvas::CanvasView;
-use flipperzero::gui::variable_item_list::{Callback, VariableItem, VariableItemList};
-use flipperzero::gui::view::EventBubbling;
+use flipperzero::gui::variable_item_list::{
+    Callback, OnCurrentValueTextChangedCallbacks, VariableItem, VariableItemList,
+};
 use flipperzero::gui::view_dispatcher::{DontBind, ViewDispatcherInner};
 use flipperzero::gui::{
     Gui,
-    view::{View, ViewCallbacks},
     view_dispatcher::{
-        StopDispatcher, ViewDispatcher, ViewDispatcherCallbacks, ViewDispatcherRef,
-        ViewDispatcherType,
+        StopDispatcher, ViewDispatcher, ViewDispatcherCallbacks, ViewDispatcherType,
     },
 };
-use flipperzero::input::{InputEvent, InputKey, InputType};
+use flipperzero::{format, prelude::FuriString};
 use flipperzero_rt::{entry, manifest};
 
 manifest!(name = "Rust Variable Item List example");
@@ -31,7 +29,17 @@ entry!(main);
 
 struct State {}
 
-impl ViewDispatcherCallbacks for State {}
+impl ViewDispatcherCallbacks for State {
+    type BindCustom = DontBind;
+    type BindTick = DontBind;
+
+    fn on_navigation<T>(&self, _view_dispatcher: &ViewDispatcherInner<T>) -> StopDispatcher
+    where
+        T: ViewDispatcherCallbacks,
+    {
+        StopDispatcher::Yes
+    }
+}
 
 struct IncrementGlobalCounterCallback<'a> {
     counter: &'a AtomicI8,
@@ -39,8 +47,35 @@ struct IncrementGlobalCounterCallback<'a> {
 }
 
 impl Callback for IncrementGlobalCounterCallback<'_> {
-    fn on_click(&self, item: &VariableItem) -> () {
-        self.counter.fetch_add(self.increment_by, Ordering::SeqCst);
+    fn on_click(&self, _item: &VariableItem) -> () {
+        self.counter.fetch_add(self.increment_by, Ordering::Relaxed);
+    }
+}
+
+struct IncrementGlobalCounterByVariableCallback<'a> {
+    counter: &'a AtomicI8,
+    increment_by: &'a AtomicI8,
+}
+
+struct ChangeIncrementAmountCallback<'a> {
+    number_of_options: u8,
+    min_value: i8,
+    increment_amount: &'a AtomicI8,
+}
+
+impl Callback for IncrementGlobalCounterByVariableCallback<'_> {
+    fn on_click(&self, _item: &VariableItem) -> () {
+        self.counter
+            .fetch_add(self.increment_by.load(Ordering::Relaxed), Ordering::Relaxed);
+    }
+}
+
+impl OnCurrentValueTextChangedCallbacks for ChangeIncrementAmountCallback<'_> {
+    fn get_new_label(&self, _item: &VariableItem, value: u8) -> flipperzero::prelude::FuriString {
+        let val: i8 = (self.number_of_options - value) as i8 + self.min_value;
+        self.increment_amount.store(val, Ordering::Relaxed);
+
+        FuriString::from(format!("{}", val))
     }
 }
 
@@ -52,7 +87,7 @@ fn main(_args: Option<&CStr>) -> i32 {
     let counter = AtomicI8::new(0);
 
     let mut variable_item_list = VariableItemList::new();
-    variable_item_list.push_item_plaintext("First Item".into());
+    variable_item_list.push_item_plaintext(c"First Item".into());
     variable_item_list.push_item_with_on_click_callback(
         "Add two".into(),
         IncrementGlobalCounterCallback {
@@ -75,6 +110,28 @@ fn main(_args: Option<&CStr>) -> i32 {
         },
     );
 
+    let increment_amount = AtomicI8::new(0);
+    let change_counter_callback = IncrementGlobalCounterByVariableCallback {
+        counter: &counter,
+        increment_by: &increment_amount,
+    };
+
+    let number_of_options = 6;
+
+    let modify_increment_callback = ChangeIncrementAmountCallback {
+        number_of_options: number_of_options.clone(),
+        min_value: -2,
+        increment_amount: &increment_amount,
+    };
+
+    variable_item_list
+        .push_item_with_on_click_callback("Add variable amount".into(), change_counter_callback);
+    variable_item_list.push_item_with_options(
+        "Variable amount to add".into(),
+        6,
+        modify_increment_callback,
+    );
+
     let variable_item_list_view =
         variable_item_list.bind_to_view_dispatcher(0, &mut view_dispatcher);
 
@@ -85,7 +142,7 @@ fn main(_args: Option<&CStr>) -> i32 {
     #[cfg(miri)]
     let status = run_until_exit_miri(view_dispatcher, miri_gui);
 
-    0
+    status
 }
 
 #[cfg(not(miri))]
@@ -126,6 +183,7 @@ fn run_until_exit_miri(view_dispatcher: ViewDispatcher<'_, State>, gui: Arc<sys:
 
 #[cfg(miri)]
 extern "Rust" fn send_events_for_miri(data: *mut ()) {
+    use flipperzero::input::{InputEvent, InputKey, InputType};
     let gui: Arc<sys::Gui> = unsafe { Arc::from_raw(data as *const _) };
 
     {
