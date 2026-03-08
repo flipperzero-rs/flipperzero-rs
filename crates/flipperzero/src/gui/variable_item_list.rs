@@ -234,6 +234,72 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         self.strings.push(label);
     }
 
+    /// Push an item to the end of the variable item list. The item will have a number of options
+    /// which can be selected, and, when clicked, will invoke a callback.
+    pub fn push_item_with_on_click_callback_and_options<
+        C: Callback + 'callbacks,
+        D: OnCurrentValueTextChangedCallbacks + 'callbacks,
+    >(
+        &mut self,
+        label: FuriString,
+        number_of_options: u8,
+        on_click_callback: C,
+        on_current_value_changed_callbacks: D,
+    ) -> () {
+        let mut context = self.context.lock();
+
+        unsafe extern "C" fn dispatch_value_changed_callback(raw: *mut sys::VariableItem) {
+            let context = unsafe { sys::variable_item_get_context(raw) };
+            let context = unsafe { &mut *(context as *mut VariableItemValueCallbacksContext) };
+            let callbacks = &context.callbacks;
+            let item = unsafe { context.item.assume_init_ref() };
+
+            let value = unsafe { sys::variable_item_get_current_value_index(raw) };
+
+            let new_label = context.callbacks.get_new_label(item, value);
+            unsafe { sys::variable_item_set_current_value_text(raw, new_label.as_c_ptr()) };
+            context.value_label = new_label;
+
+            context.callbacks.react_to_change();
+        }
+
+        let list_index = context.items.len();
+
+        let mut value_callbacks_context = VariableItemValueCallbacksContext {
+            callbacks: Box::new(on_current_value_changed_callbacks),
+            value_label: FuriString::new(),
+            item: MaybeUninit::uninit(),
+        };
+
+        let variable_item = unsafe {
+            sys::variable_item_list_add(
+                self.as_raw(),
+                label.as_c_ptr(),
+                number_of_options as u8,
+                Some(dispatch_value_changed_callback),
+                (&raw const value_callbacks_context).cast_mut().cast(),
+            )
+        };
+
+        let inner = unsafe { NonNull::new_unchecked(variable_item) };
+        let item = VariableItem { inner, list_index };
+
+        let value_label = value_callbacks_context.callbacks.get_new_label(&item, 0);
+        unsafe {
+            sys::variable_item_set_current_value_text(item.inner.as_ptr(), value_label.as_c_ptr())
+        };
+        value_callbacks_context.value_label = value_label;
+
+        value_callbacks_context.item.write(item);
+
+        context
+            .items
+            .push(VariableItemType::WithValues(value_callbacks_context));
+        self.strings.push(label);
+
+        context.callback.0.push((list_index, Box::new(on_click_callback)));
+    }
+
     /// Clear the variable item list.
     ///
     /// All items are cleared, and all callbacks associated with those items will be dropped.
