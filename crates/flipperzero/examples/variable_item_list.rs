@@ -23,9 +23,19 @@ use flipperzero::gui::{
 };
 use flipperzero::{format, prelude::FuriString};
 use flipperzero_rt::{entry, manifest};
+#[cfg(miri)]
+use flipperzero::gui::variable_item_list::{self, UniqueCallbackForEachItem, VariableItemListBoundToViewDispatcher};
 
 manifest!(name = "Rust Variable Item List example");
 entry!(main);
+
+#[cfg(miri)]
+unsafe extern "Rust" {
+    pub fn miri_thread_spawn(t: extern "Rust" fn(*mut ()), data: *mut ()) -> usize;
+    pub fn miri_thread_join(thread_id: usize) -> bool;
+    pub fn miri_set_thread_name(thread_id: usize, name: *const u8) -> bool;
+    pub safe fn miri_write_to_stdout(bytes: &[u8]);
+}
 
 struct State {}
 
@@ -81,6 +91,14 @@ impl OnCurrentValueTextChangedCallbacks for ChangeIncrementAmountCallback<'_> {
 
 fn main(_args: Option<&CStr>) -> i32 {
     let gui = Gui::open();
+
+    #[cfg(miri)]
+    let miri_gui = {
+        let view_port_gui: Arc<flipperzero_sys::Gui> = unsafe { Arc::from_raw(gui.as_ptr()) };
+        let miri_gui = view_port_gui.clone();
+        let _ = Arc::into_raw(view_port_gui);
+        miri_gui
+    };
 
     let mut view_dispatcher = ViewDispatcher::new(State {}, &gui, ViewDispatcherType::Fullscreen);
 
@@ -140,7 +158,7 @@ fn main(_args: Option<&CStr>) -> i32 {
     #[cfg(not(miri))]
     let status = run_until_exit(view_dispatcher);
     #[cfg(miri)]
-    let status = run_until_exit_miri(view_dispatcher, miri_gui);
+    let status = run_until_exit_miri(view_dispatcher, variable_item_list_view, miri_gui);
 
     status
 }
@@ -153,12 +171,12 @@ fn run_until_exit(view_dispatcher: ViewDispatcher<'_, State>) -> i32 {
 }
 
 #[cfg(miri)]
-fn run_until_exit_miri(view_dispatcher: ViewDispatcher<'_, State>, gui: Arc<sys::Gui>) -> i32 {
-    assert_eq!(
-        Arc::strong_count(&view_dispatcher.0),
-        3,
-        "(before run) [ViewDispatcher, state (via CounterViewRef), state (via MazeViewRef)]]"
-    );
+fn run_until_exit_miri(
+    view_dispatcher: ViewDispatcher<'_, State>,
+    variable_item_list_view: VariableItemListBoundToViewDispatcher<'_, '_, State, UniqueCallbackForEachItem<'_>>,
+    gui: Arc<flipperzero_sys::Gui>,
+) -> i32 {
+    use alloc::sync::Arc;
 
     let thread_id = {
         // SAFETY: Arc was generated above
