@@ -13,7 +13,6 @@ pub mod rng;
 #[cfg(not(miri))]
 pub mod stream_buffer;
 pub mod string;
-#[cfg(not(miri))]
 pub mod sync;
 pub mod thread;
 pub mod time;
