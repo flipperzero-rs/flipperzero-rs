@@ -297,7 +297,10 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
             .push(VariableItemType::WithValues(value_callbacks_context));
         self.strings.push(label);
 
-        context.callback.0.push((list_index, Box::new(on_click_callback)));
+        context
+            .callback
+            .0
+            .push((list_index, Box::new(on_click_callback)));
     }
 
     /// Clear the variable item list.
@@ -395,11 +398,13 @@ impl<'callback, T> VariableItemList<'callback, T> {
         id: u32,
         view_dispatcher: &'a mut ViewDispatcher<'gui, C>,
     ) -> VariableItemListBoundToViewDispatcher<'callback, 'gui, C, T> {
-        let raw = unsafe { sys::variable_item_list_get_view(self.as_raw()) };
+        let raw = unsafe { sys::variable_item_list_get_view(self.inner.0.as_ptr()) };
         let view = unsafe { View::new_from_raw(raw) };
 
         match view_dispatcher.add_view(id, view) {
-            Ok(view) => VariableItemListBoundToViewDispatcher { inner: self, view },
+            Ok(view) => {
+                VariableItemListBoundToViewDispatcher::<'callback, 'gui, C, T> { inner: self, view }
+            }
             Err(_view) => todo!("handle the id already being used"),
         }
     }

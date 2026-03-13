@@ -261,11 +261,11 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
         let mut view_dispatcher = view_dispatcher.inner.lock();
         let mut view_port = (unsafe { view_dispatcher.view_port.as_mut() }).inner.lock();
 
-        view_port.draw_callback = Some(super::ViewPortInnerCallback {
+        view_port.draw_callback = Some(super::CallbackWithContext {
             callback: Some(view_port_dispatch_draw),
             context,
         });
-        view_port.input_callback = Some(super::ViewPortInnerCallback {
+        view_port.input_callback = Some(super::CallbackWithContext {
             callback: Some(view_port_queue_input_event),
             context,
         });

@@ -543,3 +543,8 @@ pub(super) mod lock {
         }
     }
 }
+
+pub struct CallbackWithContext<T> {
+    pub callback: T,
+    pub context: *mut c_void,
+}

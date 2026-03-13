@@ -104,7 +104,7 @@ pub unsafe fn view_alloc() -> *mut crate::View {
 }
 #[doc = "Free View\n\n # Arguments\n\n* `view` - instance"]
 pub unsafe fn view_free(view: *mut crate::View) {
-    todo!()
+    drop(unsafe { Box::from_raw(view) });
 }
 #[doc = "Set View Draw callback\n\n # Arguments\n\n* `view` - View instance\n * `callback` - draw callback"]
 pub unsafe fn view_set_draw_callback(view: *mut crate::View, callback: ViewDrawCallback) {

@@ -1,20 +1,16 @@
 extern crate alloc;
 
+use crate::CallbackWithContext;
 use crate::lock::SpinLock;
 use crate::miri_bindings::utils::*;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use core::ffi::c_void;
 
-pub struct ViewPortInnerCallback<T> {
-    pub callback: T,
-    pub context: *mut c_void,
-}
-
 #[repr(C)]
 pub struct ViewPortInner {
-    pub draw_callback: Option<ViewPortInnerCallback<ViewPortDrawCallback>>,
-    pub input_callback: Option<ViewPortInnerCallback<ViewPortInputCallback>>,
+    pub draw_callback: Option<CallbackWithContext<ViewPortDrawCallback>>,
+    pub input_callback: Option<CallbackWithContext<ViewPortInputCallback>>,
 
     pub(super) enabled: bool,
 }
@@ -114,7 +110,7 @@ pub unsafe fn view_port_draw_callback_set(
     context: *mut c_void,
 ) {
     let mut view_port = (unsafe { &mut *view_port }).inner.lock();
-    view_port.draw_callback = Some(ViewPortInnerCallback { callback, context });
+    view_port.draw_callback = Some(CallbackWithContext { callback, context });
 }
 
 pub unsafe fn view_port_input_callback_set(
@@ -123,7 +119,7 @@ pub unsafe fn view_port_input_callback_set(
     context: *mut c_void,
 ) {
     let mut view_port = (unsafe { &mut *view_port }).inner.lock();
-    view_port.input_callback = Some(ViewPortInnerCallback { callback, context });
+    view_port.input_callback = Some(CallbackWithContext { callback, context });
 }
 #[doc = "Emit update signal to GUI system.\n\n Rendering will happen later after GUI system process signal.\n\n # Arguments\n\n* `view_port` - ViewPort instance"]
 pub unsafe fn view_port_update(view_port: *mut ViewPort) {

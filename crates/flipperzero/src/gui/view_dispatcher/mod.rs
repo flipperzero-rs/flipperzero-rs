@@ -189,6 +189,12 @@ impl<'a, C: ViewDispatcherCallbacks> ViewDispatcherInner<'a, C> {
     }
 }
 
+impl<'a, C: ViewDispatcherCallbacks> Drop for ViewDispatcherInner<'a, C> {
+    fn drop(&mut self) {
+        unsafe { sys::view_dispatcher_free(self.as_raw()) };
+    }
+}
+
 /// Reference to a ViewDispatcher.
 #[allow(unused)]
 pub struct ViewDispatcherRef<'a, C: ViewDispatcherCallbacks> {

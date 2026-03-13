@@ -1,7 +1,7 @@
 mod canvas;
 mod icon;
-mod text_input;
 mod submenu;
+mod text_input;
 mod variable_item_list;
 mod view;
 mod view_dispatcher;
@@ -12,8 +12,8 @@ extern crate alloc;
 
 pub use canvas::*;
 pub use icon::*;
-pub use text_input::*;
 pub use submenu::*;
+pub use text_input::*;
 pub use variable_item_list::*;
 pub use view::*;
 pub use view_dispatcher::*;
@@ -65,9 +65,9 @@ pub(crate) mod gui_inner {
     extern crate alloc;
 
     use super::canvas::{self, Canvas};
-    use super::view_port::{self, ViewPort, ViewPortInnerCallback};
-    use crate::InputEvent;
+    use super::view_port::{self, ViewPort};
     use crate::miri_bindings::utils::*;
+    use crate::{CallbackWithContext, InputEvent};
 
     use crate::lock::SpinLockGuard;
     use crate::miri_bindings::lock::SpinLock;
@@ -188,7 +188,7 @@ pub(crate) mod gui_inner {
                 )
             };
 
-            let &mut ViewPortInnerCallback { callback: ref input_callback, context: input_callback_context } = view_port_inner.input_callback
+            let &mut CallbackWithContext { callback: ref input_callback, context: input_callback_context } = view_port_inner.input_callback
                 .as_mut()
                 .expect("ViewPorts should only be registered with the GUI after their input callbacks have been set");
             let input_callback =
@@ -226,7 +226,7 @@ pub(crate) mod gui_inner {
 
             let mut view_port_inner = view_port.inner.lock();
 
-            let &mut ViewPortInnerCallback { callback: ref draw_callback, context: draw_callback_context } = view_port_inner.draw_callback
+            let &mut CallbackWithContext { callback: ref draw_callback, context: draw_callback_context } = view_port_inner.draw_callback
                 .as_mut()
                 .expect("ViewPorts should only be registered with the GUI after their draw callbacks have been set");
             let draw_callback =
