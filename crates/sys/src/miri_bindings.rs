@@ -315,13 +315,13 @@ pub struct GPIO_TypeDef {
     pub BRR: u32,
 }
 
-static GUI: lock::SpinLock<OnceCell<Arc<Gui>>> = lock::SpinLock::new(OnceCell::new());
+static GUI: lock::SpinLock<OnceCell<Arc<Gui>>> = lock::SpinLock::new(OnceCell::new(), b"GUI");
 
 #[doc = "Open record\n\n # Arguments\n\n* `name` - record name\n\n # Returns\n\npointer to the record\n > **Note:** Thread safe. Open and close must be executed from the same\n thread. Suspends caller thread till record is available"]
 pub unsafe fn furi_record_open(name: *const core::ffi::c_char) -> *mut c_void {
     let name = unsafe { CStr::from_ptr(name) };
     if name == c"gui" {
-        let gui_cell = GUI.lock();
+        let gui_cell = GUI.lock(b"record acquire");
         match gui_cell.get() {
             Some(_gui) => {
                 todo!("we currently don't support the same record being opened multiple times")
@@ -359,7 +359,7 @@ pub unsafe fn furi_record_open(name: *const core::ffi::c_char) -> *mut c_void {
 pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
     let name = unsafe { CStr::from_ptr(name) };
     if name == c"gui" {
-        let mut gui_cell = GUI.lock();
+        let mut gui_cell = GUI.lock(b"record close");
         /*{
             let gui = gui_cell.get().unwrap();
             assert_eq!(
@@ -382,7 +382,7 @@ pub unsafe fn furi_record_close(name: *const core::ffi::c_char) {
         );*/
 
         let gui_thread_id = {
-            let mut gui = gui.lock();
+            let mut gui = gui.lock(b"record close");
             gui.stop = true;
             gui.thread_id
         };
@@ -472,23 +472,31 @@ pub(super) mod lock {
     pub struct SpinLock<T> {
         data: UnsafeCell<T>,
         inner: AtomicBool,
+        name: &'static [u8],
     }
 
     pub struct SpinLockGuard<'a, T> {
         lock: &'a SpinLock<T>,
+        to: &'a [u8],
     }
 
     unsafe impl<T> Sync for SpinLock<T> {}
 
     impl<T> SpinLock<T> {
-        pub const fn new(data: T) -> Self {
+        pub const fn new(data: T, name: &'static [u8]) -> Self {
             Self {
                 data: UnsafeCell::new(data),
                 inner: AtomicBool::new(false),
+                name,
             }
         }
 
-        pub fn lock(&self) -> SpinLockGuard<'_, T> {
+        pub fn lock<'a>(&'a self, to: &'a [u8]) -> SpinLockGuard<'a, T> {
+            miri_write_to_stdout(b"\tAttempting to lock ");
+            miri_write_to_stdout(self.name);
+            miri_write_to_stdout(b" for ");
+            miri_write_to_stdout(to);
+            miri_write_to_stdout(b"\n");
             // NOTE: SeqCst has been used all over here, bcs it's definitely correct, and I haven't got
             // a good enough handle on the other orderings to pick one that would also be correct but
             // more efficient.
@@ -499,7 +507,17 @@ pub(super) mod lock {
             {
                 miri_spin_loop();
             }
-            SpinLockGuard { lock: self }
+
+            miri_write_to_stdout(b"\tAcquired lock around ");
+            miri_write_to_stdout(self.name);
+            miri_write_to_stdout(b" for ");
+            miri_write_to_stdout(to);
+            miri_write_to_stdout(b"\n");
+            SpinLockGuard { lock: self, to }
+        }
+
+        pub unsafe fn deref_unsafe(&self) -> &T {
+            unsafe { &*self.data.get() }
         }
     }
 
@@ -519,6 +537,11 @@ pub(super) mod lock {
 
     impl<T> SpinLockGuard<'_, T> {
         pub(crate) fn unlock(&mut self) {
+            miri_write_to_stdout(b"\tUnlock ");
+            miri_write_to_stdout(self.lock.name);
+            miri_write_to_stdout(b", held by ");
+            miri_write_to_stdout(self.to);
+            miri_write_to_stdout(b"\n");
             // NOTE: SeqCst has been used all over here, bcs it's definitely correct, and I haven't got
             // a good enough handle on the other orderings to pick one that would also be correct but
             // more efficient.

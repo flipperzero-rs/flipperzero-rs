@@ -134,23 +134,25 @@ pub struct ViewDispatcher {
 
 impl ViewDispatcher {
     fn run(&self) -> () {
+        let inner = Arc::clone(&self.inner);
         loop {
             miri_write_to_stdout(b"View Dispatcher loop!\n");
-            let mut view_dispatcher = self.inner.lock();
+            let mut view_dispatcher_guard = inner.lock(b"view dispatcher event loop");
 
-            if view_dispatcher.input_channel.is_some() {
-                view_dispatcher.process_input();
+            if view_dispatcher_guard.input_channel.is_some() {
+                view_dispatcher_guard.process_input();
             }
 
-            if view_dispatcher.event_channel.is_some() {
+            if view_dispatcher_guard.event_channel.is_some() {
                 todo!()
             }
 
-            if view_dispatcher.stop {
+            if view_dispatcher_guard.stop {
+                miri_write_to_stdout(b"View Dispatcher loop stopped\n");
                 break;
             }
 
-            drop(view_dispatcher);
+            drop(view_dispatcher_guard);
             miri_spin_loop();
         }
     }
@@ -171,19 +173,22 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
     let view_port = unsafe { NonNull::new_unchecked(view_port_alloc()) };
 
     let view_dispatcher = ViewDispatcher {
-        inner: Arc::new(SpinLock::new(ViewDispatcherInner {
-            view_port,
-            custom_event_callback: None,
-            navigation_event_callback: None,
-            tick_event_callback: None,
-            views: BTreeMap::new(),
-            current_view: None,
-            context: core::ptr::null_mut(),
+        inner: Arc::new(SpinLock::new(
+            ViewDispatcherInner {
+                view_port,
+                custom_event_callback: None,
+                navigation_event_callback: None,
+                tick_event_callback: None,
+                views: BTreeMap::new(),
+                current_view: None,
+                context: core::ptr::null_mut(),
 
-            input_channel: None,
-            event_channel: None,
-            stop: false,
-        })),
+                input_channel: None,
+                event_channel: None,
+                stop: false,
+            },
+            b"view dispatcher inner",
+        )),
         gui: None,
     };
 
@@ -197,7 +202,7 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
                 unsafe { Arc::from_raw(context as *const SpinLock<ViewDispatcherInner>) };
 
             {
-                let mut view_dispatcher_guard = view_dispatcher.lock();
+                let mut view_dispatcher_guard = view_dispatcher.lock(b"dispatch draw");
 
                 let Some(current_view_id) = view_dispatcher_guard.current_view else {
                     miri_write_to_stdout(b"View dispatcher attempted to process input event, but there was no current view\n");
@@ -227,7 +232,7 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
                 unsafe { Arc::from_raw(context as *const SpinLock<ViewDispatcherInner>) };
 
             {
-                let mut view_dispatcher_guard = view_dispatcher.lock();
+                let mut view_dispatcher_guard = view_dispatcher.lock(b"dispatch input");
 
                 let old_input_event = view_dispatcher_guard.input_channel.replace(input_event);
                 debug_assert!(old_input_event.is_none());
@@ -258,8 +263,10 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
         let context = Arc::into_raw(view_dispatcher.inner.clone());
         let context = context.cast::<c_void>().cast_mut();
 
-        let mut view_dispatcher = view_dispatcher.inner.lock();
-        let mut view_port = (unsafe { view_dispatcher.view_port.as_mut() }).inner.lock();
+        let mut view_dispatcher = view_dispatcher.inner.lock(b"init");
+        let mut view_port = (unsafe { view_dispatcher.view_port.as_mut() })
+            .inner
+            .lock(b"init");
 
         view_port.draw_callback = Some(super::CallbackWithContext {
             callback: Some(view_port_dispatch_draw),
@@ -283,7 +290,7 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
 #[doc = "Free ViewDispatcher instance\n\n All added views MUST be removed using view_dispatcher_remove_view()\n before calling this function.\n\n # Arguments\n\n* `view_dispatcher` - pointer to ViewDispatcher"]
 pub unsafe fn view_dispatcher_free(view_dispatcher: *mut ViewDispatcher) {
     let view_dispatcher = unsafe { Box::from_raw(view_dispatcher) };
-    let view_dispatcher = view_dispatcher.inner.lock();
+    let view_dispatcher = view_dispatcher.inner.lock(b"free");
     unsafe { super::view_port_free(view_dispatcher.view_port.as_ptr()) };
     todo!()
 }
@@ -302,7 +309,7 @@ pub unsafe fn view_dispatcher_set_custom_event_callback(
     callback: ViewDispatcherCustomEventCallback,
 ) {
     let view_dispatcher = unsafe { &*view_dispatcher };
-    let mut view_dispatcher = view_dispatcher.inner.lock();
+    let mut view_dispatcher = view_dispatcher.inner.lock(b"set event callback");
     view_dispatcher.custom_event_callback = Some(callback);
 }
 #[doc = "Set navigation event handler\n\n Called on Input Short Back Event, if it is not consumed by view\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherNavigationEventCallback instance"]
@@ -311,7 +318,7 @@ pub unsafe fn view_dispatcher_set_navigation_event_callback(
     callback: ViewDispatcherNavigationEventCallback,
 ) {
     let view_dispatcher = unsafe { &*view_dispatcher };
-    let mut view_dispatcher = view_dispatcher.inner.lock();
+    let mut view_dispatcher = view_dispatcher.inner.lock(b"set nav event callback");
     view_dispatcher.navigation_event_callback = Some(callback);
 }
 #[doc = "Set tick event handler\n\n Requires the event loop to be owned by the view dispatcher, i.e.\n it should have been instantiated with `view_dispatcher_alloc`, not\n `view_dispatcher_alloc_ex`.\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherTickEventCallback\n * `tick_period` - callback call period"]
@@ -328,7 +335,7 @@ pub unsafe fn view_dispatcher_set_event_callback_context(
     context: *mut c_void,
 ) {
     let view_dispatcher = unsafe { &mut *view_dispatcher };
-    let mut view_dispatcher = view_dispatcher.inner.lock();
+    let mut view_dispatcher = view_dispatcher.inner.lock(b"set context");
     view_dispatcher.context = context;
 }
 #[doc = "Run ViewDispatcher\n\n This function will start the event loop and block until view_dispatcher_stop() is called\n or the current thread receives a FuriSignalExit signal.\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance"]
@@ -350,10 +357,10 @@ pub unsafe fn view_dispatcher_add_view(
     let view_dispatcher: &mut ViewDispatcher = unsafe { &mut *view_dispatcher };
 
     miri_write_to_stdout(b"Attempting to take GUI lock\n");
-    let guard = view_dispatcher.gui.as_deref().map(SpinLock::lock);
+    let guard = view_dispatcher.gui.as_deref().map(|l| l.lock(b"add view"));
 
     miri_write_to_stdout(b"Attempting to take view dispatcher lock\n");
-    let mut view_dispatcher = view_dispatcher.inner.lock();
+    let mut view_dispatcher = view_dispatcher.inner.lock(b"add view");
     let Entry::Vacant(entry) = view_dispatcher.views.entry(view_id) else {
         panic!("The view_id is already in use");
     };
@@ -366,17 +373,36 @@ pub unsafe fn view_dispatcher_add_view(
 
 #[doc = "Remove view from ViewDispatcher\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `view_id` - View id to remove"]
 pub unsafe fn view_dispatcher_remove_view(view_dispatcher: *mut ViewDispatcher, view_id: u32) {
-    todo!()
+    let view_dispatcher: &mut ViewDispatcher = unsafe { &mut *view_dispatcher };
+
+    miri_write_to_stdout(b"Attempting to take gui lock in order to remove view from dispatcher\n");
+    let guard = view_dispatcher
+        .gui
+        .as_deref()
+        .map(|l| l.lock(b"remove view"));
+
+    miri_write_to_stdout(
+        b"Aattempting to take view dispatcher lock in order to remove view from dispatcher\n",
+    );
+    let mut view_dispatcher = view_dispatcher.inner.lock(b"remove view");
+
+    view_dispatcher.views.remove(&view_id);
+
+    miri_write_to_stdout(b"Successfully removed view\n");
 }
+
 #[doc = "Switch to View\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `view_id` - View id to register\n switching may be delayed till input events complementarity\n reached"]
 pub unsafe fn view_dispatcher_switch_to_view(view_dispatcher: *mut ViewDispatcher, view_id: u32) {
     let view_dispatcher: &mut ViewDispatcher = unsafe { &mut *view_dispatcher };
 
     miri_write_to_stdout(b"Attempting to take GUI lock\n");
-    let guard = view_dispatcher.gui.as_deref().map(SpinLock::lock);
+    let guard = view_dispatcher
+        .gui
+        .as_deref()
+        .map(|l| l.lock(b"switch to view"));
 
     miri_write_to_stdout(b"Attempting to take view dispatcher lock\n");
-    let mut view_dispatcher = view_dispatcher.inner.lock();
+    let mut view_dispatcher = view_dispatcher.inner.lock(b"switch to view");
 
     if view_dispatcher.views.contains_key(&view_id) {
         view_dispatcher.current_view = Some(view_id);
@@ -411,7 +437,7 @@ pub unsafe fn view_dispatcher_attach_to_gui(
     let _ = Arc::into_raw(main_gui);
 
     let view_port = {
-        let view_dispatcher = view_dispatcher.inner.lock();
+        let view_dispatcher = view_dispatcher.inner.lock(b"attach dispatcher to gui");
         view_dispatcher.view_port.as_ptr()
     };
 

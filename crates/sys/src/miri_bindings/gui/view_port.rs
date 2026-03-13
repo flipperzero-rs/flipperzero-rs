@@ -43,7 +43,7 @@ pub unsafe fn view_port_alloc() -> *mut ViewPort {
         draw_callback: None,
         input_callback: None,
         enabled: true,
-    });
+    }, b"view port");
     let view_port = ViewPort {
         inner: view_port,
         gui: None,
@@ -82,7 +82,7 @@ pub unsafe fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
     // NOTE: we're intentionally being extra specific with dereferences here, so that it's clearer
     // where the locks are being taken, and where they're being used
     let view_port = unsafe { &mut *view_port };
-    let mut view_port_guard = view_port.inner.lock();
+    let mut view_port_guard = view_port.inner.lock(b"set enabledness");
     let view_port_inner = &mut *view_port_guard;
     view_port_inner.enabled = enabled;
 
@@ -90,7 +90,7 @@ pub unsafe fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
         return;
     };
 
-    let mut gui_guard = gui_arc.lock();
+    let mut gui_guard = gui_arc.lock(b"set enabledness");
     let gui = &mut *gui_guard;
     gui.request_redraw();
 
@@ -99,7 +99,7 @@ pub unsafe fn view_port_enabled_set(view_port: *mut ViewPort, enabled: bool) {
 }
 
 pub unsafe fn view_port_is_enabled(view_port: *const ViewPort) -> bool {
-    let view_port = (unsafe { &*view_port }).inner.lock();
+    let view_port = (unsafe { &*view_port }).inner.lock(b"check enabledness");
     view_port.enabled
 }
 
@@ -109,7 +109,7 @@ pub unsafe fn view_port_draw_callback_set(
     callback: ViewPortDrawCallback,
     context: *mut c_void,
 ) {
-    let mut view_port = (unsafe { &mut *view_port }).inner.lock();
+    let mut view_port = (unsafe { &mut *view_port }).inner.lock(b"set draw callback");
     view_port.draw_callback = Some(CallbackWithContext { callback, context });
 }
 
@@ -118,7 +118,7 @@ pub unsafe fn view_port_input_callback_set(
     callback: ViewPortInputCallback,
     context: *mut c_void,
 ) {
-    let mut view_port = (unsafe { &mut *view_port }).inner.lock();
+    let mut view_port = (unsafe { &mut *view_port }).inner.lock(b"set input callback");
     view_port.input_callback = Some(CallbackWithContext { callback, context });
 }
 #[doc = "Emit update signal to GUI system.\n\n Rendering will happen later after GUI system process signal.\n\n # Arguments\n\n* `view_port` - ViewPort instance"]

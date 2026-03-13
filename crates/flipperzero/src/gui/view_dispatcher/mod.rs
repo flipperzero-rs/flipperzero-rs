@@ -333,7 +333,9 @@ impl<'a, VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> ViewDispatcherView<'a,
 #[cfg(feature = "alloc")]
 impl<VC: ViewCallbacks, VDC: ViewDispatcherCallbacks> Drop for ViewDispatcherView<'_, VC, VDC> {
     fn drop(&mut self) {
+        miri_write_to_stdout(b"Attempting to remove view from view dispatcher\n");
         unsafe { sys::view_dispatcher_remove_view(self.view_dispatcher.as_raw(), self.id) };
+        miri_write_to_stdout(b"Removed view from view dispatcher\n");
 
         let entry = self
             .view_dispatcher

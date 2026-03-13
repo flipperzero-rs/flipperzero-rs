@@ -186,15 +186,19 @@ fn run_until_exit_miri(
     unsafe { miri_set_thread_name(thread_id, c"miri event sender".as_ptr()) };
 
     let view_dispatcher = view_dispatcher.run();
+    miri_write_to_stdout(b"View Dispatcher returned from run\n");
 
-    unsafe { miri_thread_join(thread_id) };
-    assert_eq!(
-        Arc::strong_count(&view_dispatcher.0),
-        3,
-        "(after run) [ViewDispatcher, state (via CounterViewRef), state (via MazeViewRef)]]"
-    );
+    assert_eq!(Arc::strong_count(&view_dispatcher.0), 2, "Before drop");
+
+    miri_write_to_stdout(b"Attempting to drop variable item list view\n");
+    drop(variable_item_list_view);
+
+    assert_eq!(Arc::strong_count(&view_dispatcher.0), 1, "After drop");
+    miri_write_to_stdout(b"Dropping view dispatcher\n");
 
     drop(view_dispatcher);
+
+    unsafe { miri_thread_join(thread_id) };
 
     0
 }
@@ -202,43 +206,45 @@ fn run_until_exit_miri(
 #[cfg(miri)]
 extern "Rust" fn send_events_for_miri(data: *mut ()) {
     use flipperzero::input::{InputEvent, InputKey, InputType};
+    use flipperzero_sys as sys;
+
     let gui: Arc<sys::Gui> = unsafe { Arc::from_raw(data as *const _) };
 
     {
-        let mut gui = gui.lock();
+        let mut gui = gui.lock(b"send input event 1");
         let input_event = InputEvent {
             sequence: 0.into(),
             key: InputKey::Up,
             r#type: InputType::Short,
         };
-        miri_write_to_stdout(b"Up event 0\n");
+        miri_write_to_stdout(b"*** Up event 0\n");
         sys::GuiInner::send_input_event(&mut gui, input_event.into());
     }
 
     {
-        let mut gui = gui.lock();
+        let mut gui = gui.lock(b"send input event 2");
         let input_event = InputEvent {
             sequence: 1.into(),
             key: InputKey::Back,
             r#type: InputType::Short,
         };
-        miri_write_to_stdout(b"Back event 1\n");
+        miri_write_to_stdout(b"*** Back event 1\n");
         sys::GuiInner::send_input_event(&mut gui, input_event.into());
     }
 
     {
-        let mut gui = gui.lock();
+        let mut gui = gui.lock(b"send input event 3");
         let input_event = InputEvent {
             sequence: 2.into(),
             key: InputKey::Down,
             r#type: InputType::Short,
         };
-        miri_write_to_stdout(b"Down event 2\n");
+        miri_write_to_stdout(b"*** Down event 2\n");
         sys::GuiInner::send_input_event(&mut gui, input_event.into());
     }
 
     {
-        let mut gui = gui.lock();
+        let mut gui = gui.lock(b"send input event 4");
         let input_event = InputEvent {
             sequence: 3.into(),
             key: InputKey::Back,

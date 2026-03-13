@@ -100,7 +100,7 @@ pub(crate) mod gui_inner {
                 stop: false,
                 view_port: None,
             };
-            let gui = Arc::new(SpinLock::new(gui));
+            let gui = Arc::new(SpinLock::new(gui, b"GUI inner"));
 
             let thread_id = {
                 let gui_ptr = Arc::into_raw(gui.clone());
@@ -111,7 +111,7 @@ pub(crate) mod gui_inner {
             let _ = unsafe { miri_set_thread_name(thread_id, c"gui service".as_ptr()) };
 
             {
-                gui.lock().thread_id = thread_id;
+                gui.lock(b"spawn").thread_id = thread_id;
             }
 
             extern "Rust" fn thread_start(data: *mut ()) {
@@ -119,7 +119,7 @@ pub(crate) mod gui_inner {
                 let gui: Arc<SpinLock<GuiInner>> = unsafe { Arc::from_raw(data as *const _) };
 
                 loop {
-                    let mut gui_guard = gui.lock();
+                    let mut gui_guard = gui.lock(b"gui loop");
                     // OPTIMISATION: intentional deref here to prevent the calls below from having
                     // to do it. this is only done to make the miri trace easier to parse
                     let gui = &mut *gui_guard;
@@ -142,6 +142,8 @@ pub(crate) mod gui_inner {
 
                     miri_spin_loop();
                 }
+
+                miri_write_to_stdout(b"Stopping GUI thread");
             }
 
             gui
@@ -180,7 +182,7 @@ pub(crate) mod gui_inner {
 
             miri_write_to_stdout(b"GUI process input event\n");
 
-            let mut view_port_inner = view_port.inner.lock();
+            let mut view_port_inner = view_port.inner.lock(b"handle input");
 
             let Some(input) = self.input_channel.take() else {
                 unreachable!(
@@ -224,7 +226,7 @@ pub(crate) mod gui_inner {
                 return;
             }
 
-            let mut view_port_inner = view_port.inner.lock();
+            let mut view_port_inner = view_port.inner.lock(b"redraw");
 
             let &mut CallbackWithContext { callback: ref draw_callback, context: draw_callback_context } = view_port_inner.draw_callback
                 .as_mut()
@@ -241,6 +243,8 @@ pub(crate) mod gui_inner {
             let old_input_event = gui_lock.input_channel.replace(input_event);
             debug_assert!(old_input_event.is_none());
 
+            miri_write_to_stdout(b"Unlocking GUI while waiting for input event to be taken\n");
+
             gui_lock.unlock();
             // OPTIMISATION: we unlock the GUI here to allow the service thread to `take` the input
             // event we just inserted. there's no point doing that if we're not going to yield
@@ -253,10 +257,14 @@ pub(crate) mod gui_inner {
 
             // spin until the other thread takes the input out of the channel
             loop {
+                miri_write_to_stdout(b"Locking GUI again to check if input event was be taken\n");
+
                 gui_lock.reacquire();
                 if gui_lock.input_channel.is_none() {
+                    miri_write_to_stdout(b"Was -- all done\n");
                     break;
                 }
+                miri_write_to_stdout(b"Wasn't -- unlocking again\n");
                 gui_lock.unlock();
                 miri_spin_loop();
             }
@@ -274,14 +282,14 @@ pub unsafe fn gui_add_view_port(gui: *mut Gui, view_port: *mut ViewPort, layer: 
     miri_write_to_stdout(b"Adding view port to GUI\n");
     {
         let view_port: &mut ViewPort = unsafe { &mut *view_port };
-        let view_port_guard = view_port.inner.lock();
+        let view_port_guard = view_port.inner.lock(b"add view port");
         let main_gui = unsafe { Arc::from_raw(gui) };
         view_port.gui = Some(main_gui.clone());
         let _ = Arc::into_raw(main_gui);
     }
 
     let gui: &Gui = unsafe { &*gui };
-    let mut gui_guard = gui.lock();
+    let mut gui_guard = gui.lock(b"add view port");
 
     let view_port = unsafe { NonNull::new_unchecked(view_port) };
     gui_guard.view_port.replace(view_port);
@@ -295,11 +303,11 @@ pub unsafe fn gui_remove_view_port(gui: *mut Gui, view_port: *mut ViewPort) {
     let gui: &Gui = unsafe { &*gui };
     // NOTE: we need to take the GUI lock here to ensure that the service thread isn't able to
     // proceed, as it might attempt to reference the view_port at the same time that we do
-    let mut gui_guard = gui.lock();
+    let mut gui_guard = gui.lock(b"remove view port");
 
     {
         let view_port: &mut ViewPort = unsafe { &mut *view_port };
-        let view_port_guard = view_port.inner.lock();
+        let view_port_guard = view_port.inner.lock(b"remove view port");
         view_port.gui = None;
     }
 
