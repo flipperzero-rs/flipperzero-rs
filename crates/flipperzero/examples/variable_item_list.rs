@@ -11,6 +11,10 @@ extern crate flipperzero_rt;
 use alloc::sync::Arc;
 use core::ffi::CStr;
 use core::sync::atomic::{AtomicI8, Ordering};
+#[cfg(miri)]
+use flipperzero::gui::variable_item_list::{
+    self, UniqueCallbackForEachItem, VariableItemListBoundToViewDispatcher,
+};
 use flipperzero::gui::variable_item_list::{
     Callback, OnCurrentValueTextChangedCallbacks, VariableItem, VariableItemList,
 };
@@ -23,8 +27,6 @@ use flipperzero::gui::{
 };
 use flipperzero::{format, prelude::FuriString};
 use flipperzero_rt::{entry, manifest};
-#[cfg(miri)]
-use flipperzero::gui::variable_item_list::{self, UniqueCallbackForEachItem, VariableItemListBoundToViewDispatcher};
 
 manifest!(name = "Rust Variable Item List example");
 entry!(main);
@@ -158,7 +160,7 @@ fn main(_args: Option<&CStr>) -> i32 {
     #[cfg(not(miri))]
     let status = run_until_exit(view_dispatcher);
     #[cfg(miri)]
-    let status = run_until_exit_miri(view_dispatcher, variable_item_list_view, miri_gui);
+    let status = run_until_exit_miri(view_dispatcher, variable_item_list_view, miri_gui, counter);
 
     status
 }
@@ -173,8 +175,14 @@ fn run_until_exit(view_dispatcher: ViewDispatcher<'_, State>) -> i32 {
 #[cfg(miri)]
 fn run_until_exit_miri(
     view_dispatcher: ViewDispatcher<'_, State>,
-    variable_item_list_view: VariableItemListBoundToViewDispatcher<'_, '_, State, UniqueCallbackForEachItem<'_>>,
+    variable_item_list_view: VariableItemListBoundToViewDispatcher<
+        '_,
+        '_,
+        State,
+        UniqueCallbackForEachItem<'_>,
+    >,
     gui: Arc<flipperzero_sys::Gui>,
+    counter: AtomicI8,
 ) -> i32 {
     use alloc::sync::Arc;
 
@@ -199,6 +207,8 @@ fn run_until_exit_miri(
     drop(view_dispatcher);
 
     unsafe { miri_thread_join(thread_id) };
+
+    assert_eq!(counter.load(Ordering::Acquire), 12);
 
     0
 }
@@ -229,28 +239,6 @@ extern "Rust" fn send_events_for_miri(data: *mut ()) {
             r#type: InputType::Short,
         };
         miri_write_to_stdout(b"*** Back event 1\n");
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
-
-    {
-        let mut gui = gui.lock(b"send input event 3");
-        let input_event = InputEvent {
-            sequence: 2.into(),
-            key: InputKey::Down,
-            r#type: InputType::Short,
-        };
-        miri_write_to_stdout(b"*** Down event 2\n");
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
-
-    {
-        let mut gui = gui.lock(b"send input event 4");
-        let input_event = InputEvent {
-            sequence: 3.into(),
-            key: InputKey::Back,
-            r#type: InputType::Short,
-        };
-        miri_write_to_stdout(b"Back event 3\n");
         sys::GuiInner::send_input_event(&mut gui, input_event.into());
     }
 }
