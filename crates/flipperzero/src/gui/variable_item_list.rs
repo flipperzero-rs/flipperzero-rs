@@ -32,6 +32,7 @@ pub struct VariableItem {
 
 type CallbackContext<'a, T> = Mutex<CallbackContextInner<'a, T>>;
 
+#[cfg(feature = "alloc")]
 struct CallbackContextInner<'a, T: 'a> {
     callback: T,
     items: Vec<VariableItemType<'a>>,
@@ -376,6 +377,7 @@ impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'callback, T> VariableItemList<'callback, T> {
     /// Get pointer to the underlying [`sys::VariableItemList`].
     pub fn as_raw(&self) -> *mut sys::VariableItemList {
@@ -410,6 +412,7 @@ impl<'callback, T> VariableItemList<'callback, T> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<T> Drop for VariableItemList<'_, T> {
     fn drop(&mut self) {
         let mut context = self.context.lock();
