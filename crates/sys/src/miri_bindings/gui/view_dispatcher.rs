@@ -1,5 +1,6 @@
 extern crate alloc;
 
+use crate::CallbackWithContext;
 use crate::lock::SpinLock;
 use crate::miri_bindings::gui::canvas::Canvas;
 use crate::miri_bindings::gui::view_port::{ViewPort, view_port_alloc};
@@ -249,7 +250,8 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
 
             // spin until the other thread takes the input out of the channel
             loop {
-                let mut view_dispatcher_guard = view_dispatcher.lock();
+                let mut view_dispatcher_guard =
+                    view_dispatcher.lock(b"check for input event consumed");
                 if view_dispatcher_guard.input_channel.is_none() {
                     break;
                 }
@@ -268,11 +270,11 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
             .inner
             .lock(b"init");
 
-        view_port.draw_callback = Some(super::CallbackWithContext {
+        view_port.draw_callback = Some(CallbackWithContext {
             callback: Some(view_port_dispatch_draw),
             context,
         });
-        view_port.input_callback = Some(super::CallbackWithContext {
+        view_port.input_callback = Some(CallbackWithContext {
             callback: Some(view_port_queue_input_event),
             context,
         });

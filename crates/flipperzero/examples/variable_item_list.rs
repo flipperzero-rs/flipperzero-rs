@@ -27,6 +27,7 @@ use flipperzero::gui::{
 };
 use flipperzero::{format, prelude::FuriString};
 use flipperzero_rt::{entry, manifest};
+use alloc::string::ToString;
 
 manifest!(name = "Rust Variable Item List example");
 entry!(main);
@@ -60,6 +61,9 @@ struct IncrementGlobalCounterCallback<'a> {
 
 impl Callback for IncrementGlobalCounterCallback<'_> {
     fn on_click(&self, _item: &VariableItem) -> () {
+        miri_write_to_stdout(b"Incrementing by ");
+        miri_write_to_stdout(&format!("{}", self.increment_by).bytes().collect::<alloc::vec::Vec<u8>>());
+        miri_write_to_stdout(b"\n");
         self.counter.fetch_add(self.increment_by, Ordering::Relaxed);
     }
 }
@@ -87,7 +91,7 @@ impl OnCurrentValueTextChangedCallbacks for ChangeIncrementAmountCallback<'_> {
         let val: i8 = (self.number_of_options - value) as i8 + self.min_value;
         self.increment_amount.store(val, Ordering::Relaxed);
 
-        FuriString::from(format!("{}", val))
+        format!("{}", val)
     }
 }
 
@@ -160,7 +164,7 @@ fn main(_args: Option<&CStr>) -> i32 {
     #[cfg(not(miri))]
     let status = run_until_exit(view_dispatcher);
     #[cfg(miri)]
-    let status = run_until_exit_miri(view_dispatcher, variable_item_list_view, miri_gui, counter);
+    let status = run_until_exit_miri(view_dispatcher, variable_item_list_view, miri_gui, &counter);
 
     status
 }
@@ -182,7 +186,7 @@ fn run_until_exit_miri(
         UniqueCallbackForEachItem<'_>,
     >,
     gui: Arc<flipperzero_sys::Gui>,
-    counter: AtomicI8,
+    counter: &AtomicI8,
 ) -> i32 {
     use alloc::sync::Arc;
 
@@ -208,7 +212,7 @@ fn run_until_exit_miri(
 
     unsafe { miri_thread_join(thread_id) };
 
-    assert_eq!(counter.load(Ordering::Acquire), 12);
+    assert_eq!(counter.load(Ordering::Acquire), 2);
 
     0
 }
@@ -221,24 +225,24 @@ extern "Rust" fn send_events_for_miri(data: *mut ()) {
     let gui: Arc<sys::Gui> = unsafe { Arc::from_raw(data as *const _) };
 
     {
-        let mut gui = gui.lock(b"send input event 1");
+        let mut gui = gui.lock(b"send input event 0");
         let input_event = InputEvent {
             sequence: 0.into(),
-            key: InputKey::Up,
+            key: InputKey::Ok,
             r#type: InputType::Short,
         };
-        miri_write_to_stdout(b"*** Up event 0\n");
+        miri_write_to_stdout(b"Ok event 0 -- Add 2\n");
         sys::GuiInner::send_input_event(&mut gui, input_event.into());
     }
 
     {
-        let mut gui = gui.lock(b"send input event 2");
+        let mut gui = gui.lock(b"send input event 1");
         let input_event = InputEvent {
             sequence: 1.into(),
             key: InputKey::Back,
             r#type: InputType::Short,
         };
-        miri_write_to_stdout(b"*** Back event 1\n");
+        miri_write_to_stdout(b"Back event 1\n");
         sys::GuiInner::send_input_event(&mut gui, input_event.into());
     }
 }
