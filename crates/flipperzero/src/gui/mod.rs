@@ -7,6 +7,7 @@ pub mod icon;
 #[cfg(not(miri))]
 pub mod icon_animation;
 pub mod submenu;
+#[cfg(feature = "alloc")]
 pub mod variable_item_list;
 pub mod view;
 pub mod view_dispatcher;

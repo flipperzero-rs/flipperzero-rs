@@ -1,16 +1,11 @@
 //! Safe wrapper for dealing with allocations and freeing for the variable item list
 
-#[cfg(feature = "alloc")]
 use crate::furi::string::FuriString;
 use crate::furi::sync::Mutex;
-#[cfg(feature = "alloc")]
 use crate::gui::view::View;
-#[cfg(feature = "alloc")]
 use crate::gui::view_dispatcher::{ViewDispatcher, ViewDispatcherCallbacks, ViewDispatcherView};
-#[cfg(feature = "alloc")]
 use alloc::{boxed::Box, vec::Vec};
 use core::mem::MaybeUninit;
-#[cfg(feature = "alloc")]
 use core::ops::{Deref, DerefMut};
 use core::{
     ffi::c_void,
@@ -18,7 +13,6 @@ use core::{
 };
 use flipperzero_sys as sys;
 
-#[cfg(feature = "alloc")]
 pub struct VariableItemList<'a, T> {
     inner: VariableItemListInner,
     strings: Vec<FuriString>,
@@ -32,7 +26,6 @@ pub struct VariableItem {
 
 type CallbackContext<'a, T> = Mutex<CallbackContextInner<'a, T>>;
 
-#[cfg(feature = "alloc")]
 struct CallbackContextInner<'a, T: 'a> {
     callback: T,
     items: Vec<VariableItemType<'a>>,
@@ -86,7 +79,6 @@ pub trait OnCurrentValueTextChangedCallbacks {
     fn react_to_change(&self) -> () {}
 }
 
-#[cfg(feature = "alloc")]
 impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbacks>> {
     /// Creates a new variable item list, for which each item may perform a different action when
     /// clicked.
@@ -320,7 +312,6 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
     /// Creates a new variable item list with a single callback that is invoked whenever any item
     /// is clicked.
@@ -377,7 +368,6 @@ impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'callback, T> VariableItemList<'callback, T> {
     /// Get pointer to the underlying [`sys::VariableItemList`].
     pub fn as_raw(&self) -> *mut sys::VariableItemList {
@@ -412,7 +402,6 @@ impl<'callback, T> VariableItemList<'callback, T> {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<T> Drop for VariableItemList<'_, T> {
     fn drop(&mut self) {
         let mut context = self.context.lock();
@@ -425,7 +414,6 @@ impl<T> Drop for VariableItemList<'_, T> {
 
 /// VariableItemList is usually used alongside a [Scene Manager](`sys::SceneManager`), but may also be used
 /// directly.
-#[cfg(feature = "alloc")]
 pub struct VariableItemListBoundToViewDispatcher<
     'callbacks,
     'gui,
@@ -436,7 +424,6 @@ pub struct VariableItemListBoundToViewDispatcher<
     view: ViewDispatcherView<'gui, (), C>,
 }
 
-#[cfg(feature = "alloc")]
 impl<'callbacks, 'gui, VDC: ViewDispatcherCallbacks, OnClickCallbacks: 'callbacks>
     VariableItemListBoundToViewDispatcher<'callbacks, 'gui, VDC, OnClickCallbacks>
 {
@@ -445,7 +432,6 @@ impl<'callbacks, 'gui, VDC: ViewDispatcherCallbacks, OnClickCallbacks: 'callback
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'callbacks, 'gui, VDC: ViewDispatcherCallbacks, OnClickCallbacks: 'callbacks> Deref
     for VariableItemListBoundToViewDispatcher<'callbacks, 'gui, VDC, OnClickCallbacks>
 {
@@ -456,7 +442,6 @@ impl<'callbacks, 'gui, VDC: ViewDispatcherCallbacks, OnClickCallbacks: 'callback
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<'callbacks, 'gui, VDC: ViewDispatcherCallbacks, OnClickCallbacks: 'callbacks> DerefMut
     for VariableItemListBoundToViewDispatcher<'callbacks, 'gui, VDC, OnClickCallbacks>
 {
