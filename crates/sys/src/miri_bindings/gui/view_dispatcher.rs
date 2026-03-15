@@ -294,7 +294,6 @@ pub unsafe fn view_dispatcher_free(view_dispatcher: *mut ViewDispatcher) {
     let view_dispatcher = unsafe { Box::from_raw(view_dispatcher) };
     let view_dispatcher = view_dispatcher.inner.lock(b"free");
     unsafe { super::view_port_free(view_dispatcher.view_port.as_ptr()) };
-    todo!()
 }
 
 #[doc = "Enable queue support\n\n > **Deprecated** Do NOT use in new code and remove all calls to it from existing code.\n The queue support is now always enabled during construction. If no queue support\n is required, consider using ViewHolder instead.\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance"]
