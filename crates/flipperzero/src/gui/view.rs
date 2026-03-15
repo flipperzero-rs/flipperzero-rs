@@ -7,12 +7,15 @@ use flipperzero_sys as sys;
 #[cfg(feature = "alloc")]
 use crate::internals::alloc::NonUniqueBox;
 use crate::{gui::canvas::CanvasView, input::InputEvent};
+#[cfg(feature = "alloc")]
+use core::mem::ManuallyDrop;
 
 /// UI view.
 #[cfg(feature = "alloc")]
 pub struct View<C: ViewCallbacks> {
-    inner: ViewInner,
+    inner: ManuallyDrop<ViewInner>,
     callbacks: NonUniqueBox<C>,
+    should_drop: bool,
 }
 
 #[cfg(feature = "alloc")]
@@ -21,7 +24,11 @@ impl<C: ViewCallbacks> View<C> {
         let inner = ViewInner::new();
         let callbacks = NonUniqueBox::new(callbacks);
 
-        let view = Self { inner, callbacks };
+        let view = Self {
+            inner: ManuallyDrop::new(inner),
+            should_drop: true,
+            callbacks,
+        };
         let raw = view.inner.0.as_ptr();
 
         {
@@ -109,7 +116,8 @@ impl View<()> {
     pub unsafe fn new_from_raw(raw: *mut sys::View) -> Self {
         let inner = ViewInner(unsafe { NonNull::new_unchecked(raw) });
         Self {
-            inner,
+            inner: ManuallyDrop::new(inner),
+            should_drop: false,
             callbacks: NonUniqueBox::new(()),
         }
     }
@@ -122,6 +130,15 @@ impl<C: ViewCallbacks> View<C> {
     #[must_use]
     pub fn as_raw(&self) -> *mut sys::View {
         self.inner.0.as_ptr()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<C: ViewCallbacks> Drop for View<C> {
+    fn drop(&mut self) {
+        if self.should_drop {
+            unsafe { ManuallyDrop::drop(&mut self.inner) };
+        }
     }
 }
 
@@ -141,7 +158,6 @@ impl ViewInner {
 impl Drop for ViewInner {
     fn drop(&mut self) {
         let raw = self.0.as_ptr();
-        unsafe { sys::view_free(raw) };
         // SAFETY: `raw` is valid
         unsafe { sys::view_free(raw) }
     }
