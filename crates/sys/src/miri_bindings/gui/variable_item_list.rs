@@ -1,16 +1,19 @@
 extern crate alloc;
 
+use crate::miri_bindings::gui::view::{View, view_alloc, view_free};
+use crate::{
+    CallbackWithContext, InputEvent, InputKeyOk, view_set_context, view_set_input_callback,
+};
 use alloc::boxed::Box;
+use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::ffi::{CStr, c_char, c_void};
 use core::option::Option;
-use alloc::rc::Rc;
-use crate::miri_bindings::gui::view::{View, view_alloc, view_free};
-use crate::CallbackWithContext;
 
 pub struct VariableItemList {
     enter_callback: Option<CallbackWithContext<VariableItemListEnterCallback>>,
 
+    selected_item_index: u32,
     items: Vec<Rc<VariableItem>>,
     view: *mut View,
 }
@@ -28,11 +31,46 @@ pub type VariableItemListEnterCallback =
 pub unsafe fn variable_item_list_alloc() -> *mut VariableItemList {
     let view = unsafe { view_alloc() };
 
-    Box::into_raw(Box::new(VariableItemList {
+    unsafe extern "C" fn handle_input(
+        input_event: *mut InputEvent,
+        context: *mut core::ffi::c_void,
+    ) -> bool {
+        let context: &mut VariableItemList = unsafe { &mut *context.cast() };
+        let input_event = unsafe { &*input_event };
+
+        match input_event.key {
+            InputKeyOk => {
+                let Some(ref enter_callback) = context.enter_callback else {
+                    panic!("A variable item list should always have an on click event")
+                };
+                let callback = enter_callback
+                    .callback
+                    .expect("ViewPortInputCallback is only nullable for FFI reasons");
+                unsafe { callback(enter_callback.context, context.selected_item_index) };
+            }
+            InputKeyLeft => todo!(),
+            InputKeyRight => todo!(),
+            InputKeyDown => todo!(),
+            InputKeyUp => todo!(),
+        }
+
+        true
+    }
+
+    let variable_item_list = VariableItemList {
         enter_callback: None,
         items: Vec::new(),
+        selected_item_index: 0,
         view,
-    }))
+    };
+
+    let view = variable_item_list.view;
+
+    let res = Box::into_raw(Box::new(variable_item_list));
+    unsafe { view_set_input_callback(view, Some(handle_input)) };
+    unsafe { view_set_context(view, res as *mut _) };
+
+    res
 }
 #[doc = "Deinitialize and free VariableItemList\n\n # Arguments\n\n* `variable_item_list` - VariableItemList instance"]
 pub unsafe fn variable_item_list_free(variable_item_list: *mut VariableItemList) {
