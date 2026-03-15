@@ -14,7 +14,7 @@ use core::{
 use flipperzero_sys as sys;
 
 pub struct VariableItemList<'a, T> {
-    inner: VariableItemListInner,
+    inner: NonNull<sys::VariableItemList>,
     strings: Vec<FuriString>,
     context: CallbackContext<'a, T>,
 }
@@ -109,7 +109,7 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         };
 
         let res = Self {
-            inner: VariableItemListInner(inner),
+            inner,
             strings: Vec::new(),
             context: Mutex::new(callback_context),
         };
@@ -338,7 +338,7 @@ impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
         };
 
         let res = Self {
-            inner: VariableItemListInner(inner),
+            inner,
             strings: Vec::new(),
             context: Mutex::new(callback_context),
         };
@@ -371,7 +371,7 @@ impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
 impl<'callback, T> VariableItemList<'callback, T> {
     /// Get pointer to the underlying [`sys::VariableItemList`].
     pub fn as_raw(&self) -> *mut sys::VariableItemList {
-        self.inner.0.as_ptr()
+        self.inner.as_ptr()
     }
 
     /// Consumes the `VariableItemList`, adding its `View` to the `ViewDispatcher` and returning a
@@ -390,7 +390,7 @@ impl<'callback, T> VariableItemList<'callback, T> {
         id: u32,
         view_dispatcher: &'a mut ViewDispatcher<'gui, C>,
     ) -> VariableItemListBoundToViewDispatcher<'callback, 'gui, C, T> {
-        let raw = unsafe { sys::variable_item_list_get_view(self.inner.0.as_ptr()) };
+        let raw = unsafe { sys::variable_item_list_get_view(self.inner.as_ptr()) };
         let view = unsafe { View::new_from_raw(raw) };
 
         match view_dispatcher.add_view(id, view) {
@@ -449,5 +449,3 @@ impl<'callbacks, 'gui, VDC: ViewDispatcherCallbacks, OnClickCallbacks: 'callback
         &mut self.inner
     }
 }
-
-pub struct VariableItemListInner(NonNull<sys::VariableItemList>);
