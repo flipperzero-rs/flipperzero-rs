@@ -252,7 +252,7 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
                 if view_dispatcher_guard.input_channel.is_none() {
                     break;
                 }
-                view_dispatcher_guard.unlock();
+
                 miri_spin_loop();
             }
 
