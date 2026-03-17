@@ -149,7 +149,7 @@ impl Submenu {
     ///
     /// Note that the submenu does not define a [previous view](`ViewCallbacks::on_back_event`),
     /// and so any back events that occur while this view is current will not be consumed, and will
-    /// control to [`ViewDispatcherCallbacks::on_navigation`].
+    /// hand control to [`ViewDispatcherCallbacks::on_navigation`].
     #[cfg(feature = "alloc")]
     pub fn bind_to_view_dispatcher<'a, 'gui, C: ViewDispatcherCallbacks>(
         self,
