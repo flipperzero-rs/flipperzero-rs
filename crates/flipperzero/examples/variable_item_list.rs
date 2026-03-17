@@ -27,7 +27,6 @@ use flipperzero::gui::{
 };
 use flipperzero::{format, prelude::FuriString};
 use flipperzero_rt::{entry, manifest};
-use alloc::string::ToString;
 
 manifest!(name = "Rust Variable Item List example");
 entry!(main);
@@ -61,10 +60,12 @@ struct IncrementGlobalCounterCallback<'a> {
 
 impl Callback for IncrementGlobalCounterCallback<'_> {
     fn on_click(&self, _item: &VariableItem) -> () {
-        miri_write_to_stdout(b"Incrementing by ");
-        miri_write_to_stdout(&format!("{}", self.increment_by).bytes().collect::<alloc::vec::Vec<u8>>());
-        miri_write_to_stdout(b"\n");
-        self.counter.fetch_add(self.increment_by, Ordering::Relaxed);
+        {
+            let msg = alloc::format!("Incrementing by: {}\n", self.increment_by);
+            miri_write_to_stdout(msg.as_bytes());
+        }
+
+        self.counter.fetch_add(self.increment_by, Ordering::SeqCst);
     }
 }
 
@@ -81,15 +82,26 @@ struct ChangeIncrementAmountCallback<'a> {
 
 impl Callback for IncrementGlobalCounterByVariableCallback<'_> {
     fn on_click(&self, _item: &VariableItem) -> () {
-        self.counter
-            .fetch_add(self.increment_by.load(Ordering::Relaxed), Ordering::Relaxed);
+        let val = self.increment_by.load(Ordering::SeqCst);
+
+        {
+            let msg = alloc::format!("Incrementing by variable amount: {}\n", val);
+            miri_write_to_stdout(msg.as_bytes());
+        }
+
+        self.counter.fetch_add(val, Ordering::SeqCst);
     }
 }
 
 impl OnCurrentValueTextChangedCallbacks for ChangeIncrementAmountCallback<'_> {
     fn get_new_label(&self, _item: &VariableItem, value: u8) -> flipperzero::prelude::FuriString {
-        let val: i8 = (self.number_of_options - value) as i8 + self.min_value;
-        self.increment_amount.store(val, Ordering::Relaxed);
+        let val: i8 = (value as i8) + self.min_value;
+        self.increment_amount.store(val, Ordering::SeqCst);
+
+        {
+            let msg = alloc::format!("Setting variable increment amount to: {}\n", val);
+            miri_write_to_stdout(msg.as_bytes());
+        }
 
         format!("{}", val)
     }
@@ -134,7 +146,7 @@ fn main(_args: Option<&CStr>) -> i32 {
         },
     );
 
-    let increment_amount = AtomicI8::new(0);
+    let increment_amount = AtomicI8::new(-2);
     let change_counter_callback = IncrementGlobalCounterByVariableCallback {
         counter: &counter,
         increment_by: &increment_amount,
@@ -177,6 +189,12 @@ fn run_until_exit(view_dispatcher: ViewDispatcher<'_, State>) -> i32 {
 }
 
 #[cfg(miri)]
+struct SendContext<'a> {
+    gui: Arc<flipperzero_sys::Gui>,
+    counter: &'a AtomicI8,
+}
+
+#[cfg(miri)]
 fn run_until_exit_miri(
     view_dispatcher: ViewDispatcher<'_, State>,
     variable_item_list_view: VariableItemListBoundToViewDispatcher<
@@ -190,9 +208,11 @@ fn run_until_exit_miri(
 ) -> i32 {
     use alloc::sync::Arc;
 
+    let context = SendContext { gui, counter };
+
     let thread_id = {
         // SAFETY: Arc was generated above
-        unsafe { miri_thread_spawn(send_events_for_miri, Arc::into_raw(gui) as *mut _) }
+        unsafe { miri_thread_spawn(send_events_for_miri, &raw const context as *mut _) }
     };
 
     unsafe { miri_set_thread_name(thread_id, c"miri event sender".as_ptr()) };
@@ -212,39 +232,49 @@ fn run_until_exit_miri(
 
     unsafe { miri_thread_join(thread_id) };
 
-    assert_eq!(counter.load(Ordering::Acquire), 2);
+    assert_eq!(counter.load(Ordering::SeqCst), 2);
 
     0
 }
 
 #[cfg(miri)]
 extern "Rust" fn send_events_for_miri(data: *mut ()) {
-    use flipperzero::input::{InputEvent, InputKey, InputType};
+    use flipperzero::input::{InputEvent, InputKey, InputType, miri::send};
     use flipperzero_sys as sys;
 
-    let gui: Arc<sys::Gui> = unsafe { Arc::from_raw(data as *const _) };
+    let context: &SendContext = unsafe { &*data.cast::<SendContext>() };
+    let counter = &context.counter;
+    let gui = &context.gui;
 
-    {
-        let mut gui = gui.lock(b"send input event 0");
-        let input_event = InputEvent {
-            sequence: 0.into(),
-            key: InputKey::Ok,
-            r#type: InputType::Short,
-        };
-        miri_write_to_stdout(b"Ok event 0 -- Add 2\n");
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
+    send!(Ok event to gui); // do nothing, this is a plaintext item
+    assert_eq!(counter.load(Ordering::SeqCst), 0);
 
-    {
-        let mut gui = gui.lock(b"send input event 1");
-        let input_event = InputEvent {
-            sequence: 1.into(),
-            key: InputKey::Back,
-            r#type: InputType::Short,
-        };
-        miri_write_to_stdout(b"Back event 1\n");
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
+    send!(Down event to gui); // move to +2
+    send!(Ok event to gui); // add 2
+    assert_eq!(counter.load(Ordering::SeqCst), 2);
+
+    send!(Down event to gui); // move to +3
+    send!(Down event to gui); // move to -1
+    send!(Ok event to gui); // subtract 1
+    assert_eq!(counter.load(Ordering::SeqCst), 1);
+
+    send!(Down event to gui); // move to add variable amount item
+    send!(Ok event to gui); // add default variable amount, which is -2
+    assert_eq!(counter.load(Ordering::SeqCst), -1);
+
+    send!(Down event to gui); // move to the setting for the variable amount to add
+    send!(Right event to gui 4 times); // increase to 2
+    send!(Up event to gui); // move to add variable amount item
+    send!(Ok event to gui); // add variable amount, which is 2
+    assert_eq!(counter.load(Ordering::SeqCst), 1);
+
+    send!(Down event to gui); // move to the setting for the variable amount to add
+    send!(Left event to gui); // decrease to 1
+    send!(Up event to gui); // move to add variable amount item
+    send!(Ok event to gui); // add variable amount, which is 1
+    assert_eq!(counter.load(Ordering::SeqCst), 2);
+
+    send!(Back event to gui); // back event to exit out
 }
 
 #[cfg(miri)]

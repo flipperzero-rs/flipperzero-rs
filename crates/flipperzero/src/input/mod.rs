@@ -127,3 +127,32 @@ impl From<InputEventSequence> for SysInputEventSequence {
         Self { sequence: value.0 }
     }
 }
+
+#[cfg(miri)]
+pub mod miri {
+    #[macro_export]
+    macro_rules! send {
+        ($key:ident event to $gui:ident) => {{
+            let mut gui = $gui.lock(b"send input event");
+            let input_event = InputEvent {
+                sequence: 1.into(),
+                key: InputKey::$key,
+                r#type: InputType::Short,
+            };
+
+            {
+                let msg = alloc::format!("Sending input event: {}\n", stringify!($key));
+                miri_write_to_stdout(msg.as_bytes());
+            }
+
+            sys::GuiInner::send_input_event(&mut gui, input_event.into());
+        }};
+        ($key:ident event to $gui:ident $count:literal times) => {
+            for _ in 0..$count {
+                send!($key event to $gui)
+            }
+        };
+    }
+
+    pub use send;
+}
