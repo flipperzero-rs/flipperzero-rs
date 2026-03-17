@@ -464,10 +464,13 @@ pub unsafe fn memmgr_get_minimum_free_heap() -> usize {
 }
 
 pub(super) mod lock {
-    use crate::miri_bindings::utils::*;
+    use crate::miri_bindings::utils::miri_spin_loop;
+    // use crate::miri_bindings::utils::miri_write_to_stdout;
     use core::cell::UnsafeCell;
     use core::ops::{Deref, DerefMut};
     use core::sync::atomic::{AtomicBool, Ordering};
+
+    fn miri_write_to_stdout(bytes: &[u8]) {}
 
     pub struct SpinLock<T> {
         data: UnsafeCell<T>,

@@ -243,8 +243,6 @@ pub(crate) mod gui_inner {
             let old_input_event = gui_lock.input_channel.replace(input_event);
             debug_assert!(old_input_event.is_none());
 
-            miri_write_to_stdout(b"Unlocking GUI while waiting for input event to be taken\n");
-
             gui_lock.unlock();
             // OPTIMISATION: we unlock the GUI here to allow the service thread to `take` the input
             // event we just inserted. there's no point doing that if we're not going to yield
@@ -257,14 +255,10 @@ pub(crate) mod gui_inner {
 
             // spin until the other thread takes the input out of the channel
             loop {
-                miri_write_to_stdout(b"Locking GUI again to check if input event was be taken\n");
-
                 gui_lock.reacquire();
                 if gui_lock.input_channel.is_none() {
-                    miri_write_to_stdout(b"Was -- all done\n");
                     break;
                 }
-                miri_write_to_stdout(b"Wasn't -- unlocking again\n");
                 gui_lock.unlock();
                 miri_spin_loop();
             }
