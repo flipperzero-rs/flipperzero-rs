@@ -4,6 +4,7 @@ use crate::furi::string::FuriString;
 use crate::furi::sync::Mutex;
 use crate::gui::view::View;
 use crate::gui::view_dispatcher::{ViewDispatcher, ViewDispatcherCallbacks, ViewDispatcherView};
+use alloc::sync::Arc;
 use alloc::{boxed::Box, vec::Vec};
 use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
@@ -16,7 +17,7 @@ use flipperzero_sys as sys;
 pub struct VariableItemList<'a, T> {
     inner: NonNull<sys::VariableItemList>,
     strings: Vec<FuriString>,
-    context: CallbackContext<'a, T>,
+    context: Arc<CallbackContext<'a, T>>,
 }
 
 pub struct VariableItem {
@@ -89,16 +90,19 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         };
 
         unsafe extern "C" fn dispatch_callback<'callbacks>(context: *mut c_void, index: u32) -> () {
-            let context =
-                unsafe { &mut *(context as *mut CallbackContext<UniqueCallbackForEachItem>) };
+            unsafe { Arc::increment_strong_count(context) };
 
-            let mut context = context.lock();
+            let context: Arc<CallbackContext<UniqueCallbackForEachItem>> =
+                unsafe { Arc::from_raw(context.cast()) };
 
-            let Some(callback_for_item) = context.callback.get_callback_for_item_at_index(index)
+            let mut context_guard = context.lock();
+
+            let Some(callback_for_item) =
+                context_guard.callback.get_callback_for_item_at_index(index)
             else {
                 return;
             };
-            let item = context.get_item_at_index(index);
+            let item = context_guard.get_item_at_index(index);
 
             callback_for_item.on_click(item);
         }
@@ -111,14 +115,14 @@ impl<'callbacks> VariableItemList<'callbacks, UniqueCallbackForEachItem<'callbac
         let res = Self {
             inner,
             strings: Vec::new(),
-            context: Mutex::new(callback_context),
+            context: Arc::new(Mutex::new(callback_context)),
         };
 
         unsafe {
             sys::variable_item_list_set_enter_callback(
                 inner.as_ptr(),
                 Some(dispatch_callback),
-                (&raw const res.context).cast_mut().cast(),
+                Arc::as_ptr(&res.context).cast_mut().cast(),
             );
         };
 
@@ -340,14 +344,14 @@ impl<'callback, C: Callback + 'callback> VariableItemList<'callback, C> {
         let res = Self {
             inner,
             strings: Vec::new(),
-            context: Mutex::new(callback_context),
+            context: Arc::new(Mutex::new(callback_context)),
         };
 
         unsafe {
             sys::variable_item_list_set_enter_callback(
                 inner.as_ptr(),
                 Some(dispatch_callback::<C>),
-                (&raw const res.context).cast_mut().cast(),
+                Arc::as_ptr(&res.context).cast_mut().cast(),
             );
         };
 
