@@ -72,6 +72,7 @@ pub(crate) mod gui_inner {
     use crate::lock::SpinLockGuard;
     use crate::miri_bindings::lock::SpinLock;
     use alloc::sync::Arc;
+    use alloc::boxed::Box;
     use core::ptr::NonNull;
 
     #[repr(C)]
@@ -196,13 +197,9 @@ pub(crate) mod gui_inner {
             let input_callback =
                 input_callback.expect("ViewPortInputCallback is only nullable for FFI reasons");
 
-            let input = Arc::new(input);
-            unsafe {
-                input_callback(
-                    Arc::into_raw(input.clone()).cast_mut(),
-                    input_callback_context,
-                )
-            };
+            let input_ptr = Box::into_raw(Box::new(input));
+
+            unsafe { input_callback(input_ptr, input_callback_context) };
         }
 
         fn redraw(&mut self) -> () {
