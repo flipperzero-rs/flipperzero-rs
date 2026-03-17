@@ -1,9 +1,8 @@
 extern crate alloc;
 
 use crate::miri_bindings::gui::view::{View, view_alloc, view_free};
-use crate::{
-    CallbackWithContext, InputEvent, InputKeyOk, view_set_context, view_set_input_callback,
-};
+use crate::miri_bindings::utils::miri_write_to_stdout;
+use crate::{CallbackWithContext, InputEvent, view_set_context, view_set_input_callback};
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
@@ -21,6 +20,8 @@ pub struct VariableItemList {
 pub struct VariableItem {
     current_value_index: Option<u8>,
     current_value_text: Option<&'static CStr>,
+    values_count: u8,
+    change_callback: VariableItemChangeCallback,
 }
 
 pub type VariableItemChangeCallback = Option<unsafe extern "C" fn(item: *mut VariableItem)>;
@@ -38,23 +39,76 @@ pub unsafe fn variable_item_list_alloc() -> *mut VariableItemList {
         let context: &mut VariableItemList = unsafe { &mut *context.cast() };
         let input_event = unsafe { &*input_event };
 
+        use crate::miri_bindings::input;
+
         match input_event.key {
-            InputKeyOk => {
+            input::InputKeyOk => {
                 let Some(ref enter_callback) = context.enter_callback else {
                     panic!("A variable item list should always have an on click event")
                 };
                 let callback = enter_callback
                     .callback
                     .expect("ViewPortInputCallback is only nullable for FFI reasons");
-                unsafe { callback(enter_callback.context, context.selected_item_index) };
-            }
-            InputKeyLeft => todo!(),
-            InputKeyRight => todo!(),
-            InputKeyDown => todo!(),
-            InputKeyUp => todo!(),
-        }
 
-        true
+                miri_write_to_stdout(b"Invoking variable item list enter callback\n");
+
+                unsafe { callback(enter_callback.context, context.selected_item_index) };
+
+                true
+            }
+            input::InputKeyLeft => {
+                let Some(selected_item) =
+                    context.items.get_mut(context.selected_item_index as usize)
+                else {
+                    return true;
+                };
+
+                let selected_item: &mut VariableItem =
+                    unsafe { Rc::get_mut_unchecked(selected_item) };
+
+                if let Some(current_value) = selected_item.current_value_index {
+                    selected_item.current_value_index = Some(if current_value == 0 {
+                        selected_item.values_count
+                    } else {
+                        current_value - 1
+                    });
+                }
+
+                true
+            }
+            input::InputKeyRight => {
+                let Some(selected_item) =
+                    context.items.get_mut(context.selected_item_index as usize)
+                else {
+                    return true;
+                };
+
+                let selected_item: &mut VariableItem =
+                    unsafe { Rc::get_mut_unchecked(selected_item) };
+
+                if let Some(current_value) = selected_item.current_value_index {
+                    selected_item.current_value_index =
+                        Some((current_value + 1) % selected_item.values_count);
+                }
+
+                true
+            }
+            input::InputKeyDown => {
+                context.selected_item_index =
+                    (context.selected_item_index + 1) % context.items.len() as u32;
+                true
+            }
+            input::InputKeyUp => {
+                if context.selected_item_index == 0 {
+                    context.selected_item_index = (context.items.len() as u32) - 1;
+                } else {
+                    context.selected_item_index -= 1;
+                }
+
+                true
+            }
+            _ => false,
+        }
     }
 
     let variable_item_list = VariableItemList {
@@ -99,8 +153,10 @@ pub unsafe fn variable_item_list_add(
 ) -> *mut VariableItem {
     let mut variable_item_list = unsafe { &mut *variable_item_list };
     let item = Rc::new(VariableItem {
-        current_value_index: None,
-        current_value_text: None,
+        current_value_index: (values_count != 0).then_some(0),
+        current_value_text: (values_count != 0).then_some(c"TMP -- will be set"),
+        values_count,
+        change_callback,
     });
     variable_item_list.items.push(item.clone());
     Rc::as_ptr(&item).cast_mut()
