@@ -227,12 +227,12 @@ fn main(_args: Option<&CStr>) -> i32 {
     let submenu = Submenu::new();
     let mut submenu = submenu.bind_to_view_dispatcher(0, &mut view_dispatcher);
 
+    submenu.switch_to_view();
+
     let counter = Counter::new(view_dispatcher.get_ref());
     let Ok(counter_view) = view_dispatcher.add_view(1, counter.view) else {
         unreachable!()
     };
-
-    counter_view.switch_to_view();
 
     let maze = MazeGridVertex::new(view_dispatcher.get_ref());
     let Ok(maze_view) = view_dispatcher.add_view(2, maze.view) else {
@@ -268,8 +268,8 @@ fn run_until_exit(view_dispatcher: ViewDispatcher<'_, State>) -> i32 {
 fn run_until_exit_miri(view_dispatcher: ViewDispatcher<'_, State>, gui: Arc<sys::Gui>) -> i32 {
     assert_eq!(
         Arc::strong_count(&view_dispatcher.0),
-        3,
-        "(before run) [ViewDispatcher, state (via CounterViewRef), state (via MazeViewRef)]]"
+        4,
+        "(before run) [ViewDispatcher, Submenu, state (via CounterViewRef), state (via MazeViewRef)]]"
     );
 
     let thread_id = {
@@ -284,8 +284,8 @@ fn run_until_exit_miri(view_dispatcher: ViewDispatcher<'_, State>, gui: Arc<sys:
     unsafe { miri_thread_join(thread_id) };
     assert_eq!(
         Arc::strong_count(&view_dispatcher.0),
-        3,
-        "(after run) [ViewDispatcher, state (via CounterViewRef), state (via MazeViewRef)]]"
+        4,
+        "(after run) [ViewDispatcher, Submenu, state (via CounterViewRef), state (via MazeViewRef)]]"
     );
 
     drop(view_dispatcher);
@@ -295,51 +295,15 @@ fn run_until_exit_miri(view_dispatcher: ViewDispatcher<'_, State>, gui: Arc<sys:
 
 #[cfg(miri)]
 extern "Rust" fn send_events_for_miri(data: *mut ()) {
+    use flipperzero::input::miri::send;
     let gui: Arc<sys::Gui> = unsafe { Arc::from_raw(data as *const _) };
 
-    {
-        let mut gui = gui.lock();
-        let input_event = InputEvent {
-            sequence: 0.into(),
-            key: InputKey::Up,
-            r#type: InputType::Short,
-        };
-        miri_write_to_stdout(b"Up event 0\n");
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
+    send!(Ok event to gui); // enter the counter view
 
-    {
-        let mut gui = gui.lock();
-        let input_event = InputEvent {
-            sequence: 1.into(),
-            key: InputKey::Back,
-            r#type: InputType::Short,
-        };
-        miri_write_to_stdout(b"Back event 1\n");
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
-
-    {
-        let mut gui = gui.lock();
-        let input_event = InputEvent {
-            sequence: 2.into(),
-            key: InputKey::Down,
-            r#type: InputType::Short,
-        };
-        miri_write_to_stdout(b"Down event 2\n");
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
-
-    {
-        let mut gui = gui.lock();
-        let input_event = InputEvent {
-            sequence: 3.into(),
-            key: InputKey::Back,
-            r#type: InputType::Short,
-        };
-        miri_write_to_stdout(b"Back event 3\n");
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
+    send!(Up event to gui); // counter increase
+    send!(Back event to gui); // reset counter
+    send!(Down event to gui 2 times); // counter decrease
+    send!(Back event to gui); // exit back to submenu
 }
 
 #[cfg(miri)]

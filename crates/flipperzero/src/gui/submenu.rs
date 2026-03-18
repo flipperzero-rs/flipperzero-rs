@@ -221,6 +221,12 @@ impl<'gui, VDC: ViewDispatcherCallbacks> SubmenuBoundToViewDispatcher<'gui, VDC>
     }
 }
 
+impl<'gui, VDC: ViewDispatcherCallbacks> SubmenuBoundToViewDispatcher<'gui, VDC> {
+    pub fn switch_to_view(&self) -> () {
+        self.view.switch_to_view();
+    }
+}
+
 #[cfg(feature = "alloc")]
 impl<'gui, VDC: ViewDispatcherCallbacks> Deref for SubmenuBoundToViewDispatcher<'gui, VDC> {
     type Target = Submenu;
