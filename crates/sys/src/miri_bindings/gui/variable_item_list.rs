@@ -58,14 +58,13 @@ pub unsafe fn variable_item_list_alloc() -> *mut VariableItemList {
                 true
             }
             input::InputKeyLeft => {
-                let Some(selected_item) =
-                    context.items.get_mut(context.selected_item_index as usize)
-                else {
-                    return true;
-                };
+                let selected_item_ptr = context
+                    .items
+                    .get_mut(context.selected_item_index as usize)
+                    .expect("Index should always be in range and have a matching item");
 
                 let selected_item: &mut VariableItem =
-                    unsafe { Rc::get_mut_unchecked(selected_item) };
+                    unsafe { Rc::get_mut_unchecked(selected_item_ptr) };
 
                 if let Some(current_value) = selected_item.current_value_index {
                     selected_item.current_value_index = Some(if current_value == 0 {
@@ -73,23 +72,36 @@ pub unsafe fn variable_item_list_alloc() -> *mut VariableItemList {
                     } else {
                         current_value - 1
                     });
+                    if let Some(callback) = selected_item.change_callback {
+                        unsafe { callback(Rc::as_ptr(selected_item_ptr).cast_mut()) };
+                    }
+                } else {
+                    miri_write_to_stdout(
+                        b"warning: attempted to change option on item that doesn't have options",
+                    );
                 }
 
                 true
             }
             input::InputKeyRight => {
-                let Some(selected_item) =
-                    context.items.get_mut(context.selected_item_index as usize)
-                else {
-                    return true;
-                };
+                let selected_item_ptr = context
+                    .items
+                    .get_mut(context.selected_item_index as usize)
+                    .expect("Index should always be in range and have a matching item");
 
                 let selected_item: &mut VariableItem =
-                    unsafe { Rc::get_mut_unchecked(selected_item) };
+                    unsafe { Rc::get_mut_unchecked(selected_item_ptr) };
 
                 if let Some(current_value) = selected_item.current_value_index {
                     selected_item.current_value_index =
                         Some((current_value + 1) % selected_item.values_count);
+                    if let Some(callback) = selected_item.change_callback {
+                        unsafe { callback(Rc::as_ptr(selected_item_ptr).cast_mut()) };
+                    }
+                } else {
+                    miri_write_to_stdout(
+                        b"warning: attempted to change option on item that doesn't have options",
+                    );
                 }
 
                 true
