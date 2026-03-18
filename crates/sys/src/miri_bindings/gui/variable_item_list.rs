@@ -22,6 +22,7 @@ pub struct VariableItem {
     current_value_text: Option<&'static CStr>,
     values_count: u8,
     change_callback: VariableItemChangeCallback,
+    context: *mut c_void,
 }
 
 pub type VariableItemChangeCallback = Option<unsafe extern "C" fn(item: *mut VariableItem)>;
@@ -157,6 +158,7 @@ pub unsafe fn variable_item_list_add(
         current_value_text: (values_count != 0).then_some(c"TMP -- will be set"),
         values_count,
         change_callback,
+        context
     });
     variable_item_list.items.push(item.clone());
     Rc::as_ptr(&item).cast_mut()
@@ -205,9 +207,11 @@ pub unsafe fn variable_item_set_current_value_text(
 }
 #[doc = "Get item current selected index\n\n # Arguments\n\n* `item` - VariableItem* instance\n\n # Returns\n\nuint8_t current selected index"]
 pub unsafe fn variable_item_get_current_value_index(item: *mut VariableItem) -> u8 {
-    todo!()
+    let item = unsafe { &mut *item };
+    item.current_value_index.unwrap_or_default()
 }
 #[doc = "Get item context\n\n # Arguments\n\n* `item` - VariableItem* instance\n\n # Returns\n\nvoid* item context"]
 pub unsafe fn variable_item_get_context(item: *mut VariableItem) -> *mut c_void {
-    todo!()
+    let item = unsafe { &*item };
+    item.context
 }
