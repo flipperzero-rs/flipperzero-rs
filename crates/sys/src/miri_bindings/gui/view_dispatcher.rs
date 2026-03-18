@@ -355,7 +355,7 @@ pub unsafe fn view_dispatcher_add_view(
     view_id: u32,
     view: *mut super::View,
 ) {
-    let view_dispatcher: &mut ViewDispatcher = unsafe { &mut *view_dispatcher };
+    let view_dispatcher: &ViewDispatcher = unsafe { &*view_dispatcher };
 
     miri_write_to_stdout(b"Attempting to take GUI lock\n");
     let guard = view_dispatcher.gui.as_deref().map(|l| l.lock(b"add view"));
@@ -374,7 +374,7 @@ pub unsafe fn view_dispatcher_add_view(
 
 #[doc = "Remove view from ViewDispatcher\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `view_id` - View id to remove"]
 pub unsafe fn view_dispatcher_remove_view(view_dispatcher: *mut ViewDispatcher, view_id: u32) {
-    let view_dispatcher: &mut ViewDispatcher = unsafe { &mut *view_dispatcher };
+    let view_dispatcher: &ViewDispatcher = unsafe { &*view_dispatcher };
 
     miri_write_to_stdout(b"Attempting to take gui lock in order to remove view from dispatcher\n");
     let guard = view_dispatcher
@@ -394,7 +394,7 @@ pub unsafe fn view_dispatcher_remove_view(view_dispatcher: *mut ViewDispatcher, 
 
 #[doc = "Switch to View\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `view_id` - View id to register\n switching may be delayed till input events complementarity\n reached"]
 pub unsafe fn view_dispatcher_switch_to_view(view_dispatcher: *mut ViewDispatcher, view_id: u32) {
-    let view_dispatcher: &mut ViewDispatcher = unsafe { &mut *view_dispatcher };
+    let view_dispatcher: &ViewDispatcher = unsafe { &*view_dispatcher };
 
     miri_write_to_stdout(b"Attempting to take GUI lock\n");
     let guard = view_dispatcher
