@@ -1,8 +1,11 @@
 extern crate alloc;
 
-use crate::miri_bindings::gui::view::{View, view_alloc, view_free};
+use crate::miri_bindings::CallbackWithContext;
+use crate::miri_bindings::gui::view::{
+    View, view_alloc, view_free, view_set_context, view_set_input_callback,
+};
+use crate::miri_bindings::input::InputEvent;
 use crate::miri_bindings::utils::miri_write_to_stdout;
-use crate::{CallbackWithContext, InputEvent, view_set_context, view_set_input_callback};
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
@@ -170,7 +173,7 @@ pub unsafe fn variable_item_list_add(
         current_value_text: (values_count != 0).then_some(c"TMP -- will be set"),
         values_count,
         change_callback,
-        context
+        context,
     });
     variable_item_list.items.push(item.clone());
     Rc::as_ptr(&item).cast_mut()
