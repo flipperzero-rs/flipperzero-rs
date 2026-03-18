@@ -225,6 +225,8 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
             input_event: *mut InputEvent,
             context: *mut c_void,
         ) {
+            // NOTE: we are holding the GUI lock here
+
             unsafe { Arc::increment_strong_count(input_event) };
             let input_event = unsafe { Arc::from_raw(input_event) };
 
@@ -250,6 +252,14 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
 
             // spin until the other thread takes the input out of the channel
             loop {
+                // NOTE: this can suffer from the ABBA problem, as we're holding the GUI lock here,
+                // and waiting on the view_dispatcher lock, while the view_dispatcher run thread
+                // takes the view_dispatcher lock first, and then may invoke callbacks that could
+                // try and take the GUI lock
+                //
+                // this isn't a problem in the flipper codebase because their input channel can
+                // store more than one input event, and so they don't need to check that the input
+                // event is consumed before queuing another
                 let mut view_dispatcher_guard =
                     view_dispatcher.lock(b"check for input event consumed");
                 if view_dispatcher_guard.input_channel.is_none() {
