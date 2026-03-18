@@ -205,45 +205,12 @@ fn run_until_exit(exit_event_queue: &MessageQueue<()>) -> i32 {
 
 #[cfg(miri)]
 fn run_until_exit_miri(gui: Arc<sys::Gui>) -> i32 {
-    {
-        let mut gui = gui.lock();
-        let input_event = InputEvent {
-            sequence: 0.into(),
-            key: InputKey::Up,
-            r#type: InputType::Press,
-        };
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
+    use flipperzero::input::miri::send;
 
-    {
-        let mut gui = gui.lock();
-        let input_event = InputEvent {
-            sequence: 1.into(),
-            key: InputKey::Down,
-            r#type: InputType::Press,
-        };
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
-
-    {
-        let mut gui = gui.lock();
-        let input_event = InputEvent {
-            sequence: 2.into(),
-            key: InputKey::Down,
-            r#type: InputType::Press,
-        };
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
-
-    {
-        let mut gui = gui.lock();
-        let input_event = InputEvent {
-            sequence: 3.into(),
-            key: InputKey::Back,
-            r#type: InputType::Press,
-        };
-        sys::GuiInner::send_input_event(&mut gui, input_event.into());
-    }
+    send!(Ok event to gui); // no behaviour bound
+    send!(Down event to gui); // increment count
+    send!(Down event to gui); // increment count
+    send!(Back event to gui); // leave
 
     0
 }

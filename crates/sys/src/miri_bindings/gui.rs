@@ -72,7 +72,6 @@ pub(crate) mod gui_inner {
     use crate::lock::SpinLockGuard;
     use crate::miri_bindings::lock::SpinLock;
     use alloc::sync::Arc;
-    use alloc::boxed::Box;
     use core::ptr::NonNull;
 
     #[repr(C)]
@@ -197,9 +196,17 @@ pub(crate) mod gui_inner {
             let input_callback =
                 input_callback.expect("ViewPortInputCallback is only nullable for FFI reasons");
 
-            let input_ptr = Box::into_raw(Box::new(input));
+            // In order to support use of the viewport's input callback directly (which should not
+            // be required to have any knowledge about dropping this object), and in the view
+            // dispatcher (which wants to hang onto this object until its event loop gets a chance
+            // to process it), we need reference counting
+            let input = Arc::new(input);
+            let input_ptr = Arc::into_raw(input);
 
-            unsafe { input_callback(input_ptr, input_callback_context) };
+            unsafe { input_callback(input_ptr.cast_mut(), input_callback_context) };
+
+            miri_write_to_stdout(b"Releasing arc\n");
+            let _ = unsafe { Arc::from_raw(input_ptr) };
         }
 
         fn redraw(&mut self) -> () {

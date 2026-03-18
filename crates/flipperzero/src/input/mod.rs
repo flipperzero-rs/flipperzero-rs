@@ -134,18 +134,22 @@ pub mod miri {
     macro_rules! send {
         ($key:ident event to $gui:ident) => {{
             let mut gui = $gui.lock(b"send input event");
-            let input_event = InputEvent {
+            let input_event = flipperzero::input::InputEvent {
                 sequence: 1.into(),
-                key: InputKey::$key,
-                r#type: InputType::Short,
+                key: flipperzero::input::InputKey::$key,
+                r#type: flipperzero::input::InputType::Short,
             };
 
             {
                 let msg = alloc::format!("Sending input event: {}\n", stringify!($key));
+
+                unsafe extern "Rust" {
+                    pub safe fn miri_write_to_stdout(bytes: &[u8]);
+                }
                 miri_write_to_stdout(msg.as_bytes());
             }
 
-            sys::GuiInner::send_input_event(&mut gui, input_event.into());
+            flipperzero_sys::GuiInner::send_input_event(&mut gui, input_event.into());
         }};
         ($key:ident event to $gui:ident $count:literal times) => {
             for _ in 0..$count {

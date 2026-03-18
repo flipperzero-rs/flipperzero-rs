@@ -35,7 +35,7 @@ pub struct ViewDispatcherInner {
     views: BTreeMap<u32, NonNull<super::View>>,
     current_view: Option<u32>,
 
-    input_channel: Option<Box<InputEvent>>,
+    input_channel: Option<Arc<InputEvent>>,
     event_channel: Option<u32>,
     stop: bool,
 }
@@ -47,6 +47,8 @@ impl ViewDispatcherInner {
                 "Checked before entering this method that the input_channel was populated, and we're the only thread that can take from it"
             )
         };
+
+        let input_event = unsafe { Arc::get_mut_unchecked(&mut input_event) };
 
         miri_write_to_stdout(b"View dispatcher process input event\n");
 
@@ -61,7 +63,7 @@ impl ViewDispatcherInner {
             .expect("The existence was checked on insert");
         let current_view = unsafe { current_view.as_mut() };
 
-        let is_consumed = current_view.process_input(&mut input_event);
+        let is_consumed = current_view.process_input(input_event);
 
         if is_consumed {
             return;
@@ -223,7 +225,8 @@ pub unsafe fn view_dispatcher_alloc() -> *mut ViewDispatcher {
             input_event: *mut InputEvent,
             context: *mut c_void,
         ) {
-            let input_event = unsafe { Box::from_raw(input_event) };
+            unsafe { Arc::increment_strong_count(input_event) };
+            let input_event = unsafe { Arc::from_raw(input_event) };
 
             miri_write_to_stdout(b"View dispatcher's view port queuing input event\n");
             let view_dispatcher =

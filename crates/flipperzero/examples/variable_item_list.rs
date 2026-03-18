@@ -239,8 +239,7 @@ fn run_until_exit_miri(
 
 #[cfg(miri)]
 extern "Rust" fn send_events_for_miri(data: *mut ()) {
-    use flipperzero::input::{InputEvent, InputKey, InputType, miri::send};
-    use flipperzero_sys as sys;
+    use flipperzero::input::miri::send;
 
     let context: &SendContext = unsafe { &*data.cast::<SendContext>() };
     let counter = &context.counter;
