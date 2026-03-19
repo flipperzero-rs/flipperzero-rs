@@ -3,6 +3,7 @@
 //! This must be build with `-Z no-unique-section-names` to ensure that this module
 //! is linked directly into the `.text` section.
 
+#![cfg_attr(miri, feature(core_intrinsics))]
 #![no_std]
 #![deny(rustdoc::broken_intra_doc_links)]
 
@@ -17,6 +18,7 @@ mod thread;
 /// # Safety
 ///
 /// This should never be called manually.
+#[cfg(not(miri))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn _start(args: *mut u8) -> i32 {
     unsafe extern "Rust" {

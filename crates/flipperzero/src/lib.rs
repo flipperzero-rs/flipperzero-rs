@@ -4,6 +4,8 @@
 #![cfg_attr(feature = "document-features", doc = document_features::document_features!())]
 //!
 
+#![feature(get_mut_unchecked)]
+#![feature(associated_type_defaults)]
 #![no_std]
 #![cfg_attr(all(test, not(miri)), no_main)]
 #![cfg_attr(all(test, miri), feature(start))]
@@ -14,21 +16,33 @@
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 extern crate alloc;
 
+#[cfg(not(miri))]
 pub mod bluetooth;
+#[cfg(not(miri))]
 pub mod datetime;
+#[cfg(not(miri))]
 pub mod dialogs;
+#[cfg(not(miri))]
 pub mod dolphin;
 pub mod furi;
 pub mod gpio;
 pub mod gui;
+pub mod input;
+pub(crate) mod internals;
+#[cfg(not(miri))]
 pub mod io;
+#[cfg(not(miri))]
 pub mod locale;
 pub mod macros;
+#[cfg(not(miri))]
 pub mod notification;
 pub mod path;
 pub mod prelude;
+#[cfg(not(miri))]
 pub mod serial;
+#[cfg(not(miri))]
 pub mod storage;
+#[cfg(not(miri))]
 pub mod toolbox;
 pub mod version;
 
@@ -60,6 +74,7 @@ pub mod __macro_support {
     }
 }
 
+#[cfg(not(miri))]
 flipperzero_test::tests_runner!(
     name = "flipperzero-rs Unit Tests",
     stack_size = 4096,

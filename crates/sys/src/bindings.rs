@@ -10892,7 +10892,7 @@ unsafe extern "C" {
     pub fn view_port_is_enabled(view_port: *const ViewPort) -> bool;
 }
 unsafe extern "C" {
-    #[doc = "ViewPort event callbacks\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `callback` - appropriate callback function\n * `context` - context to pass to callback"]
+    #[doc = "Set the ViewPort draw callback\n\n `callback` will be invoked on the GUI thread.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `callback` - the draw callback function\n * `context` - context to pass to callback"]
     pub fn view_port_draw_callback_set(
         view_port: *mut ViewPort,
         callback: ViewPortDrawCallback,
@@ -10900,6 +10900,7 @@ unsafe extern "C" {
     );
 }
 unsafe extern "C" {
+    #[doc = "Set the ViewPort input callback.\n\n `callback` will be invoked on the GUI thread.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `callback` - the input callback function\n * `context` - context to pass to callback"]
     pub fn view_port_input_callback_set(
         view_port: *mut ViewPort,
         callback: ViewPortInputCallback,
@@ -12130,7 +12131,7 @@ unsafe extern "C" {
     pub fn view_dispatcher_send_custom_event(view_dispatcher: *mut ViewDispatcher, event: u32);
 }
 unsafe extern "C" {
-    #[doc = "Set custom event handler\n\n Called on Custom Event, if it is not consumed by view\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherCustomEventCallback instance"]
+    #[doc = "Set custom event handler\n\n > **Note:** this will be called on the thread that invoked view_dispatcher_run\n\n Called when a Custom Event is received, if it is not consumed by view\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherCustomEventCallback instance"]
     pub fn view_dispatcher_set_custom_event_callback(
         view_dispatcher: *mut ViewDispatcher,
         callback: ViewDispatcherCustomEventCallback,
@@ -12144,7 +12145,7 @@ unsafe extern "C" {
     );
 }
 unsafe extern "C" {
-    #[doc = "Set tick event handler\n\n Requires the event loop to be owned by the view dispatcher, i.e.\n it should have been instantiated with `view_dispatcher_alloc`, not\n `view_dispatcher_alloc_ex`.\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherTickEventCallback\n * `tick_period` - callback call period"]
+    #[doc = "Set tick event handler\n\n Requires the event loop to be owned by the view dispatcher, i.e.\n it should have been instantiated with `view_dispatcher_alloc`, not\n `view_dispatcher_alloc_ex`.\n\n > **Note:** `callback` will be called on the thread that invoked view_dispatcher_run\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherTickEventCallback\n * `tick_period` - callback call period"]
     pub fn view_dispatcher_set_tick_event_callback(
         view_dispatcher: *mut ViewDispatcher,
         callback: ViewDispatcherTickEventCallback,

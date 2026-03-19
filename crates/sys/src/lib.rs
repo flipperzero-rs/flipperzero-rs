@@ -2,6 +2,7 @@
 
 #![no_std]
 #![deny(rustdoc::broken_intra_doc_links)]
+#![cfg_attr(miri, feature(get_mut_unchecked))]
 
 // Features that identify thumbv7em-none-eabihf.
 // NOTE: `arm_target_feature` is currently unstable (see rust-lang/rust#44839)
@@ -21,6 +22,23 @@ core::compile_error!("This crate requires `--target thumbv7em-none-eabihf`");
 pub mod furi;
 mod inlines;
 
+#[cfg(miri)]
+#[allow(
+    non_upper_case_globals,
+    non_camel_case_types,
+    non_snake_case,
+    clippy::missing_safety_doc,
+    clippy::transmute_int_to_bool,
+    clippy::useless_transmute,
+    rustdoc::broken_intra_doc_links,
+// https://github.com/rust-lang/rust-bindgen/issues/2807
+    unnecessary_transmutes,
+// https://github.com/rust-lang/rust-bindgen/issues/3053
+    clippy::ptr_offset_with_cast,
+)]
+#[rustfmt::skip]
+mod miri_bindings;
+#[cfg(not(miri))]
 #[allow(
     non_upper_case_globals,
     non_camel_case_types,
@@ -223,14 +241,18 @@ impl_bitfield_enum!(FS_OpenMode);
 impl_bitfield_enum!(FuriFlag);
 impl_bitfield_enum!(FuriHalNfcEvent);
 impl_bitfield_enum!(FuriHalRtcFlag);
+#[cfg(not(miri))]
 impl_bitfield_enum!(FuriHalSerialRxEvent);
 impl_bitfield_enum!(iButtonProtocolFeature);
 impl_bitfield_enum!(Light);
 impl_bitfield_enum!(MfUltralightFeatureSupport);
 impl_bitfield_enum!(SubGhzProtocolFlag);
 
+#[cfg(not(miri))]
 // Re-export bindings
 pub use bindings::*;
+#[cfg(miri)]
+pub use miri_bindings::*;
 
 // Definition of inline functions
 pub use inlines::furi_hal_gpio::*;
