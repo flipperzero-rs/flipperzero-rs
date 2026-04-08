@@ -49,6 +49,9 @@ const WHITESPACE: &[char] = &[
 #[derive(Eq)]
 pub struct FuriString(NonNull<sys::FuriString>);
 
+// SAFETY: The sys::FuriString pointer held by FuriString is unique, and so it is safe to send.
+unsafe impl Send for FuriString {}
+
 impl Drop for FuriString {
     fn drop(&mut self) {
         unsafe { sys::furi_string_free(self.0.as_ptr()) };
