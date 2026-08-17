@@ -35,7 +35,6 @@ lock_api = "0.4"
 uuid = { version = "1.16", default-features = false }
 
 # Toolbox
-digest = "0.10"
 bitflags = "2.4"
 
 # Embedded-hal
