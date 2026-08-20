@@ -14,6 +14,8 @@ jobs:
     defaults:
       run:
         working-directory: ${{ inputs.target }}
+    permissions:
+      checks: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install build dependencies
@@ -25,8 +27,7 @@ jobs:
           working-directory: ${{ inputs.target }}
           all-features: true
           deny: warnings
-          # Broken until https://github.com/auguwu/clippy-action/issues/117 is resolved.
-          # args: --all-targets
+          check-args: --all-targets
 
   clippy-beta:
     name: Clippy (beta)
@@ -35,6 +36,8 @@ jobs:
     defaults:
       run:
         working-directory: ${{ inputs.target }}
+    permissions:
+      checks: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install build dependencies
@@ -52,8 +55,7 @@ jobs:
           working-directory: ${{ inputs.target }}
           all-features: true
           warn: clippy::all
-          # Broken until https://github.com/auguwu/clippy-action/issues/117 is resolved.
-          # args: --all-targets
+          check-args: --all-targets
 
   doc-links:
     name: Intra-doc links
