@@ -29,6 +29,7 @@ pub mod path;
 pub mod prelude;
 pub mod serial;
 pub mod storage;
+pub mod subghz;
 pub mod toolbox;
 pub mod version;
 
