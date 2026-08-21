@@ -15,6 +15,7 @@
 extern crate alloc;
 
 pub mod bluetooth;
+pub mod cdc;
 pub mod datetime;
 pub mod dialogs;
 pub mod dolphin;
