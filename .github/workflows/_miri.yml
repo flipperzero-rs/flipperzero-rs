@@ -1,0 +1,73 @@
+name: Run MIRI against the examples that support that
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+
+jobs:
+  get-miri-examples:
+    name: Build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.target }}
+    outputs:
+      miri-examples: ${{ steps.examples.outputs.examples }}
+    steps:
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+    - run: rustup override set nightly
+    - run: rustup target add thumbv7em-none-eabihf
+    - run: rustup component add miri
+    - name: Find examples
+      id: examples
+      run: |
+        metadata=$(cargo metadata --no-deps --format-version=1)
+        examples=$(echo "$metadata" |
+            jq -c '[.packages[].targets[] |
+              select(.crate_types | contains(["bin"])) |
+              select(.kind | contains(["example"])) |
+              select(
+                  if ."required-features"?
+                  then (."required-features" | contains(["not-miri"]) | not)
+                  else true
+              end) |
+                  .name]')
+        echo "examples=$examples"
+        echo "examples=$examples" >> "$GITHUB_OUTPUT"
+  build-miri-examples:
+    name: Check all targets build under MIRI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.target }}
+    steps:
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+    - run: rustup override set nightly
+    - run: rustup target add thumbv7em-none-eabihf
+    - run: rustup component add miri
+    - name: Build examples under MIRI
+      env:
+        RUSTFLAGS: "--cfg miri"
+      run: cargo check --no-default-features --target thumbv7em-none-eabihf --release --verbose --all
+  run-miri-examples:
+    name: Run MIRI on examples
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.target }}
+    needs: get-miri-examples
+    strategy:
+      matrix:
+        example: ${{ fromJSON(needs.get-miri-examples.outputs.miri-examples) }}
+    steps:
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+    - run: rustup override set nightly
+    - run: rustup target add thumbv7em-none-eabihf
+    - run: rustup component add miri
+    - name: Run Miri
+      run: |
+        echo "${{ matrix.example }}"
+        cargo miri run --target thumbv7em-none-eabihf --release --verbose --example ${{ matrix.example }}

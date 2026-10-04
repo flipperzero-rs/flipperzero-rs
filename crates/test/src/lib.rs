@@ -64,6 +64,7 @@ impl ufmt::uDisplay for TestFailure {
     }
 }
 
+#[cfg(not(miri))]
 pub mod __macro_support {
     use core::ffi::CStr;
 

@@ -14,3 +14,7 @@ jobs:
     uses: ./.github/workflows/_build_and_test.yml
     with:
       target: crates
+  miri:
+    uses: ./.github/workflows/_miri.yml
+    with:
+      target: crates
