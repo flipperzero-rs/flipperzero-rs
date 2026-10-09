@@ -7,6 +7,7 @@ use crate::furi;
 
 /// Check if CPU is in IRQ; or kernel running and IRQ is masked.
 pub fn is_irq_or_masked() -> bool {
+    // SAFETY: this function has no invariants to uphold
     unsafe { sys::furi_kernel_is_irq_or_masked() }
 }
 

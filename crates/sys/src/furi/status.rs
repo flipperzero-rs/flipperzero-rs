@@ -88,7 +88,7 @@ impl ufmt::uDisplay for Error {
 /// The Furi API switches between using `enum FuriStatus`, `int32_t` and `uint32_t`.
 /// Since these all use the same bit representation, we can just "cast" the returns to this type.
 #[repr(transparent)]
-#[derive(Clone, Copy, Debug, ufmt::derive::uDebug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, ufmt::derive::uDebug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 #[must_use]
 pub struct Status(pub i32);
 
