@@ -1,7 +1,7 @@
 # Rust for Flipper Zero 🐬❤️🦀
 
 [![crates.io](https://img.shields.io/crates/v/flipperzero)](https://crates.io/crates/flipperzero)
-[![Flipper Zero API](https://img.shields.io/badge/Flipper%20Zero%20API-87.1-orange)](https://github.com/flipperdevices/flipperzero-firmware/blob/1.4.3/targets/f7/api_symbols.csv)
+[![Flipper Zero API](https://img.shields.io/badge/Flipper%20Zero%20API-88.2-orange)](https://github.com/flipperdevices/flipperzero-firmware/blob/1.5.1/targets/f7/api_symbols.csv)
 [![docs.rs](https://img.shields.io/docsrs/flipperzero)](https://docs.rs/flipperzero)
 [![MIT license](https://img.shields.io/crates/l/flipperzero)](LICENSE)
 
@@ -17,13 +17,14 @@ This means it's not possible to use anything in the [`std`](https://doc.rust-lan
 
 ## SDK version
 
-Currently supports SDK 87.1 ([flipperzero-firmware@1.3.4](https://github.com/flipperdevices/flipperzero-firmware/tree/1.3.4)).
+Currently supports SDK 88.2 ([flipperzero-firmware@1.5.1](https://github.com/flipperdevices/flipperzero-firmware/tree/1.5.1)).
 
 The crate major version number will be updated after a bump in [API version](https://github.com/flipperdevices/flipperzero-firmware/blob/release/targets/f7/api_symbols.csv) in the Flipper Zero firmware.
 
 | Crate version | API version |
 | ------------- | ----------- |
-| HEAD          | 87.1        |
+| HEAD          | 88.2        |
+| 0.17.x        | 88.2        |
 | 0.16.x        | 87.1        |
 | 0.15.x        | 86.0        |
 | 0.14.x        | 79.2        |

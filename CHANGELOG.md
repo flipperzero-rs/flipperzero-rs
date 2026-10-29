@@ -9,7 +9,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+### Changed
+
+### Removed
+
+## [0.17.0]
+
+### Added
+
 - `flipperzero_sys::furi::Status` is now marked `must_use`
+- Updated SDK to 88.2 (firmware 1.5.1)
 
 ### Changed
 
@@ -324,8 +333,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 Initial release!
 
-[Unreleased]: https://github.com/flipperzero-rs/flipperzero/compare/v0.16.0...HEAD
-[0.16.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.15.0
+[Unreleased]: https://github.com/flipperzero-rs/flipperzero/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.17.0
+[0.16.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.16.0
 [0.15.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.15.0
 [0.14.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.14.0
 [0.13.0]: https://github.com/flipperzero-rs/flipperzero/releases/tag/v0.13.0
