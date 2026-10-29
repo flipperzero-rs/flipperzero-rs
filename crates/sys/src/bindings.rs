@@ -166,7 +166,7 @@ impl<T> ::core::fmt::Debug for __IncompleteArrayField<T> {
         fmt.write_str("__IncompleteArrayField")
     }
 }
-pub const API_VERSION: u32 = 5701633;
+pub const API_VERSION: u32 = 5767170;
 pub const LFRFID_T5577_BLOCK_COUNT: u32 = 8;
 pub const LFRFID_T5577_POR_DELAY: u32 = 1;
 pub const LFRFID_T5577_ST_TERMINATOR: u32 = 8;
@@ -6366,9 +6366,6 @@ unsafe extern "C" {
 unsafe extern "C" {
     pub static mut usb_hid_u2f: FuriHalUsbInterface;
 }
-unsafe extern "C" {
-    pub static mut usb_ccid: FuriHalUsbInterface;
-}
 pub const FuriHalUsbStateEventReset: FuriHalUsbStateEvent = FuriHalUsbStateEvent(0);
 pub const FuriHalUsbStateEventWakeup: FuriHalUsbStateEvent = FuriHalUsbStateEvent(1);
 pub const FuriHalUsbStateEventSuspend: FuriHalUsbStateEvent = FuriHalUsbStateEvent(2);
@@ -6495,68 +6492,6 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Clear all pressed consumer keys and send HID report\n"]
     pub fn furi_hal_hid_consumer_key_release_all() -> bool;
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct FuriHalUsbCcidConfig {
-    pub vid: u16,
-    pub pid: u16,
-    pub manuf: [core::ffi::c_char; 32usize],
-    pub product: [core::ffi::c_char; 32usize],
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of FuriHalUsbCcidConfig"][::core::mem::size_of::<FuriHalUsbCcidConfig>() - 68usize];
-    ["Alignment of FuriHalUsbCcidConfig"][::core::mem::align_of::<FuriHalUsbCcidConfig>() - 2usize];
-    ["Offset of field: FuriHalUsbCcidConfig::vid"]
-        [::core::mem::offset_of!(FuriHalUsbCcidConfig, vid) - 0usize];
-    ["Offset of field: FuriHalUsbCcidConfig::pid"]
-        [::core::mem::offset_of!(FuriHalUsbCcidConfig, pid) - 2usize];
-    ["Offset of field: FuriHalUsbCcidConfig::manuf"]
-        [::core::mem::offset_of!(FuriHalUsbCcidConfig, manuf) - 4usize];
-    ["Offset of field: FuriHalUsbCcidConfig::product"]
-        [::core::mem::offset_of!(FuriHalUsbCcidConfig, product) - 36usize];
-};
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CcidCallbacks {
-    pub icc_power_on_callback: ::core::option::Option<
-        unsafe extern "C" fn(
-            dataBlock: *mut u8,
-            dataBlockLen: *mut u32,
-            context: *mut core::ffi::c_void,
-        ),
-    >,
-    pub xfr_datablock_callback: ::core::option::Option<
-        unsafe extern "C" fn(
-            pcToReaderDataBlock: *const u8,
-            pcToReaderDataBlockLen: u32,
-            readerToPcDataBlock: *mut u8,
-            readerToPcDataBlockLen: *mut u32,
-            context: *mut core::ffi::c_void,
-        ),
-    >,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of CcidCallbacks"][::core::mem::size_of::<CcidCallbacks>() - 8usize];
-    ["Alignment of CcidCallbacks"][::core::mem::align_of::<CcidCallbacks>() - 4usize];
-    ["Offset of field: CcidCallbacks::icc_power_on_callback"]
-        [::core::mem::offset_of!(CcidCallbacks, icc_power_on_callback) - 0usize];
-    ["Offset of field: CcidCallbacks::xfr_datablock_callback"]
-        [::core::mem::offset_of!(CcidCallbacks, xfr_datablock_callback) - 4usize];
-};
-unsafe extern "C" {
-    #[doc = "Set CCID callbacks\n\n # Arguments\n\n* `cb` - CcidCallbacks instance\n * `context` - The context for callbacks"]
-    pub fn furi_hal_usb_ccid_set_callbacks(cb: *mut CcidCallbacks, context: *mut core::ffi::c_void);
-}
-unsafe extern "C" {
-    #[doc = "Insert Smart Card"]
-    pub fn furi_hal_usb_ccid_insert_smartcard();
-}
-unsafe extern "C" {
-    #[doc = "Remove Smart Card"]
-    pub fn furi_hal_usb_ccid_remove_smartcard();
 }
 pub const FuriHalSerialIdUsart: FuriHalSerialId = FuriHalSerialId(0);
 pub const FuriHalSerialIdLpuart: FuriHalSerialId = FuriHalSerialId(1);
@@ -6811,13 +6746,15 @@ pub const FuriHalSubGhzPresetOok270Async: FuriHalSubGhzPreset = FuriHalSubGhzPre
 pub const FuriHalSubGhzPresetOok650Async: FuriHalSubGhzPreset = FuriHalSubGhzPreset(2);
 #[doc = "< FM, deviation 2.380371 kHz, asynchronous"]
 pub const FuriHalSubGhzPreset2FSKDev238Async: FuriHalSubGhzPreset = FuriHalSubGhzPreset(3);
+#[doc = "< FM, deviation ~12 kHz, asynchronous"]
+pub const FuriHalSubGhzPreset2FSKDev12KAsync: FuriHalSubGhzPreset = FuriHalSubGhzPreset(4);
 #[doc = "< FM, deviation 47.60742 kHz, asynchronous"]
-pub const FuriHalSubGhzPreset2FSKDev476Async: FuriHalSubGhzPreset = FuriHalSubGhzPreset(4);
+pub const FuriHalSubGhzPreset2FSKDev476Async: FuriHalSubGhzPreset = FuriHalSubGhzPreset(5);
 #[doc = "< MSK, deviation 47.60742 kHz, 99.97Kb/s, asynchronous"]
-pub const FuriHalSubGhzPresetMSK99_97KbAsync: FuriHalSubGhzPreset = FuriHalSubGhzPreset(5);
+pub const FuriHalSubGhzPresetMSK99_97KbAsync: FuriHalSubGhzPreset = FuriHalSubGhzPreset(6);
 #[doc = "< GFSK, deviation 19.042969 kHz, 9.996Kb/s, asynchronous"]
-pub const FuriHalSubGhzPresetGFSK9_99KbAsync: FuriHalSubGhzPreset = FuriHalSubGhzPreset(6);
-pub const FuriHalSubGhzPresetCustom: FuriHalSubGhzPreset = FuriHalSubGhzPreset(7);
+pub const FuriHalSubGhzPresetGFSK9_99KbAsync: FuriHalSubGhzPreset = FuriHalSubGhzPreset(7);
+pub const FuriHalSubGhzPresetCustom: FuriHalSubGhzPreset = FuriHalSubGhzPreset(8);
 #[repr(transparent)]
 #[doc = "Radio Presets"]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -9869,6 +9806,14 @@ pub struct Canvas {
     _unused: [u8; 0],
 }
 unsafe extern "C" {
+    #[doc = "Get canvas buffer.\n\n # Arguments\n\n* `canvas` - Canvas instance\n\n # Returns\n\npointer to buffer"]
+    pub fn canvas_get_buffer(canvas: *mut Canvas) -> *mut u8;
+}
+unsafe extern "C" {
+    #[doc = "Get canvas buffer size.\n\n # Arguments\n\n* `canvas` - Canvas instance\n\n # Returns\n\nsize of canvas in bytes"]
+    pub fn canvas_get_buffer_size(canvas: *const Canvas) -> usize;
+}
+unsafe extern "C" {
     #[doc = "Reset canvas drawing tools configuration\n\n # Arguments\n\n* `canvas` - Canvas instance"]
     pub fn canvas_reset(canvas: *mut Canvas);
 }
@@ -10269,7 +10214,7 @@ unsafe extern "C" {
     pub fn view_tie_icon_animation(view: *mut View, icon_animation: *mut IconAnimation);
 }
 unsafe extern "C" {
-    #[doc = "Set View Draw callback\n\n # Arguments\n\n* `view` - View instance\n * `callback` - draw callback"]
+    #[doc = "Set View Draw callback\n\n callback will be invoked on the GUI thread\n\n # Arguments\n\n* `view` - View instance\n * `callback` - draw callback"]
     pub fn view_set_draw_callback(view: *mut View, callback: ViewDrawCallback);
 }
 unsafe extern "C" {
@@ -10892,7 +10837,7 @@ unsafe extern "C" {
     pub fn view_port_is_enabled(view_port: *const ViewPort) -> bool;
 }
 unsafe extern "C" {
-    #[doc = "ViewPort event callbacks\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `callback` - appropriate callback function\n * `context` - context to pass to callback"]
+    #[doc = "Set the ViewPort draw callback\n\n `callback` will be invoked on the GUI thread.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `callback` - the draw callback function\n * `context` - context to pass to callback"]
     pub fn view_port_draw_callback_set(
         view_port: *mut ViewPort,
         callback: ViewPortDrawCallback,
@@ -10900,6 +10845,7 @@ unsafe extern "C" {
     );
 }
 unsafe extern "C" {
+    #[doc = "Set the ViewPort input callback.\n\n `callback` will be invoked on the GUI thread.\n\n # Arguments\n\n* `view_port` - ViewPort instance\n * `callback` - the input callback function\n * `context` - context to pass to callback"]
     pub fn view_port_input_callback_set(
         view_port: *mut ViewPort,
         callback: ViewPortInputCallback,
@@ -10907,7 +10853,7 @@ unsafe extern "C" {
     );
 }
 unsafe extern "C" {
-    #[doc = "Emit update signal to GUI system.\n\n Rendering will happen later after GUI system process signal.\n\n # Arguments\n\n* `view_port` - ViewPort instance"]
+    #[doc = "Emit update signal to GUI system.\n\n Rendering will happen later, after the GUI system (gui_srv) has processed the signal.\n\n # Arguments\n\n* `view_port` - ViewPort instance"]
     pub fn view_port_update(view_port: *mut ViewPort);
 }
 unsafe extern "C" {
@@ -10958,6 +10904,10 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Send ViewPort to the front\n\n Places selected ViewPort to the top of the drawing stack\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance"]
     pub fn gui_view_port_send_to_front(gui: *mut Gui, view_port: *mut ViewPort);
+}
+unsafe extern "C" {
+    #[doc = "Send ViewPort to the back\n\n Places selected ViewPort to the bottom of the drawing stack\n\n # Arguments\n\n* `gui` - Gui instance\n * `view_port` - ViewPort instance"]
+    pub fn gui_view_port_send_to_back(gui: *mut Gui, view_port: *mut ViewPort);
 }
 unsafe extern "C" {
     #[doc = "Add gui canvas commit callback\n\n This callback will be called upon Canvas commit Callback dispatched from GUI\n thread and is time critical\n\n # Arguments\n\n* `gui` - Gui instance\n * `callback` - GuiCanvasCommitCallback\n * `context` - GuiCanvasCommitCallback context"]
@@ -11165,6 +11115,51 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Set byte input header text\n\n # Arguments\n\n* `byte_input` - byte input instance\n * `text` - text to be shown"]
     pub fn byte_input_set_header_text(byte_input: *mut ByteInput, text: *const core::ffi::c_char);
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DateTimeInput {
+    _unused: [u8; 0],
+}
+#[doc = "callback that is executed on value change"]
+pub type DateTimeChangedCallback =
+    ::core::option::Option<unsafe extern "C" fn(context: *mut core::ffi::c_void)>;
+#[doc = "callback that is executed on back button press"]
+pub type DateTimeDoneCallback =
+    ::core::option::Option<unsafe extern "C" fn(context: *mut core::ffi::c_void)>;
+unsafe extern "C" {
+    #[doc = "Allocate and initialize date/time input\n\n This screen used to input a date and time\n\n # Returns\n\nDateTimeInput instance"]
+    pub fn date_time_input_alloc() -> *mut DateTimeInput;
+}
+unsafe extern "C" {
+    #[doc = "Deinitialize and free date/time input\n\n # Arguments\n\n* `date_time_input` - Date/time input instance"]
+    pub fn date_time_input_free(date_time_input: *mut DateTimeInput);
+}
+unsafe extern "C" {
+    #[doc = "Get date/time input view\n\n # Arguments\n\n* `date_time_input` - Date/time input instance\n\n # Returns\n\nView instance that can be used for embedding"]
+    pub fn date_time_input_get_view(date_time_input: *mut DateTimeInput) -> *mut View;
+}
+unsafe extern "C" {
+    #[doc = "Set date/time input result callback\n\n # Arguments\n\n* `date_time_input` - date/time input instance\n * `changed_callback` - changed callback fn\n * `done_callback` - finished callback fn\n * `callback_context` - callback context\n * `datetime` - date/time value"]
+    pub fn date_time_input_set_result_callback(
+        date_time_input: *mut DateTimeInput,
+        changed_callback: DateTimeChangedCallback,
+        done_callback: DateTimeDoneCallback,
+        callback_context: *mut core::ffi::c_void,
+        datetime: *mut DateTime,
+    );
+}
+unsafe extern "C" {
+    #[doc = "Set date/time fields which can be edited\n\n # Arguments\n\n* `date_time_input` - date/time input instance\n * `year` - whether to allow editing the year\n * `month` - whether to allow editing the month\n * `day` - whether to allow editing the day\n * `hour` - whether to allow editing the hour\n * `minute` - whether to allow editing the minute\n * `second` - whether to allow editing the second"]
+    pub fn date_time_input_set_editable_fields(
+        date_time_input: *mut DateTimeInput,
+        year: bool,
+        month: bool,
+        day: bool,
+        hour: bool,
+        minute: bool,
+        second: bool,
+    );
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -11801,6 +11796,10 @@ unsafe extern "C" {
     ) -> u8;
 }
 unsafe extern "C" {
+    #[doc = "Set item label\n\n # Arguments\n\n* `item` - VariableItem* instance\n * `label` - The label text"]
+    pub fn variable_item_set_item_label(item: *mut VariableItem, label: *const core::ffi::c_char);
+}
+unsafe extern "C" {
     #[doc = "Set item current selected index\n\n # Arguments\n\n* `item` - VariableItem* instance\n * `current_value_index` - The current value index"]
     pub fn variable_item_set_current_value_index(item: *mut VariableItem, current_value_index: u8);
 }
@@ -12130,21 +12129,21 @@ unsafe extern "C" {
     pub fn view_dispatcher_send_custom_event(view_dispatcher: *mut ViewDispatcher, event: u32);
 }
 unsafe extern "C" {
-    #[doc = "Set custom event handler\n\n Called on Custom Event, if it is not consumed by view\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherCustomEventCallback instance"]
+    #[doc = "Set custom event handler\n\n > **Note:** this will be called on the thread that invoked view_dispatcher_run\n\n Called when a Custom Event is received, if it is not consumed by view\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherCustomEventCallback instance"]
     pub fn view_dispatcher_set_custom_event_callback(
         view_dispatcher: *mut ViewDispatcher,
         callback: ViewDispatcherCustomEventCallback,
     );
 }
 unsafe extern "C" {
-    #[doc = "Set navigation event handler\n\n Called on Input Short Back Event, if it is not consumed by view\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherNavigationEventCallback instance"]
+    #[doc = "Set navigation event handler\n\n > **Note:** this will be called on the thread that invoked view_dispatcher_run\n\n Called on Input Short Back Event, if it is not consumed by view\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherNavigationEventCallback instance"]
     pub fn view_dispatcher_set_navigation_event_callback(
         view_dispatcher: *mut ViewDispatcher,
         callback: ViewDispatcherNavigationEventCallback,
     );
 }
 unsafe extern "C" {
-    #[doc = "Set tick event handler\n\n Requires the event loop to be owned by the view dispatcher, i.e.\n it should have been instantiated with `view_dispatcher_alloc`, not\n `view_dispatcher_alloc_ex`.\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherTickEventCallback\n * `tick_period` - callback call period"]
+    #[doc = "Set tick event handler\n\n Requires the event loop to be owned by the view dispatcher, i.e.\n it should have been instantiated with `view_dispatcher_alloc`, not\n `view_dispatcher_alloc_ex`.\n\n > **Note:** `callback` will be called on the thread that invoked view_dispatcher_run\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `callback` - ViewDispatcherTickEventCallback\n * `tick_period` - callback call period"]
     pub fn view_dispatcher_set_tick_event_callback(
         view_dispatcher: *mut ViewDispatcher,
         callback: ViewDispatcherTickEventCallback,
@@ -12171,6 +12170,10 @@ unsafe extern "C" {
 unsafe extern "C" {
     #[doc = "Stop ViewDispatcher\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance"]
     pub fn view_dispatcher_stop(view_dispatcher: *mut ViewDispatcher);
+}
+unsafe extern "C" {
+    #[doc = "Check if a view exists at id.\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `view_id` - View id to check\n\n # Returns\n\nTrue if a view has been added with id, false if not."]
+    pub fn view_dispatcher_check_id(view_dispatcher: *mut ViewDispatcher, view_id: u32) -> bool;
 }
 unsafe extern "C" {
     #[doc = "Add view to ViewDispatcher\n\n # Arguments\n\n* `view_dispatcher` - ViewDispatcher instance\n * `view_id` - View id to register\n * `view` - View instance"]
@@ -20703,8 +20706,10 @@ pub const MfClassicPollerModeRead: MfClassicPollerMode = MfClassicPollerMode(0);
 pub const MfClassicPollerModeWrite: MfClassicPollerMode = MfClassicPollerMode(1);
 #[doc = "< Poller dictionary attack mode."]
 pub const MfClassicPollerModeDictAttackStandard: MfClassicPollerMode = MfClassicPollerMode(2);
+#[doc = "< Poller CUID dictionary attack mode."]
+pub const MfClassicPollerModeDictAttackCUID: MfClassicPollerMode = MfClassicPollerMode(3);
 #[doc = "< Poller enhanced dictionary attack mode."]
-pub const MfClassicPollerModeDictAttackEnhanced: MfClassicPollerMode = MfClassicPollerMode(3);
+pub const MfClassicPollerModeDictAttackEnhanced: MfClassicPollerMode = MfClassicPollerMode(4);
 #[repr(transparent)]
 #[doc = "MfClassic poller mode."]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -20836,19 +20841,23 @@ const _: () = {
 pub struct MfClassicPollerEventDataKeyRequest {
     #[doc = "< Key to be used by poller."]
     pub key: MfClassicKey,
+    #[doc = "< Key type (A or B) for CUID dict attack mode."]
+    pub key_type: MfClassicKeyType,
     #[doc = "< Flag indicating if key is provided."]
     pub key_provided: bool,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of MfClassicPollerEventDataKeyRequest"]
-        [::core::mem::size_of::<MfClassicPollerEventDataKeyRequest>() - 7usize];
+        [::core::mem::size_of::<MfClassicPollerEventDataKeyRequest>() - 8usize];
     ["Alignment of MfClassicPollerEventDataKeyRequest"]
         [::core::mem::align_of::<MfClassicPollerEventDataKeyRequest>() - 1usize];
     ["Offset of field: MfClassicPollerEventDataKeyRequest::key"]
         [::core::mem::offset_of!(MfClassicPollerEventDataKeyRequest, key) - 0usize];
+    ["Offset of field: MfClassicPollerEventDataKeyRequest::key_type"]
+        [::core::mem::offset_of!(MfClassicPollerEventDataKeyRequest, key_type) - 6usize];
     ["Offset of field: MfClassicPollerEventDataKeyRequest::key_provided"]
-        [::core::mem::offset_of!(MfClassicPollerEventDataKeyRequest, key_provided) - 6usize];
+        [::core::mem::offset_of!(MfClassicPollerEventDataKeyRequest, key_provided) - 7usize];
 };
 #[doc = "MfClassic poller read sector request event data.\n\n The instance of this structure must be filled on MfClassicPollerEventTypeRequestReadSector event."]
 #[repr(C)]
@@ -25105,6 +25114,9 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub static subghz_device_cc1101_preset_2fsk_dev2_38khz_async_regs: [u8; 0usize];
+}
+unsafe extern "C" {
+    pub static subghz_device_cc1101_preset_2fsk_dev12khz_async_regs: [u8; 0usize];
 }
 unsafe extern "C" {
     pub static subghz_device_cc1101_preset_2fsk_dev47_6khz_async_regs: [u8; 0usize];
